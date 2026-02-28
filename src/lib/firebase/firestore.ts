@@ -1,0 +1,40 @@
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+  startAfter,
+  getCountFromServer,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  setDoc,
+  serverTimestamp,
+  type QueryConstraint,
+  type DocumentData,
+} from "firebase/firestore";
+import { db } from "./config";
+
+export {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  limit,
+  startAfter,
+  getCountFromServer,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  setDoc,
+  serverTimestamp,
+  db,
+};
+export type { QueryConstraint, DocumentData };

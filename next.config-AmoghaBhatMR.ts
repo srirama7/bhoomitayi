@@ -7,14 +7,6 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "firebasestorage.googleapis.com",
       },
-      {
-        protocol: "https",
-        hostname: "real-estate-b66dd.firebasestorage.app",
-      },
-      {
-        protocol: "https",
-        hostname: "lh3.googleusercontent.com",
-      },
     ],
   },
 };
