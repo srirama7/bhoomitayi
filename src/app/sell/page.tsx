@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import Script from "next/script";
+import { useState, useRef, useEffect, useCallback, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -59,16 +58,7 @@ import {
   INDIAN_STATES,
 } from "@/lib/constants";
 
-declare global {
-  interface Window {
-    Razorpay: new (options: Record<string, unknown>) => {
-      open: () => void;
-      on: (event: string, callback: () => void) => void;
-    };
-  }
-}
-
-const LISTING_FEE = 20;
+const SERVICE_FEE = 20;
 
 type PropertyCategory = "house" | "land" | "pg" | "commercial" | "vehicle" | "commodity";
 type TransactionType = "sell" | "rent" | "commercial_lease";
@@ -107,8 +97,8 @@ const TRANSACTION_OPTIONS: Record<PropertyCategory, { value: TransactionType; la
 };
 
 const STEPS = [
-  "Property Type",
-  "Property Details",
+  "Service Type",
+  "Service Details",
   "Location & Images",
   "Personal Details",
   "Payment",
@@ -116,6 +106,14 @@ const STEPS = [
 ];
 
 export default function SellPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="size-8 animate-spin text-muted-foreground" /></div>}>
+      <SellPageContent />
+    </Suspense>
+  );
+}
+
+function SellPageContent() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const profile = useAuthStore((s) => s.profile);
@@ -135,11 +133,11 @@ export default function SellPage() {
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
 
-  // Step 1: Property Type
+  // Step 1: Service Type
   const [category, setCategory] = useState<PropertyCategory | "">("");
   const [transactionType, setTransactionType] = useState<TransactionType | "">("");
 
-  // Step 2: Property Details (varies by category)
+  // Step 2: Service Details (varies by category)
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState<number | "">("");
@@ -202,6 +200,37 @@ export default function SellPage() {
   const [paymentDone, setPaymentDone] = useState(false);
   const [paymentId, setPaymentId] = useState("");
   const [payingNow, setPayingNow] = useState(false);
+  const searchParams = useSearchParams();
+
+  // Handle Cashfree redirect after payment
+  useEffect(() => {
+    const orderId = searchParams.get("order_id");
+    const status = searchParams.get("status");
+    if (orderId && status === "PAID") {
+      // Verify payment on server
+      fetch("/api/cashfree/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId }),
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.orderStatus === "PAID") {
+            setPaymentId(data.orderId);
+            setPaymentDone(true);
+            setStep(4);
+            toast.success("Payment successful! You can now submit your property listing.");
+          } else {
+            toast.error("Payment verification failed. Please try again.");
+          }
+        })
+        .catch(() => {
+          toast.error("Could not verify payment. Please contact support.");
+        });
+      // Clean the URL params
+      window.history.replaceState({}, "", "/sell");
+    }
+  }, [searchParams]);
 
   // Update personal details when profile loads
   useEffect(() => {
@@ -276,7 +305,7 @@ export default function SellPage() {
   function validateStep(): boolean {
     switch (step) {
       case 0:
-        if (!category) { toast.error("Please select a property category"); return false; }
+        if (!category) { toast.error("Please select a service category"); return false; }
         if (!transactionType) { toast.error("Please select a transaction type"); return false; }
         return true;
       case 1:
@@ -324,7 +353,7 @@ export default function SellPage() {
         if (!ownerEmail.trim()) { toast.error("Please enter your email"); return false; }
         return true;
       case 4:
-        if (!paymentDone) { toast.error("Please complete the payment of ₹" + LISTING_FEE + " to proceed"); return false; }
+        if (!paymentDone) { toast.error("Please complete the listing fee payment of ₹" + SERVICE_FEE + " to publish your property"); return false; }
         return true;
       default:
         return true;
@@ -339,50 +368,41 @@ export default function SellPage() {
     setStep((prev) => Math.max(prev - 1, 0));
   }
 
-  const handleRazorpayPayment = useCallback(async () => {
+  const handleCashfreePayment = useCallback(async () => {
     if (!user) return;
     setPayingNow(true);
 
     try {
-      const res = await fetch("/api/razorpay", {
+      const res = await fetch("/api/cashfree", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: LISTING_FEE }),
+        body: JSON.stringify({
+          amount: SERVICE_FEE,
+          customerName: ownerName,
+          customerEmail: ownerEmail,
+          customerPhone: ownerPhone,
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to create order");
-      const { orderId } = await res.json();
+      const { paymentSessionId } = await res.json();
 
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: LISTING_FEE * 100,
-        currency: "INR",
-        name: "PropNest",
-        description: "Property Listing Fee",
-        order_id: orderId,
-        handler: (response: { razorpay_payment_id: string; razorpay_order_id: string }) => {
-          setPaymentId(response.razorpay_payment_id);
-          setPaymentDone(true);
-          setPayingNow(false);
-          toast.success("Payment successful! You can now submit your listing.");
-        },
-        prefill: {
-          name: ownerName,
-          email: ownerEmail,
-          contact: ownerPhone,
-        },
-        theme: { color: "#16a34a" },
-        modal: {
-          ondismiss: () => { setPayingNow(false); },
-        },
+      // Load Cashfree JS SDK dynamically
+      const script = document.createElement("script");
+      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
+      script.onload = () => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const cashfree = (window as any).Cashfree({ mode: "production" });
+        cashfree.checkout({
+          paymentSessionId,
+          redirectTarget: "_self",
+        });
       };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", () => {
-        toast.error("Payment failed. Please try again.");
+      script.onerror = () => {
+        toast.error("Could not load payment gateway. Please try again.");
         setPayingNow(false);
-      });
-      rzp.open();
+      };
+      document.body.appendChild(script);
     } catch {
       toast.error("Could not initiate payment. Please try again.");
       setPayingNow(false);
@@ -507,7 +527,7 @@ export default function SellPage() {
         owner_phone: ownerPhone.trim(),
         owner_email: ownerEmail.trim(),
         payment_id: paymentId,
-        payment_amount: LISTING_FEE,
+        payment_amount: SERVICE_FEE,
         status: "active",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -539,7 +559,7 @@ export default function SellPage() {
       <main className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-center px-4">
           <div className="size-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground">Please log in to list your property</p>
+          <p className="text-muted-foreground">Please log in to register your service</p>
           <p className="text-sm text-muted-foreground">Redirecting to login page...</p>
         </div>
       </main>
@@ -552,7 +572,6 @@ export default function SellPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       {/* Page Hero */}
       <div className="relative overflow-hidden border-b border-zinc-200/80 dark:border-zinc-800/80 bg-gradient-to-br from-green-50 via-emerald-50/50 to-background dark:from-green-950/30 dark:via-emerald-950/20 dark:to-background">
         <div className="absolute inset-0 overflow-hidden">
@@ -562,16 +581,16 @@ export default function SellPage() {
         <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14 text-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-green-50 dark:bg-green-950/40 px-4 py-1.5 text-sm font-medium text-green-600 dark:text-green-400 border border-green-100 dark:border-green-900/50 mb-4">
             <Sparkles className="size-4" />
-            For Property Owners
+            For Service Providers
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-2">
-            List Your{" "}
+            Register Your{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600">
-              Property
+              Service
             </span>
           </h1>
           <p className="mx-auto max-w-xl text-muted-foreground">
-            Fill in the details below to list your property. We will make it visible to thousands of buyers and renters.
+            Fill in the details below to register your service. We will connect you with thousands of potential clients.
           </p>
         </div>
       </div>
@@ -607,16 +626,16 @@ export default function SellPage() {
           </div>
         </div>
 
-        {/* Step 1: Property Type */}
+        {/* Step 1: Service Type */}
         {step === 0 && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
             <Card>
               <CardHeader>
-                <CardTitle>What type of property are you listing?</CardTitle>
+                <CardTitle>What type of service are you registering?</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-3">
-                  <Label>Property Category</Label>
+                  <Label>Service Category</Label>
                   <div className="grid grid-cols-2 gap-3">
                     {CATEGORY_OPTIONS.map((cat) => (
                       <button
@@ -668,12 +687,12 @@ export default function SellPage() {
           </motion.div>
         )}
 
-        {/* Step 2: Property Details */}
+        {/* Step 2: Service Details */}
         {step === 1 && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
             <Card>
               <CardHeader>
-                <CardTitle>Property Details</CardTitle>
+                <CardTitle>Service Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-5">
                 <div className="space-y-2">
@@ -684,7 +703,7 @@ export default function SellPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={4} placeholder="Describe your property in detail..." />
+                  <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} rows={4} placeholder="Describe your service in detail..." />
                   <p className="text-xs text-muted-foreground">{description.length}/2000</p>
                 </div>
 
@@ -1006,7 +1025,7 @@ export default function SellPage() {
               <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <Label htmlFor="address">Full Address</Label>
-                  <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter full property address" />
+                  <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter full address" />
                 </div>
 
                 <div className="space-y-2">
@@ -1015,7 +1034,7 @@ export default function SellPage() {
                 </div>
 
                 <div className="space-y-3">
-                  <Label>Property Images (1-4)</Label>
+                  <Label>Images (1-4)</Label>
                   <div
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={handleDrop}
@@ -1114,7 +1133,7 @@ export default function SellPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <IndianRupee className="size-5 text-green-600" />
-                  Listing Fee Payment
+                  Property Listing Fee
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -1124,7 +1143,7 @@ export default function SellPage() {
                     <p className="font-semibold text-green-800 dark:text-green-300">One-time listing fee</p>
                   </div>
                   <p className="text-sm text-green-700 dark:text-green-400">
-                    A small fee of <span className="font-bold text-lg">&#8377;{LISTING_FEE}</span> is required to publish your listing. This helps us maintain quality listings on PropNest.
+                    A small listing fee of <span className="font-bold text-lg">&#8377;{SERVICE_FEE}</span> is required to publish your property listing. This helps us maintain quality listings on BhoomiTayi.
                   </p>
                 </div>
 
@@ -1136,9 +1155,9 @@ export default function SellPage() {
                     <div className="text-center">
                       <p className="text-xl font-bold text-green-600">Payment Successful!</p>
                       <p className="text-sm text-muted-foreground mt-1">Transaction ID: {paymentId}</p>
-                      <p className="text-sm text-muted-foreground">Amount: &#8377;{LISTING_FEE}</p>
+                      <p className="text-sm text-muted-foreground">Amount: &#8377;{SERVICE_FEE}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">Click &quot;Next&quot; to review and submit your listing.</p>
+                    <p className="text-sm text-muted-foreground">Click &quot;Next&quot; to review and submit your property listing.</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-5 py-4">
@@ -1146,12 +1165,12 @@ export default function SellPage() {
                       <CreditCard className="size-10 text-green-600" />
                     </div>
                     <div className="text-center">
-                      <p className="text-3xl font-bold text-foreground">&#8377;{LISTING_FEE}</p>
-                      <p className="text-sm text-muted-foreground mt-1">Pay securely via UPI using Razorpay</p>
+                      <p className="text-3xl font-bold text-foreground">&#8377;{SERVICE_FEE}</p>
+                      <p className="text-sm text-muted-foreground mt-1">Pay securely via Cashfree</p>
                     </div>
                     <Button
                       size="lg"
-                      onClick={handleRazorpayPayment}
+                      onClick={handleCashfreePayment}
                       disabled={payingNow}
                       className="gap-2 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-600/20 px-8 text-base"
                     >
@@ -1163,12 +1182,12 @@ export default function SellPage() {
                       ) : (
                         <>
                           <IndianRupee className="size-5" />
-                          Pay &#8377;{LISTING_FEE} via UPI
+                          Pay &#8377;{SERVICE_FEE} Listing Fee
                         </>
                       )}
                     </Button>
                     <p className="text-xs text-muted-foreground text-center max-w-sm">
-                      Secure payment powered by Razorpay. Only UPI payment method is available.
+                      Secure payment powered by Cashfree. UPI &amp; other methods available.
                     </p>
                   </div>
                 )}
@@ -1185,9 +1204,9 @@ export default function SellPage() {
                 <CardTitle>Review Your Listing</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Property Type */}
+                {/* Service Type */}
                 <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">Property Type</h3>
+                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">Service Type</h3>
                   <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                     <div>
                       <dt className="text-muted-foreground">Category</dt>
@@ -1339,8 +1358,8 @@ export default function SellPage() {
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">Payment</h3>
                   <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    <div><dt className="text-muted-foreground">Amount Paid</dt><dd className="font-medium text-green-600">&#8377;{LISTING_FEE}</dd></div>
-                    <div><dt className="text-muted-foreground">Razorpay Payment ID</dt><dd className="font-medium">{paymentId}</dd></div>
+                    <div><dt className="text-muted-foreground">Amount Paid</dt><dd className="font-medium text-green-600">&#8377;{SERVICE_FEE}</dd></div>
+                    <div><dt className="text-muted-foreground">Transaction ID</dt><dd className="font-medium">{paymentId}</dd></div>
                     <div><dt className="text-muted-foreground">Payment Status</dt><dd className="font-medium text-green-600">Paid</dd></div>
                   </dl>
                 </div>

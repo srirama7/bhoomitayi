@@ -100,23 +100,23 @@ const HOW_IT_WORKS = [
   {
     step: "01",
     title: "Search",
-    description: "Browse thousands of properties across India. Filter by city, category, and budget to find exactly what you need.",
+    description: "Browse verified property listings across India. Filter by city, property type, and budget to find your perfect home.",
     Icon: Search,
     gradient: "from-blue-500 to-indigo-600",
     color: "blue",
   },
   {
     step: "02",
-    title: "Contact",
-    description: "Connect directly with property owners. No middlemen, no hidden fees. Get all the details you need.",
+    title: "Connect",
+    description: "Connect directly with verified property owners. Get property details, schedule site visits, and negotiate transparent pricing.",
     Icon: Users,
     gradient: "from-violet-500 to-purple-600",
     color: "violet",
   },
   {
     step: "03",
-    title: "Move In",
-    description: "Finalize the deal and move into your new space. We make the transition as smooth as possible.",
+    title: "Get Started",
+    description: "Finalize your property deal and move in. We ensure a smooth, secure, and hassle-free experience.",
     Icon: Home,
     gradient: "from-pink-500 to-rose-600",
     color: "pink",
@@ -124,7 +124,7 @@ const HOW_IT_WORKS = [
 ];
 
 const STATS = [
-  { value: "10,000+", label: "Properties", Icon: Building },
+  { value: "10,000+", label: "Services", Icon: Building },
   { value: "500+", label: "Cities", Icon: MapPin },
   { value: "50,000+", label: "Users", Icon: Users },
 ];
@@ -192,7 +192,7 @@ export default function HomePage() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 1, delay: 0.5 }}
                 >
-                  Property
+                  Space
                 </motion.span>
               </motion.h1>
               <motion.p
@@ -201,7 +201,7 @@ export default function HomePage() {
                 transition={{ duration: 0.8, delay: 0.4 }}
                 className="mx-auto max-w-2xl text-lg sm:text-xl text-blue-100/80 leading-relaxed"
               >
-                Buy, Sell, or Rent &mdash; Houses, Land, PG, Commercial, Vehicles &amp; More across India
+                India&apos;s trusted real estate marketplace &mdash; find your dream property, list your home, buy, sell &amp; rent
               </motion.p>
             </div>
 
@@ -245,7 +245,7 @@ export default function HomePage() {
               </span>
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground text-lg">
-              Whatever property you are looking for, we have got you covered.
+              Explore our consulting services across multiple categories.
             </p>
           </div>
         </AnimatedSection>
@@ -317,7 +317,7 @@ export default function HomePage() {
                 </span>
               </h2>
               <p className="mx-auto max-w-xl text-muted-foreground text-lg">
-                Finding your next property is as easy as 1-2-3.
+                Getting started with our consulting services is easy.
               </p>
             </div>
           </AnimatedSection>
@@ -417,8 +417,8 @@ export default function HomePage() {
                   </span>
                 </h2>
                 <p className="mx-auto max-w-xl text-muted-foreground text-lg leading-relaxed">
-                  Join thousands of property owners who trust PropNest. List your property
-                  in minutes and reach millions of potential buyers and renters.
+                  Join thousands of property owners who trust BhoomiTayi. List your property
+                  in minutes and reach millions of potential buyers and tenants across India.
                 </p>
               </div>
 
@@ -431,7 +431,7 @@ export default function HomePage() {
                   >
                     <Link href="/sell">
                       <Sparkles className="size-5" />
-                      List Your Property
+                      Register Your Service
                       <ArrowRight className="size-5" />
                     </Link>
                   </Button>
@@ -443,7 +443,7 @@ export default function HomePage() {
                     size="lg"
                     className="h-14 px-10 rounded-2xl font-semibold text-base border-2 border-zinc-300 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition-all"
                   >
-                    <Link href="/houses">Browse Properties</Link>
+                    <Link href="/houses">Browse Services</Link>
                   </Button>
                 </motion.div>
               </div>

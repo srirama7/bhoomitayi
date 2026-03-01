@@ -14,12 +14,14 @@ const browseLinks = [
 const accountLinks = [
   { label: "Dashboard", href: "/dashboard" },
   { label: "Favorites", href: "/dashboard/favorites" },
-  { label: "Post Property", href: "/sell" },
+  { label: "Register Service", href: "/sell" },
 ];
 
 const legalLinks = [
+  { label: "About Us", href: "/about" },
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms of Service", href: "/terms" },
+  { label: "Refund Policy", href: "/refund" },
   { label: "Contact Us", href: "/contact" },
 ];
 
@@ -44,12 +46,12 @@ export function Footer() {
                 <Home className="size-5 text-white" />
               </div>
               <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent font-extrabold tracking-tight">
-                PropNest
+                BhoomiTayi
               </span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              Find your perfect property with PropNest. Browse houses, land, PG
-              accommodations, and commercial spaces across India.
+              BhoomiTayi is a real estate marketplace connecting
+              property buyers, sellers, and tenants across India.
             </p>
           </div>
 
@@ -112,7 +114,7 @@ export function Footer() {
         <div className="mt-14 border-t border-zinc-200/80 dark:border-zinc-800/60 pt-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} PropNest. All rights reserved.
+              &copy; {new Date().getFullYear()} BhoomiTayi. All rights reserved.
             </p>
             <p className="flex items-center gap-1 text-xs text-muted-foreground/60">
               Made with <Heart className="size-3 text-red-400 fill-red-400" /> in India
