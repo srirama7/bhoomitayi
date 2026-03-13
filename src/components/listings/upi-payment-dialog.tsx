@@ -84,12 +84,12 @@ export function PaymentGateway({
         {step === "qr" && (
           <div className="px-6 py-5 space-y-4">
             <div className="flex flex-col items-center gap-3">
-              <div className="relative w-[250px] h-[250px] rounded-xl overflow-hidden border-2 border-gray-200 bg-white">
+              <div className="relative w-[250px] h-[250px] rounded-xl overflow-hidden border-2 border-gray-200">
                 <Image
-                  src="/qr_code.jpeg"
+                  src="/qr_code.png"
                   alt="UPI QR Code"
                   fill
-                  className="object-contain object-[center_25%] scale-[1.6]"
+                  className="object-cover"
                   priority
                 />
               </div>
