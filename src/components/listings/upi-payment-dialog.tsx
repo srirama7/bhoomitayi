@@ -26,7 +26,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { load } from "@cashfreepayments/cashfree-js";
 
-const LISTING_FEE = 1;
+const LISTING_FEE = 10;
 
 interface PaymentGatewayProps {
   open: boolean;
