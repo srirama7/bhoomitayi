@@ -1,30 +1,34 @@
 import { NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 
 const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID!;
 const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY!;
 const CASHFREE_API_URL = "https://api.cashfree.com/pg/orders";
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    const { amount, customerName, customerEmail, customerPhone } = await req.json();
+    const { amount, userId, customerName, customerEmail, customerPhone } =
+      await request.json();
 
-    const orderId = `listing_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    if (!amount || !userId) {
+      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    }
+
+    const orderId = `order_${Date.now()}_${randomBytes(4).toString("hex")}`;
 
     const orderPayload = {
       order_id: orderId,
       order_amount: amount,
       order_currency: "INR",
       customer_details: {
-        customer_id: `cust_${Date.now()}`,
-        customer_name: customerName || "Property Seller",
-        customer_email: customerEmail || "seller@bhoomitayi.in",
+        customer_id: userId,
+        customer_name: customerName || "Customer",
+        customer_email: customerEmail || "customer@propnest.app",
         customer_phone: customerPhone || "9999999999",
       },
       order_meta: {
-        return_url: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/sell?order_id=${orderId}&status={order_status}`,
-        notify_url: "",
+        return_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://propnest.vercel.app"}/api/payment/callback?order_id={order_id}`,
       },
-      order_note: "Property listing fee - BhoomiTayi",
     };
 
     const response = await fetch(CASHFREE_API_URL, {
@@ -39,8 +43,8 @@ export async function POST(req: Request) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Cashfree order creation error:", errorData);
+      const errData = await response.json();
+      console.error("Cashfree order creation failed:", errData);
       return NextResponse.json(
         { error: "Failed to create payment order" },
         { status: 500 }
@@ -55,9 +59,9 @@ export async function POST(req: Request) {
       orderStatus: data.order_status,
     });
   } catch (error) {
-    console.error("Cashfree order creation error:", error);
+    console.error("Order creation failed:", error);
     return NextResponse.json(
-      { error: "Failed to create payment order" },
+      { error: "Failed to create order" },
       { status: 500 }
     );
   }

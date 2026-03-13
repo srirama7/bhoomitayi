@@ -46,7 +46,7 @@ export default function DashboardLayout({
               <Home className="size-4 text-white" />
             </div>
             <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-extrabold">
-              PropNest
+              BhoomiTayi
             </span>
           </Link>
           <Link href="/" className="text-muted-foreground hover:text-foreground transition-colors">

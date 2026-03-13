@@ -100,12 +100,12 @@ function SignupForm() {
         <CardHeader className="text-center">
           <Link href="/" className="mb-2 inline-block">
             <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
-              PropNest
+              BhoomiTayi
             </h1>
           </Link>
           <CardTitle className="text-xl">Create an account</CardTitle>
           <CardDescription>
-            Get started with PropNest today
+            Get started with BhoomiTayi today
           </CardDescription>
         </CardHeader>
         <CardContent>

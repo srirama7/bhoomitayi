@@ -26,10 +26,11 @@ import {
   GENDER_OPTIONS,
   OCCUPANCY_OPTIONS,
 } from "@/lib/constants";
+import { PaymentGateway } from "@/components/listings/upi-payment-dialog";
 
 const STEPS = [
   "Basic Details",
-  "Property Details",
+  "Service Details",
   "Location",
   "Images",
   "Preview & Submit",
@@ -71,6 +72,8 @@ export default function SellPGPage() {
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [pendingListingData, setPendingListingData] = useState<Record<string, unknown> | null>(null);
 
   const [form, setForm] = useState<FormData>({
     title: "",
@@ -248,7 +251,7 @@ export default function SellPGPage() {
           : undefined,
       };
 
-      await addDoc(collection(db, "listings"), {
+      setPendingListingData({
         user_id: user.uid,
         category: "pg",
         transaction_type: "rent",
@@ -264,7 +267,33 @@ export default function SellPGPage() {
         updated_at: new Date().toISOString(),
       });
 
-      toast.success("Listing created successfully!");
+      setShowPaymentDialog(true);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to create listing"
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handlePaymentConfirmed(paymentRef: string, paymentId: string) {
+    if (!pendingListingData) return;
+
+    setSubmitting(true);
+    try {
+      await addDoc(collection(db, "listings"), {
+        ...pendingListingData,
+        payment_ref: paymentRef,
+        payment_id: paymentId,
+        payment_amount: 1,
+        payment_status: "paid",
+        status: "active",
+      });
+
+      setShowPaymentDialog(false);
+      setPendingListingData(null);
+      toast.success("Payment successful! Your listing is now live.");
       router.push("/dashboard/my-listings");
     } catch (err) {
       toast.error(
@@ -384,7 +413,7 @@ export default function SellPGPage() {
               </>
             )}
 
-            {/* Step 2: Property Details */}
+            {/* Step 2: Service Details */}
             {step === 1 && (
               <>
                 <div className="space-y-2">
@@ -650,7 +679,7 @@ export default function SellPGPage() {
 
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
-                    Property Details
+                    Service Details
                   </h3>
                   <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
                     <div>
@@ -789,6 +818,14 @@ export default function SellPGPage() {
           )}
         </div>
       </div>
+
+      <PaymentGateway
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        onPaymentConfirmed={handlePaymentConfirmed}
+        submitting={submitting}
+        userId={user.uid}
+      />
     </main>
   );
 }

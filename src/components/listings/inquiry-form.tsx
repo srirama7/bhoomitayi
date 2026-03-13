@@ -73,7 +73,7 @@ export function InquiryForm({ listingId, ownerName }: InquiryFormProps) {
             <Label htmlFor="message">Message</Label>
             <Textarea
               id="message"
-              placeholder="I'm interested in this property..."
+              placeholder="I'm interested in this service..."
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               maxLength={500}

@@ -42,6 +42,10 @@ const statusConfig: Record<
     label: "Pending",
     className: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
   },
+  pending_payment: {
+    label: "Payment Verification",
+    className: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800",
+  },
   rejected: {
     label: "Rejected",
     className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800",

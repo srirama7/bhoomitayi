@@ -13,8 +13,8 @@ const CONTACT_INFO = [
   {
     icon: Mail,
     title: "Email",
-    value: "support@propnest.in",
-    href: "mailto:support@propnest.in",
+    value: "support@bhoomitayi.in",
+    href: "mailto:support@bhoomitayi.in",
     gradient: "from-blue-500 to-indigo-600",
   },
   {

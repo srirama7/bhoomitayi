@@ -3,32 +3,32 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "About Us - BhoomiTayi",
-  description: "Learn about BhoomiTayi - your trusted real estate marketplace for buying, selling, and renting properties across India",
+  description: "Learn about BhoomiTayi - your trusted online marketplace for buying, selling, and renting services across India",
 };
 
 const FEATURES = [
   {
     icon: Building2,
-    title: "Property Listings",
-    description: "Browse thousands of verified property listings including houses, apartments, land, commercial spaces, and PG accommodations.",
+    title: "Verified Listings",
+    description: "Browse thousands of verified listings across multiple categories including homes, vehicles, commercial spaces, and everyday items.",
     gradient: "from-blue-500 to-indigo-600",
   },
   {
     icon: Users,
     title: "Verified Sellers",
-    description: "All property sellers and landlords on our platform go through a verification process to ensure genuine listings and reliability.",
+    description: "All sellers and service providers on our platform go through a verification process to ensure genuine listings and reliability.",
     gradient: "from-emerald-500 to-teal-600",
   },
   {
     icon: Shield,
     title: "Secure Transactions",
-    description: "We use Cashfree payment gateway with industry-standard security measures to protect all property listing transactions.",
+    description: "We use industry-standard security measures including encrypted data transmission and secure authentication to protect all user information.",
     gradient: "from-violet-500 to-purple-600",
   },
   {
     icon: Zap,
     title: "Fast & Easy",
-    description: "Our streamlined process makes it quick and easy to list your property or find your dream home in just a few clicks.",
+    description: "Our streamlined process makes it quick and easy to list your service or find exactly what you need in just a few clicks.",
     gradient: "from-amber-500 to-orange-600",
   },
 ];
@@ -50,7 +50,7 @@ export default function AboutPage() {
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">About BhoomiTayi</h1>
           </div>
           <p className="text-muted-foreground text-lg max-w-xl">
-            Your trusted real estate marketplace for buying, selling &amp; renting properties.
+            Your trusted online marketplace for buying, selling &amp; renting services.
           </p>
         </div>
       </div>
@@ -62,13 +62,13 @@ export default function AboutPage() {
             <h2 className="text-2xl font-bold text-foreground mb-4">Our Mission</h2>
             <div className="text-muted-foreground leading-relaxed space-y-4">
               <p>
-                BhoomiTayi is a <strong>real estate marketplace platform</strong> headquartered in Bangalore, India. Our mission is to simplify the process of buying, selling, and renting properties by connecting property owners directly with genuine buyers and tenants.
+                BhoomiTayi is an <strong>online marketplace platform</strong> headquartered in Bangalore, India. Our mission is to simplify the process of buying, selling, and renting services by connecting providers directly with genuine buyers and customers.
               </p>
               <p>
-                We leverage modern technology to create a seamless experience where property seekers can discover, evaluate, and connect with verified property sellers across multiple categories — houses, apartments, land, commercial spaces, PG accommodations, and more.
+                We leverage modern technology to create a seamless experience where users can discover, evaluate, and connect with verified sellers across multiple categories — homes, accommodations, vehicles, commercial spaces, electronics, and more.
               </p>
               <p>
-                Founded in 2026, BhoomiTayi has quickly grown to serve thousands of property seekers and sellers across 500+ cities in India, with over 10,000+ verified property listings on the platform.
+                Founded in 2026, BhoomiTayi has quickly grown to serve thousands of users and sellers across 500+ cities in India, with over 10,000+ verified listings on the platform.
               </p>
             </div>
           </div>
@@ -78,14 +78,14 @@ export default function AboutPage() {
             <h2 className="text-2xl font-bold text-foreground mb-4">What We Do</h2>
             <div className="text-muted-foreground leading-relaxed space-y-4">
               <p>
-                BhoomiTayi operates as a <strong>real estate marketplace</strong> that:
+                BhoomiTayi operates as an <strong>online marketplace</strong> that:
               </p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Connects property buyers and tenants with verified sellers and landlords</li>
-                <li>Facilitates property inquiries and site visit scheduling between parties</li>
-                <li>Provides a secure and transparent environment for property discovery</li>
-                <li>Charges a nominal listing fee for property verification and platform maintenance</li>
-                <li>Offers property search tools to help users find the right home, land, or commercial space</li>
+                <li>Connects buyers and customers with verified sellers and service providers</li>
+                <li>Facilitates inquiries and scheduling between parties</li>
+                <li>Provides a secure and transparent environment for discovering services</li>
+                <li>Charges a nominal listing fee for verification and platform maintenance</li>
+                <li>Offers powerful search tools to help users find the right service across multiple categories</li>
               </ul>
             </div>
           </div>

@@ -18,13 +18,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BhoomiTayi - Real Estate Marketplace | Buy, Sell & Rent Properties",
+  title: "BhoomiTayi - Online Marketplace | Buy, Sell & Rent Services",
   description:
-    "BhoomiTayi is India's trusted real estate marketplace helping you buy, sell, and rent properties including houses, apartments, land, and commercial spaces.",
+    "BhoomiTayi is India's trusted online marketplace helping you buy, sell, and rent across categories including homes, vehicles, commercial spaces, and more.",
   openGraph: {
-    title: "BhoomiTayi - Real Estate Marketplace | Buy, Sell & Rent Properties",
+    title: "BhoomiTayi - Online Marketplace | Buy, Sell & Rent Services",
     description:
-      "BhoomiTayi is India's trusted real estate marketplace helping you buy, sell, and rent properties including houses, apartments, land, and commercial spaces.",
+      "BhoomiTayi is India's trusted online marketplace helping you buy, sell, and rent across categories including homes, vehicles, commercial spaces, and more.",
     type: "website",
   },
 };

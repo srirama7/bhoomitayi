@@ -24,26 +24,6 @@
       "fields": [
         { "fieldPath": "category", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "transaction_type", "order": "ASCENDING" },
-        { "fieldPath": "created_at", "order": "DESCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "listings",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "category", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "transaction_type", "order": "ASCENDING" },
-        { "fieldPath": "created_at", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "listings",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "category", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "price", "order": "ASCENDING" }
       ]
     },
@@ -63,17 +43,7 @@
         { "fieldPath": "category", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "transaction_type", "order": "ASCENDING" },
-        { "fieldPath": "price", "order": "ASCENDING" }
-      ]
-    },
-    {
-      "collectionGroup": "listings",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "category", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "transaction_type", "order": "ASCENDING" },
-        { "fieldPath": "price", "order": "DESCENDING" }
+        { "fieldPath": "created_at", "order": "DESCENDING" }
       ]
     },
     {
@@ -85,7 +55,7 @@
       ]
     },
     {
-      "collectionGroup": "favorites",
+      "collectionGroup": "listings",
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "user_id", "order": "ASCENDING" },

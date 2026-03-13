@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Terms of Service - BhoomiTayi",
-  description: "Terms of Service for using BhoomiTayi real estate marketplace platform",
+  description: "Terms of Service for using BhoomiTayi online marketplace platform",
 };
 
 export default function TermsPage() {
@@ -32,7 +32,7 @@ export default function TermsPage() {
         <div className="max-w-3xl mx-auto space-y-8">
           <Section title="1. Acceptance of Terms">
             <p>
-              By accessing or using BhoomiTayi, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our platform. BhoomiTayi is a real estate marketplace platform for buying, selling, and renting properties. BhoomiTayi reserves the right to update these terms at any time.
+              By accessing or using BhoomiTayi, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our platform. BhoomiTayi is an online marketplace platform for buying, selling, and renting services. BhoomiTayi reserves the right to update these terms at any time.
             </p>
           </Section>
 
@@ -45,13 +45,13 @@ export default function TermsPage() {
             </ul>
           </Section>
 
-          <Section title="3. Property Listings">
+          <Section title="3. Listings">
             <ul className="list-disc pl-6 space-y-2">
-              <li>You must have legal authority or ownership rights to list a property on BhoomiTayi.</li>
-              <li>All property information must be accurate, truthful, and up-to-date.</li>
-              <li>BhoomiTayi reserves the right to remove any property listing that violates our policies.</li>
-              <li>You may not list properties involved in illegal activities or legal disputes.</li>
-              <li>Images must be genuine photographs of the actual property being listed.</li>
+              <li>You must have legal authority or ownership rights to list a service or item on BhoomiTayi.</li>
+              <li>All listing information must be accurate, truthful, and up-to-date.</li>
+              <li>BhoomiTayi reserves the right to remove any listing that violates our policies.</li>
+              <li>You may not list items or services involved in illegal activities or legal disputes.</li>
+              <li>Images must be genuine photographs of the actual item or service being listed.</li>
             </ul>
           </Section>
 
@@ -68,13 +68,13 @@ export default function TermsPage() {
 
           <Section title="5. BhoomiTayi's Role">
             <p>
-              BhoomiTayi is a real estate marketplace platform that connects property owners with buyers and tenants. We do not:
+              BhoomiTayi is an online marketplace platform that connects sellers with buyers and customers. We do not:
             </p>
             <ul className="list-disc pl-6 space-y-2 mt-3">
-              <li>Guarantee the accuracy of property information provided by sellers or landlords.</li>
-              <li>Participate in or mediate property transactions between users.</li>
-              <li>Provide legal or financial advice regarding property transactions.</li>
-              <li>Take responsibility for the condition or ownership status of listed properties.</li>
+              <li>Guarantee the accuracy of information provided by sellers or service providers.</li>
+              <li>Participate in or mediate transactions between users.</li>
+              <li>Provide legal or financial advice regarding transactions.</li>
+              <li>Take responsibility for the condition or status of listed items or services.</li>
             </ul>
           </Section>
 

@@ -165,7 +165,7 @@ export function Navbar() {
             <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-40 blur-lg transition-opacity duration-300" />
           </motion.div>
           <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent font-extrabold tracking-tight">
-            PropNest
+            BhoomiTayi
           </span>
         </Link>
 
@@ -195,7 +195,7 @@ export function Navbar() {
             }}
           >
             <Plus className="size-4" />
-            List Your Property
+            Register Service
           </Button>
         </nav>
 
@@ -299,7 +299,7 @@ export function Navbar() {
                       <Home className="size-4 text-white" />
                     </div>
                     <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-extrabold">
-                      PropNest
+                      BhoomiTayi
                     </span>
                   </Link>
                 </SheetTitle>
@@ -325,7 +325,7 @@ export function Navbar() {
                   </Link>
                 ))}
                 <p className="mt-4 mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  For Owners
+                  For Providers
                 </p>
                 <Button
                   variant="ghost"
@@ -340,7 +340,7 @@ export function Navbar() {
                   }}
                 >
                   <Plus className="size-4" />
-                  List Your Property
+                  Register Service
                 </Button>
               </div>
 

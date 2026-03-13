@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useRef, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -21,9 +21,6 @@ import {
   User,
   Phone,
   Mail,
-  IndianRupee,
-  ShieldCheck,
-  CreditCard,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -40,9 +37,11 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { useAuthStore } from "@/lib/store";
-import { db } from "@/lib/firebase/config";
+import { db, storage } from "@/lib/firebase/config";
 import { collection, addDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { validateImage, validateImageCount } from "@/lib/image-upload";
+import { PaymentGateway } from "@/components/listings/upi-payment-dialog";
 import {
   FURNISHING_OPTIONS,
   LAND_TYPES,
@@ -57,8 +56,6 @@ import {
   CONDITION_OPTIONS,
   INDIAN_STATES,
 } from "@/lib/constants";
-
-const SERVICE_FEE = 20;
 
 type PropertyCategory = "house" | "land" | "pg" | "commercial" | "vehicle" | "commodity";
 type TransactionType = "sell" | "rent" | "commercial_lease";
@@ -101,7 +98,6 @@ const STEPS = [
   "Service Details",
   "Location & Images",
   "Personal Details",
-  "Payment",
   "Preview & Submit",
 ];
 
@@ -132,6 +128,8 @@ function SellPageContent() {
   const [submitting, setSubmitting] = useState(false);
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [pendingListingData, setPendingListingData] = useState<Record<string, unknown> | null>(null);
 
   // Step 1: Service Type
   const [category, setCategory] = useState<PropertyCategory | "">("");
@@ -195,42 +193,6 @@ function SellPageContent() {
   const [ownerName, setOwnerName] = useState(profile?.full_name || "");
   const [ownerPhone, setOwnerPhone] = useState(profile?.phone || "");
   const [ownerEmail, setOwnerEmail] = useState(user?.email || "");
-
-  // Step 5: Payment
-  const [paymentDone, setPaymentDone] = useState(false);
-  const [paymentId, setPaymentId] = useState("");
-  const [payingNow, setPayingNow] = useState(false);
-  const searchParams = useSearchParams();
-
-  // Handle Cashfree redirect after payment
-  useEffect(() => {
-    const orderId = searchParams.get("order_id");
-    const status = searchParams.get("status");
-    if (orderId && status === "PAID") {
-      // Verify payment on server
-      fetch("/api/cashfree/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.orderStatus === "PAID") {
-            setPaymentId(data.orderId);
-            setPaymentDone(true);
-            setStep(4);
-            toast.success("Payment successful! You can now submit your property listing.");
-          } else {
-            toast.error("Payment verification failed. Please try again.");
-          }
-        })
-        .catch(() => {
-          toast.error("Could not verify payment. Please contact support.");
-        });
-      // Clean the URL params
-      window.history.replaceState({}, "", "/sell");
-    }
-  }, [searchParams]);
 
   // Update personal details when profile loads
   useEffect(() => {
@@ -352,9 +314,6 @@ function SellPageContent() {
         if (!ownerPhone.trim() || !/^\d{10}$/.test(ownerPhone)) { toast.error("Please enter a valid 10-digit phone number"); return false; }
         if (!ownerEmail.trim()) { toast.error("Please enter your email"); return false; }
         return true;
-      case 4:
-        if (!paymentDone) { toast.error("Please complete the listing fee payment of ₹" + SERVICE_FEE + " to publish your property"); return false; }
-        return true;
       default:
         return true;
     }
@@ -367,47 +326,6 @@ function SellPageContent() {
   function handlePrevious() {
     setStep((prev) => Math.max(prev - 1, 0));
   }
-
-  const handleCashfreePayment = useCallback(async () => {
-    if (!user) return;
-    setPayingNow(true);
-
-    try {
-      const res = await fetch("/api/cashfree", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: SERVICE_FEE,
-          customerName: ownerName,
-          customerEmail: ownerEmail,
-          customerPhone: ownerPhone,
-        }),
-      });
-
-      if (!res.ok) throw new Error("Failed to create order");
-      const { paymentSessionId } = await res.json();
-
-      // Load Cashfree JS SDK dynamically
-      const script = document.createElement("script");
-      script.src = "https://sdk.cashfree.com/js/v3/cashfree.js";
-      script.onload = () => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const cashfree = (window as any).Cashfree({ mode: "production" });
-        cashfree.checkout({
-          paymentSessionId,
-          redirectTarget: "_self",
-        });
-      };
-      script.onerror = () => {
-        toast.error("Could not load payment gateway. Please try again.");
-        setPayingNow(false);
-      };
-      document.body.appendChild(script);
-    } catch {
-      toast.error("Could not initiate payment. Please try again.");
-      setPayingNow(false);
-    }
-  }, [user, ownerName, ownerEmail, ownerPhone]);
 
   function fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -436,10 +354,14 @@ function SellPageContent() {
     setSubmitting(true);
 
     try {
-      // Convert images to base64 data URLs and store directly in Firestore
-      // This is fast and doesn't depend on Firebase Storage being set up
-      const base64Promises = images.map((file) => fileToBase64(file));
-      const imageUrls = await Promise.all(base64Promises);
+      // Upload images to Firebase Storage
+      const imageUrls: string[] = [];
+      for (const file of images) {
+        const storageRef = ref(storage, `listings/${user.uid}/${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        imageUrls.push(url);
+      }
 
       // Build category-specific details
       let details: Record<string, unknown> = {};
@@ -512,7 +434,8 @@ function SellPageContent() {
       // Map transaction type for storage
       const dbTransactionType = transactionType === "commercial_lease" ? "rent" : transactionType;
 
-      await addDoc(collection(db, "listings"), {
+      // Store listing data and show payment dialog instead of saving directly
+      setPendingListingData({
         user_id: user.uid,
         category,
         transaction_type: dbTransactionType,
@@ -526,14 +449,37 @@ function SellPageContent() {
         owner_name: ownerName.trim(),
         owner_phone: ownerPhone.trim(),
         owner_email: ownerEmail.trim(),
-        payment_id: paymentId,
-        payment_amount: SERVICE_FEE,
         status: "active",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
 
-      toast.success("Listing created successfully!");
+      setShowPaymentDialog(true);
+    } catch (err) {
+      console.error("Submit error:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to create listing");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handlePaymentConfirmed(paymentRef: string, paymentId: string) {
+    if (!pendingListingData) return;
+
+    setSubmitting(true);
+    try {
+      await addDoc(collection(db, "listings"), {
+        ...pendingListingData,
+        payment_ref: paymentRef,
+        payment_id: paymentId,
+        payment_amount: 1,
+        payment_status: "paid",
+        status: "active",
+      });
+
+      setShowPaymentDialog(false);
+      setPendingListingData(null);
+      toast.success("Payment successful! Your listing is now live.");
       router.push("/dashboard/my-listings");
     } catch (err) {
       console.error("Submit error:", err);
@@ -1126,78 +1072,8 @@ function SellPageContent() {
           </motion.div>
         )}
 
-        {/* Step 5: Payment */}
+        {/* Step 5: Preview & Submit */}
         {step === 4 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <IndianRupee className="size-5 text-green-600" />
-                  Property Listing Fee
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="rounded-xl border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <ShieldCheck className="size-5 text-green-600" />
-                    <p className="font-semibold text-green-800 dark:text-green-300">One-time listing fee</p>
-                  </div>
-                  <p className="text-sm text-green-700 dark:text-green-400">
-                    A small listing fee of <span className="font-bold text-lg">&#8377;{SERVICE_FEE}</span> is required to publish your property listing. This helps us maintain quality listings on BhoomiTayi.
-                  </p>
-                </div>
-
-                {paymentDone ? (
-                  <div className="flex flex-col items-center gap-4 py-6">
-                    <div className="flex items-center justify-center size-16 rounded-full bg-green-100 dark:bg-green-950/50">
-                      <CheckCircle2 className="size-8 text-green-600" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xl font-bold text-green-600">Payment Successful!</p>
-                      <p className="text-sm text-muted-foreground mt-1">Transaction ID: {paymentId}</p>
-                      <p className="text-sm text-muted-foreground">Amount: &#8377;{SERVICE_FEE}</p>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Click &quot;Next&quot; to review and submit your property listing.</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-5 py-4">
-                    <div className="flex items-center justify-center size-20 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800">
-                      <CreditCard className="size-10 text-green-600" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-foreground">&#8377;{SERVICE_FEE}</p>
-                      <p className="text-sm text-muted-foreground mt-1">Pay securely via Cashfree</p>
-                    </div>
-                    <Button
-                      size="lg"
-                      onClick={handleCashfreePayment}
-                      disabled={payingNow}
-                      className="gap-2 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-600/20 px-8 text-base"
-                    >
-                      {payingNow ? (
-                        <>
-                          <Loader2 className="size-5 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <IndianRupee className="size-5" />
-                          Pay &#8377;{SERVICE_FEE} Listing Fee
-                        </>
-                      )}
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center max-w-sm">
-                      Secure payment powered by Cashfree. UPI &amp; other methods available.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Step 6: Preview & Submit */}
-        {step === 5 && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
             <Card>
               <CardHeader>
@@ -1354,15 +1230,6 @@ function SellPageContent() {
                   </dl>
                 </div>
 
-                {/* Payment */}
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">Payment</h3>
-                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    <div><dt className="text-muted-foreground">Amount Paid</dt><dd className="font-medium text-green-600">&#8377;{SERVICE_FEE}</dd></div>
-                    <div><dt className="text-muted-foreground">Transaction ID</dt><dd className="font-medium">{paymentId}</dd></div>
-                    <div><dt className="text-muted-foreground">Payment Status</dt><dd className="font-medium text-green-600">Paid</dd></div>
-                  </dl>
-                </div>
               </CardContent>
             </Card>
           </motion.div>
@@ -1397,6 +1264,19 @@ function SellPageContent() {
           )}
         </div>
       </div>
+
+      <PaymentGateway
+        open={showPaymentDialog}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowPaymentDialog(false);
+            setPendingListingData(null);
+          }
+        }}
+        onPaymentConfirmed={handlePaymentConfirmed}
+        submitting={submitting}
+        userId={user?.uid || ""}
+      />
     </main>
   );
 }

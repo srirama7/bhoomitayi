@@ -30,7 +30,7 @@ import { CATEGORIES } from "@/lib/constants";
 const CATEGORY_DETAILS = [
   {
     ...CATEGORIES[0],
-    description: "Find your dream home from apartments, villas, and independent houses.",
+    description: "Browse apartments, villas, and independent houses for buy, sell, or rent.",
     Icon: Home,
     gradient: "from-blue-500 via-blue-600 to-indigo-600",
     bgLight: "bg-blue-50 dark:bg-blue-950/30",
@@ -100,7 +100,7 @@ const HOW_IT_WORKS = [
   {
     step: "01",
     title: "Search",
-    description: "Browse verified property listings across India. Filter by city, property type, and budget to find your perfect home.",
+    description: "Browse verified listings across India. Filter by city, category, and budget to find exactly what you need.",
     Icon: Search,
     gradient: "from-blue-500 to-indigo-600",
     color: "blue",
@@ -108,7 +108,7 @@ const HOW_IT_WORKS = [
   {
     step: "02",
     title: "Connect",
-    description: "Connect directly with verified property owners. Get property details, schedule site visits, and negotiate transparent pricing.",
+    description: "Connect directly with verified sellers and service providers. Get details, schedule visits, and negotiate transparent pricing.",
     Icon: Users,
     gradient: "from-violet-500 to-purple-600",
     color: "violet",
@@ -116,7 +116,7 @@ const HOW_IT_WORKS = [
   {
     step: "03",
     title: "Get Started",
-    description: "Finalize your property deal and move in. We ensure a smooth, secure, and hassle-free experience.",
+    description: "Finalize your deal with confidence. We ensure a smooth, secure, and hassle-free experience from start to finish.",
     Icon: Home,
     gradient: "from-pink-500 to-rose-600",
     color: "pink",
@@ -201,7 +201,7 @@ export default function HomePage() {
                 transition={{ duration: 0.8, delay: 0.4 }}
                 className="mx-auto max-w-2xl text-lg sm:text-xl text-blue-100/80 leading-relaxed"
               >
-                India&apos;s trusted real estate marketplace &mdash; find your dream property, list your home, buy, sell &amp; rent
+                India&apos;s trusted online marketplace &mdash; discover services, list what you offer, buy, sell &amp; rent
               </motion.p>
             </div>
 
@@ -413,12 +413,12 @@ export default function HomePage() {
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
                   Ready to list your{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
-                    property?
+                    service?
                   </span>
                 </h2>
                 <p className="mx-auto max-w-xl text-muted-foreground text-lg leading-relaxed">
-                  Join thousands of property owners who trust BhoomiTayi. List your property
-                  in minutes and reach millions of potential buyers and tenants across India.
+                  Join thousands of sellers who trust BhoomiTayi. List your service
+                  in minutes and reach millions of potential buyers across India.
                 </p>
               </div>
 

@@ -45,7 +45,7 @@ export function ListingGrid({ listings, totalCount, currentPage }: ListingGridPr
       {/* Toolbar */}
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <p className="text-sm text-muted-foreground">
-          {totalCount} {totalCount === 1 ? "property" : "properties"} found
+          {totalCount} {totalCount === 1 ? "service" : "services"} found
         </p>
         <div className="flex items-center gap-2">
           <Select defaultValue={searchParams.get("sort") || "newest"} onValueChange={handleSort}>

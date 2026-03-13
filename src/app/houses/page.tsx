@@ -58,7 +58,7 @@ function HousesContent() {
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">Houses</h1>
           </div>
           <p className="text-muted-foreground text-lg max-w-xl">
-            Find your perfect home — buy, sell, or rent
+            Explore house consulting services
           </p>
         </div>
       </div>

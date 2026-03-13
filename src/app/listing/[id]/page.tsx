@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+import { useParams, useRouter } from "next/navigation";
+import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { getListingById, getSimilarListings } from "@/lib/queries";
 import { ImageGallery } from "@/components/listings/image-gallery";
@@ -10,28 +10,59 @@ import { InquiryForm } from "@/components/listings/inquiry-form";
 import { FavoriteButton } from "@/components/listings/favorite-button";
 import { ListingCard } from "@/components/listings/listing-card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { formatPrice, formatArea } from "@/lib/constants";
 import {
   MapPin, Bed, Bath, Maximize, Calendar, Car, Wifi,
   Wind, ShowerHead, Building2, Fence, Compass,
   Users, UtensilsCrossed, Home, ChevronRight, Flag,
-  Gauge, Fuel, Settings2, Package, ShieldCheck,
+  Gauge, Fuel, Settings2, Package, ShieldCheck, Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import type { Listing } from "@/lib/types/database";
 import { ReportButton } from "@/components/listings/report-button";
 import { ShareButton } from "@/components/listings/share-button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuthStore } from "@/lib/store";
+import { toast } from "sonner";
 
 export default function ListingDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
+  const { user } = useAuthStore();
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [profile, setProfile] = useState<{ full_name: string; phone: string | null; avatar_url: string | null } | null>(null);
   const [similar, setSimilar] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const isOwner = user && listing && user.uid === listing.user_id;
+
+  const handleDelete = async () => {
+    if (!listing) return;
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, "listings", listing.id));
+      toast.success("Listing deleted successfully");
+      router.push("/dashboard/my-listings");
+    } catch {
+      toast.error("Failed to delete listing");
+    }
+    setDeleting(false);
+    setShowDeleteDialog(false);
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -76,7 +107,7 @@ export default function ListingDetailPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground">Listing Not Found</h1>
-          <p className="text-muted-foreground mt-2">The property you are looking for does not exist.</p>
+          <p className="text-muted-foreground mt-2">The service you are looking for does not exist.</p>
           <Link href="/" className="text-blue-600 hover:underline mt-4 inline-block">Go Home</Link>
         </div>
       </div>
@@ -134,7 +165,7 @@ export default function ListingDetailPage() {
 
             {/* Key Details */}
             <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 shadow-3d">
-              <h2 className="text-xl font-semibold mb-4 text-foreground">Property Details</h2>
+              <h2 className="text-xl font-semibold mb-4 text-foreground">Service Details</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {listing.category === "house" && (
                   <>
@@ -252,6 +283,17 @@ export default function ListingDetailPage() {
               <FavoriteButton listingId={listing.id} size="default" variant="outline" />
               <ShareButton title={listing.title} />
               <ReportButton listingId={listing.id} />
+              {isOwner && (
+                <Button
+                  variant="destructive"
+                  size="default"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="gap-1.5"
+                >
+                  <Trash2 className="size-4" />
+                  Delete
+                </Button>
+              )}
             </div>
 
             {profile && (
@@ -281,6 +323,26 @@ export default function ListingDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Listing</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this listing? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
+              {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

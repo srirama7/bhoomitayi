@@ -21,7 +21,6 @@ const legalLinks = [
   { label: "About Us", href: "/about" },
   { label: "Privacy Policy", href: "/privacy" },
   { label: "Terms of Service", href: "/terms" },
-  { label: "Refund Policy", href: "/refund" },
   { label: "Contact Us", href: "/contact" },
 ];
 
@@ -50,8 +49,8 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              BhoomiTayi is a real estate marketplace connecting
-              property buyers, sellers, and tenants across India.
+              BhoomiTayi is an online marketplace connecting
+              buyers, sellers, and service providers across India.
             </p>
           </div>
 

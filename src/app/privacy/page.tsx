@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Policy - BhoomiTayi",
-  description: "Privacy Policy for BhoomiTayi real estate marketplace - How we handle your data",
+  description: "Privacy Policy for BhoomiTayi online marketplace - How we handle your data",
 };
 
 export default function PrivacyPolicyPage() {
@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <ul className="list-disc pl-6 space-y-2 mt-3">
               <li><strong>Account Information:</strong> Name, email address, phone number, and city when you create an account.</li>
-              <li><strong>Property Data:</strong> Property details, images, descriptions, and pricing that you submit when listing a property.</li>
+              <li><strong>Listing Data:</strong> Listing details, images, descriptions, and pricing that you submit when creating a listing.</li>
               <li><strong>Usage Data:</strong> Pages visited, search queries, and interactions with listings to improve our services.</li>
               <li><strong>Device Information:</strong> Browser type, device type, and IP address for security and analytics.</li>
             </ul>
@@ -45,7 +45,7 @@ export default function PrivacyPolicyPage() {
           <Section title="2. How We Use Your Information">
             <ul className="list-disc pl-6 space-y-2">
               <li>To provide and maintain the BhoomiTayi platform.</li>
-              <li>To facilitate communication between property owners and interested buyers or tenants.</li>
+              <li>To facilitate communication between sellers and interested buyers or customers.</li>
               <li>To send important notifications about your account and listings.</li>
               <li>To improve our services and develop new features.</li>
               <li>To prevent fraud and ensure platform security.</li>
@@ -57,8 +57,8 @@ export default function PrivacyPolicyPage() {
               We do not sell your personal data. We may share information with:
             </p>
             <ul className="list-disc pl-6 space-y-2 mt-3">
-              <li><strong>Other Users:</strong> Your name and contact details are shared with users who inquire about your property listings.</li>
-              <li><strong>Third-Party Services:</strong> We use trusted third-party services for hosting, analytics, payment processing (Cashfree), and email delivery.</li>
+              <li><strong>Other Users:</strong> Your name and contact details are shared with users who inquire about your listings.</li>
+              <li><strong>Third-Party Services:</strong> We use trusted third-party services for hosting, analytics, and email delivery.</li>
               <li><strong>Legal Requirements:</strong> We may disclose data if required by law or to protect our rights.</li>
             </ul>
           </Section>
