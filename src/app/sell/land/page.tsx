@@ -259,23 +259,20 @@ export default function SellLandPage() {
     }
   }
 
-  async function handlePaymentConfirmed(paymentRef: string, paymentId: string) {
+  async function handlePaymentConfirmed() {
     if (!pendingListingData) return;
 
     setSubmitting(true);
     try {
       await addDoc(collection(db, "listings"), {
         ...pendingListingData,
-        payment_ref: paymentRef,
-        payment_id: paymentId,
-        payment_amount: 1,
-        payment_status: "paid",
-        status: "active",
+        payment_status: "pending",
+        status: "pending_payment",
       });
 
       setShowPaymentDialog(false);
       setPendingListingData(null);
-      toast.success("Payment successful! Your listing is now live.");
+      toast.success("Listing submitted! It will go live after admin verifies your payment.");
       router.push("/dashboard/my-listings");
     } catch (err) {
       toast.error(
@@ -738,10 +735,6 @@ export default function SellLandPage() {
         onOpenChange={setShowPaymentDialog}
         onPaymentConfirmed={handlePaymentConfirmed}
         submitting={submitting}
-        userId={user.uid}
-        customerName={profile?.full_name}
-        customerEmail={user.email || undefined}
-        customerPhone={profile?.phone || undefined}
       />
     </main>
   );
