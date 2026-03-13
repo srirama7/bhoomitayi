@@ -31,25 +31,45 @@ function SignupForm() {
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") || "/dashboard";
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+
+  function validatePhone(value: string): boolean {
+    return /^[6-9]\d{9}$/.test(value);
+  }
+
+  function validateEmail(value: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  }
 
   async function handleEmailSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!fullName.trim()) {
-      toast.error("Please enter your full name.");
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      toast.error("Please enter your full name (at least 2 characters).");
       return;
     }
 
-    if (!email.trim()) {
-      toast.error("Please enter your email address.");
+    if (!phone.trim() || !validatePhone(phone.trim())) {
+      toast.error("Please enter a valid 10-digit Indian mobile number.");
+      return;
+    }
+
+    if (!email.trim() || !validateEmail(email.trim())) {
+      toast.error("Please enter a valid email address.");
       return;
     }
 
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters long.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
       return;
     }
 
@@ -64,6 +84,8 @@ function SignupForm() {
         await setDoc(doc(db, "profiles", user.uid), {
           id: user.uid,
           full_name: fullName.trim(),
+          phone: phone.trim(),
+          avatar_url: null,
           role: "user",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -124,6 +146,26 @@ function SignupForm() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="9876543210"
+                value={phone}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                  setPhone(val);
+                }}
+                required
+                disabled={isLoading}
+                autoComplete="tel"
+                maxLength={10}
+              />
+              {phone && !validatePhone(phone) && (
+                <p className="text-xs text-red-500">Enter a valid 10-digit mobile number</p>
+              )}
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -149,6 +191,23 @@ function SignupForm() {
                 disabled={isLoading}
                 autoComplete="new-password"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Re-enter your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={6}
+                disabled={isLoading}
+                autoComplete="new-password"
+              />
+              {confirmPassword && password !== confirmPassword && (
+                <p className="text-xs text-red-500">Passwords do not match</p>
+              )}
             </div>
             <Button
               type="submit"

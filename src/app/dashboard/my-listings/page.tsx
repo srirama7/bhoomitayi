@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Trash2, Pencil, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -199,9 +200,11 @@ export default function MyListingsPage() {
 
                   {/* Actions */}
                   <div className="flex shrink-0 flex-wrap gap-2">
-                    <Button variant="outline" size="sm" disabled>
-                      <Pencil className="size-4" />
-                      Edit
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/dashboard/my-listings/edit?id=${listing.id}`}>
+                        <Pencil className="size-4" />
+                        Edit
+                      </Link>
                     </Button>
                     {listing.status === "active" && (
                       <Button
