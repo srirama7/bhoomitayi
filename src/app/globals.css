@@ -125,6 +125,15 @@
   }
 }
 
+/* Ensure Cashfree payment modal appears above all other overlays */
+.cashfree-sdk,
+.cashfree-sdk iframe,
+iframe[src*="cashfree"],
+div[id*="cashfree"],
+div[class*="cashfree"] {
+  z-index: 99999 !important;
+}
+
 /* ── Smooth scrolling ── */
 html {
   scroll-behavior: smooth;

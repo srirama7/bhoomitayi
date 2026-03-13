@@ -65,6 +65,7 @@ export function PaymentGateway({
     null
   );
   const [currentOrderId, setCurrentOrderId] = useState<string | null>(null);
+  const [cashfreeActive, setCashfreeActive] = useState(false);
 
   function resetState() {
     setGatewayStep("ready");
@@ -72,6 +73,7 @@ export function PaymentGateway({
     setErrorMsg("");
     setPaymentResult(null);
     setCurrentOrderId(null);
+    setCashfreeActive(false);
   }
 
   function handleClose() {
@@ -137,7 +139,8 @@ export function PaymentGateway({
       // 2. Initialize Cashfree SDK
       const cashfree = await load({ mode: "production" });
 
-      // 3. Open Cashfree checkout
+      // 3. Hide our dialog so Cashfree modal can receive clicks
+      setCashfreeActive(true);
       setGatewayStep("processing");
 
       const checkoutOptions = {
@@ -146,6 +149,9 @@ export function PaymentGateway({
       };
 
       const result = await cashfree.checkout(checkoutOptions);
+
+      // 4. Cashfree modal closed — show our dialog again
+      setCashfreeActive(false);
 
       if (result.error) {
         console.error("Cashfree checkout error:", result.error);
@@ -170,6 +176,7 @@ export function PaymentGateway({
       }
     } catch (err) {
       console.error("Payment initiation failed:", err);
+      setCashfreeActive(false);
       setErrorMsg("Could not initiate payment. Please try again.");
       setGatewayStep("failed");
       setProcessing(false);
@@ -194,7 +201,7 @@ export function PaymentGateway({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open && !cashfreeActive} onOpenChange={handleClose}>
       <DialogContent
         showCloseButton={false}
         className="sm:max-w-[480px] p-0 gap-0 overflow-hidden"
