@@ -59,6 +59,7 @@ interface FormData {
 export default function SellPGPage() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
+  const profile = useAuthStore((s) => s.profile);
   const loading = useAuthStore((s) => s.loading);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -825,6 +826,9 @@ export default function SellPGPage() {
         onPaymentConfirmed={handlePaymentConfirmed}
         submitting={submitting}
         userId={user.uid}
+        customerName={profile?.full_name}
+        customerEmail={user.email || undefined}
+        customerPhone={profile?.phone || undefined}
       />
     </main>
   );

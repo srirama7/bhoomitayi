@@ -1276,6 +1276,9 @@ function SellPageContent() {
         onPaymentConfirmed={handlePaymentConfirmed}
         submitting={submitting}
         userId={user?.uid || ""}
+        customerName={ownerName}
+        customerEmail={ownerEmail}
+        customerPhone={ownerPhone}
       />
     </main>
   );

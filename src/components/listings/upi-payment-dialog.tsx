@@ -34,6 +34,9 @@ interface PaymentGatewayProps {
   onPaymentConfirmed: (paymentRef: string, paymentId: string) => void;
   submitting: boolean;
   userId: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
 }
 
 type GatewayStep = "ready" | "loading" | "processing" | "success" | "failed";
@@ -51,6 +54,9 @@ export function PaymentGateway({
   onPaymentConfirmed,
   submitting,
   userId,
+  customerName,
+  customerEmail,
+  customerPhone,
 }: PaymentGatewayProps) {
   const [gatewayStep, setGatewayStep] = useState<GatewayStep>("ready");
   const [processing, setProcessing] = useState(false);
@@ -118,6 +124,9 @@ export function PaymentGateway({
         body: JSON.stringify({
           amount: LISTING_FEE,
           userId,
+          customerName,
+          customerEmail,
+          customerPhone,
         }),
       });
 
