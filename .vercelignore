@@ -1,3 +1,6 @@
 PropNest.apk
 android/
 www/
+.netlify/
+deno.lock
+capacitor.config.ts
