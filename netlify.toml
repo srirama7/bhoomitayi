@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NEXT_PUBLIC_FIREBASE_API_KEY = "AIzaSyBwCGZRm_2z2o1CWLfDzKSni58PyL3angY"
+  NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN = "real-estate-4a9f1.firebaseapp.com"
+  NEXT_PUBLIC_FIREBASE_PROJECT_ID = "real-estate-4a9f1"
+  NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET = "real-estate-4a9f1.firebasestorage.app"
+  NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID = "128735139971"
+  NEXT_PUBLIC_FIREBASE_APP_ID = "1:128735139971:web:62d74234071e656e3023b6"
+  NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID = "G-KWHSMHYCGW"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

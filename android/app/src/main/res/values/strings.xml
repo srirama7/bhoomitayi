@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BhoomiTayi</string>
+    <string name="title_activity_main">BhoomiTayi</string>
+    <string name="package_name">com.bhoomitayi.app</string>
+    <string name="custom_url_scheme">com.bhoomitayi.app</string>
+</resources>
