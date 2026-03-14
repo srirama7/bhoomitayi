@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import {
   Home,
   Menu,
@@ -44,6 +45,7 @@ import {
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LanguageSelector } from "@/components/layout/language-selector";
 
 const categoryIcons: Record<string, React.ReactNode> = {
   house: <Home className="size-4" />,
@@ -52,6 +54,15 @@ const categoryIcons: Record<string, React.ReactNode> = {
   commercial: <Building2 className="size-4" />,
   vehicle: <Car className="size-4" />,
   commodity: <Package className="size-4" />,
+};
+
+const categoryI18nKeys: Record<string, string> = {
+  house: "nav.houses",
+  land: "nav.land",
+  pg: "nav.pg",
+  commercial: "nav.commercial",
+  vehicle: "nav.vehicles",
+  commodity: "nav.commodities",
 };
 
 function ThemeToggle() {
@@ -109,6 +120,7 @@ function ThemeToggle() {
 
 export function Navbar() {
   const router = useRouter();
+  const { t } = useTranslation();
   const { user, profile } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -179,7 +191,7 @@ export function Navbar() {
                 className="gap-1.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all duration-200 hover:text-blue-600 dark:hover:text-blue-400"
               >
                 {categoryIcons[cat.value]}
-                {cat.label}
+                {t(categoryI18nKeys[cat.value])}
               </Button>
             </Link>
           ))}
@@ -195,12 +207,13 @@ export function Navbar() {
             }}
           >
             <Plus className="size-4" />
-            Register Service
+            {t("nav.register_service")}
           </Button>
         </nav>
 
         {/* Desktop Right Side */}
         <div className="hidden items-center gap-2 md:flex">
+          <LanguageSelector variant="desktop" />
           <ThemeToggle />
 
           {user && profile ? (
@@ -235,24 +248,24 @@ export function Navbar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => router.push("/dashboard")} className="rounded-lg mx-1">
                   <Settings className="mr-2 size-4" />
-                  Dashboard
+                  {t("nav.dashboard")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/dashboard/my-listings")} className="rounded-lg mx-1">
                   <List className="mr-2 size-4" />
-                  My Listings
+                  {t("nav.my_listings")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/dashboard/favorites")} className="rounded-lg mx-1">
                   <Heart className="mr-2 size-4" />
-                  Favorites
+                  {t("nav.favorites")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => router.push("/dashboard/profile")} className="rounded-lg mx-1">
                   <User className="mr-2 size-4" />
-                  Profile
+                  {t("nav.profile")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="rounded-lg mx-1 text-red-600 focus:text-red-600">
                   <LogOut className="mr-2 size-4" />
-                  Logout
+                  {t("nav.logout")}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -260,7 +273,7 @@ export function Navbar() {
             <div className="flex items-center gap-2">
               <Link href="/auth/login">
                 <Button variant="ghost" size="sm" className="rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800">
-                  Login
+                  {t("nav.login")}
                 </Button>
               </Link>
               <Link href="/auth/signup">
@@ -269,7 +282,7 @@ export function Navbar() {
                     size="sm"
                     className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transition-all"
                   >
-                    Sign Up
+                    {t("nav.signup")}
                   </Button>
                 </motion.div>
               </Link>
@@ -287,7 +300,7 @@ export function Navbar() {
                 <span className="sr-only">Toggle menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right" className="w-[300px] p-0">
+            <SheetContent side="right" className="w-[300px] p-0 overflow-y-auto">
               <SheetHeader className="border-b px-6 py-4">
                 <SheetTitle>
                   <Link
@@ -305,9 +318,14 @@ export function Navbar() {
                 </SheetTitle>
               </SheetHeader>
 
+              {/* Mobile Language Selector */}
+              <div className="border-b p-4">
+                <LanguageSelector variant="mobile" />
+              </div>
+
               <div className="flex flex-col gap-1 p-4">
                 <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Browse
+                  {t("nav.browse")}
                 </p>
                 {CATEGORIES.map((cat) => (
                   <Link
@@ -320,12 +338,12 @@ export function Navbar() {
                       className="w-full justify-start gap-2 rounded-xl"
                     >
                       {categoryIcons[cat.value]}
-                      {cat.label}
+                      {t(categoryI18nKeys[cat.value])}
                     </Button>
                   </Link>
                 ))}
                 <p className="mt-4 mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  For Providers
+                  {t("nav.for_providers")}
                 </p>
                 <Button
                   variant="ghost"
@@ -340,7 +358,7 @@ export function Navbar() {
                   }}
                 >
                   <Plus className="size-4" />
-                  Register Service
+                  {t("nav.register_service")}
                 </Button>
               </div>
 
@@ -377,7 +395,7 @@ export function Navbar() {
                         className="w-full justify-start gap-2 rounded-xl"
                       >
                         <Settings className="size-4" />
-                        Dashboard
+                        {t("nav.dashboard")}
                       </Button>
                     </Link>
                     <Link
@@ -389,7 +407,7 @@ export function Navbar() {
                         className="w-full justify-start gap-2 rounded-xl"
                       >
                         <List className="size-4" />
-                        My Listings
+                        {t("nav.my_listings")}
                       </Button>
                     </Link>
                     <Link
@@ -401,7 +419,7 @@ export function Navbar() {
                         className="w-full justify-start gap-2 rounded-xl"
                       >
                         <Heart className="size-4" />
-                        Favorites
+                        {t("nav.favorites")}
                       </Button>
                     </Link>
                     <Link
@@ -413,7 +431,7 @@ export function Navbar() {
                         className="w-full justify-start gap-2 rounded-xl"
                       >
                         <User className="size-4" />
-                        Profile
+                        {t("nav.profile")}
                       </Button>
                     </Link>
                     <Button
@@ -425,7 +443,7 @@ export function Navbar() {
                       }}
                     >
                       <LogOut className="size-4" />
-                      Logout
+                      {t("nav.logout")}
                     </Button>
                   </div>
                 ) : (
@@ -435,7 +453,7 @@ export function Navbar() {
                       onClick={() => setMobileOpen(false)}
                     >
                       <Button variant="outline" className="w-full rounded-xl">
-                        Login
+                        {t("nav.login")}
                       </Button>
                     </Link>
                     <Link
@@ -443,7 +461,7 @@ export function Navbar() {
                       onClick={() => setMobileOpen(false)}
                     >
                       <Button className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-                        Sign Up
+                        {t("nav.signup")}
                       </Button>
                     </Link>
                   </div>

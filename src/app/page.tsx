@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 import {
   Search,
   Home,
@@ -13,7 +14,6 @@ import {
   Users,
   Building,
   Sparkles,
-  Zap,
   ChevronRight,
   MapPin,
 } from "lucide-react";
@@ -27,108 +27,37 @@ import { TiltCard } from "@/components/home/tilt-card";
 import { AnimatedCounter } from "@/components/home/animated-counter";
 import { CATEGORIES } from "@/lib/constants";
 
-const CATEGORY_DETAILS = [
-  {
-    ...CATEGORIES[0],
-    description: "Browse apartments, villas, and independent houses for buy, sell, or rent.",
-    Icon: Home,
-    gradient: "from-blue-500 via-blue-600 to-indigo-600",
-    bgLight: "bg-blue-50 dark:bg-blue-950/30",
-    iconColor: "text-blue-600 dark:text-blue-400",
-    shadowColor: "shadow-blue-500/20",
-    borderHover: "hover:border-blue-300 dark:hover:border-blue-700",
-    glowColor: "group-hover:shadow-blue-500/10 dark:group-hover:shadow-blue-500/20",
-  },
-  {
-    ...CATEGORIES[1],
-    description: "Explore residential, commercial, and agricultural land plots.",
-    Icon: Mountain,
-    gradient: "from-emerald-500 via-green-500 to-teal-600",
-    bgLight: "bg-green-50 dark:bg-green-950/30",
-    iconColor: "text-green-600 dark:text-green-400",
-    shadowColor: "shadow-green-500/20",
-    borderHover: "hover:border-green-300 dark:hover:border-green-700",
-    glowColor: "group-hover:shadow-emerald-500/10 dark:group-hover:shadow-emerald-500/20",
-  },
-  {
-    ...CATEGORIES[2],
-    description: "Discover affordable paying guest accommodations near you.",
-    Icon: Bed,
-    gradient: "from-violet-500 via-purple-500 to-fuchsia-600",
-    bgLight: "bg-purple-50 dark:bg-purple-950/30",
-    iconColor: "text-purple-600 dark:text-purple-400",
-    shadowColor: "shadow-purple-500/20",
-    borderHover: "hover:border-purple-300 dark:hover:border-purple-700",
-    glowColor: "group-hover:shadow-violet-500/10 dark:group-hover:shadow-violet-500/20",
-  },
-  {
-    ...CATEGORIES[3],
-    description: "Office spaces, shops, warehouses, and co-working spaces.",
-    Icon: Building2,
-    gradient: "from-amber-500 via-orange-500 to-red-500",
-    bgLight: "bg-orange-50 dark:bg-orange-950/30",
-    iconColor: "text-orange-600 dark:text-orange-400",
-    shadowColor: "shadow-orange-500/20",
-    borderHover: "hover:border-orange-300 dark:hover:border-orange-700",
-    glowColor: "group-hover:shadow-orange-500/10 dark:group-hover:shadow-orange-500/20",
-  },
-  {
-    ...CATEGORIES[4],
-    description: "Buy and sell cars, bikes, scooters, trucks, and more.",
-    Icon: Car,
-    gradient: "from-red-500 via-rose-500 to-pink-600",
-    bgLight: "bg-red-50 dark:bg-red-950/30",
-    iconColor: "text-red-600 dark:text-red-400",
-    shadowColor: "shadow-red-500/20",
-    borderHover: "hover:border-red-300 dark:hover:border-red-700",
-    glowColor: "group-hover:shadow-red-500/10 dark:group-hover:shadow-red-500/20",
-  },
-  {
-    ...CATEGORIES[5],
-    description: "Electronics, furniture, appliances, and miscellaneous items.",
-    Icon: Package,
-    gradient: "from-cyan-500 via-teal-500 to-emerald-600",
-    bgLight: "bg-cyan-50 dark:bg-cyan-950/30",
-    iconColor: "text-cyan-600 dark:text-cyan-400",
-    shadowColor: "shadow-cyan-500/20",
-    borderHover: "hover:border-cyan-300 dark:hover:border-cyan-700",
-    glowColor: "group-hover:shadow-cyan-500/10 dark:group-hover:shadow-cyan-500/20",
-  },
+const CATEGORY_ICONS = [Home, Mountain, Bed, Building2, Car, Package];
+const CATEGORY_DESC_KEYS = [
+  "categories.house_desc",
+  "categories.land_desc",
+  "categories.pg_desc",
+  "categories.commercial_desc",
+  "categories.vehicle_desc",
+  "categories.commodity_desc",
+];
+const CATEGORY_STYLES = [
+  { gradient: "from-blue-500 via-blue-600 to-indigo-600", bgLight: "bg-blue-50 dark:bg-blue-950/30", borderHover: "hover:border-blue-300 dark:hover:border-blue-700", glowColor: "group-hover:shadow-blue-500/10 dark:group-hover:shadow-blue-500/20" },
+  { gradient: "from-emerald-500 via-green-500 to-teal-600", bgLight: "bg-green-50 dark:bg-green-950/30", borderHover: "hover:border-green-300 dark:hover:border-green-700", glowColor: "group-hover:shadow-emerald-500/10 dark:group-hover:shadow-emerald-500/20" },
+  { gradient: "from-violet-500 via-purple-500 to-fuchsia-600", bgLight: "bg-purple-50 dark:bg-purple-950/30", borderHover: "hover:border-purple-300 dark:hover:border-purple-700", glowColor: "group-hover:shadow-violet-500/10 dark:group-hover:shadow-violet-500/20" },
+  { gradient: "from-amber-500 via-orange-500 to-red-500", bgLight: "bg-orange-50 dark:bg-orange-950/30", borderHover: "hover:border-orange-300 dark:hover:border-orange-700", glowColor: "group-hover:shadow-orange-500/10 dark:group-hover:shadow-orange-500/20" },
+  { gradient: "from-red-500 via-rose-500 to-pink-600", bgLight: "bg-red-50 dark:bg-red-950/30", borderHover: "hover:border-red-300 dark:hover:border-red-700", glowColor: "group-hover:shadow-red-500/10 dark:group-hover:shadow-red-500/20" },
+  { gradient: "from-cyan-500 via-teal-500 to-emerald-600", bgLight: "bg-cyan-50 dark:bg-cyan-950/30", borderHover: "hover:border-cyan-300 dark:hover:border-cyan-700", glowColor: "group-hover:shadow-cyan-500/10 dark:group-hover:shadow-cyan-500/20" },
 ];
 
-const HOW_IT_WORKS = [
-  {
-    step: "01",
-    title: "Search",
-    description: "Browse verified listings across India. Filter by city, category, and budget to find exactly what you need.",
-    Icon: Search,
-    gradient: "from-blue-500 to-indigo-600",
-    color: "blue",
-  },
-  {
-    step: "02",
-    title: "Connect",
-    description: "Connect directly with verified sellers and service providers. Get details, schedule visits, and negotiate transparent pricing.",
-    Icon: Users,
-    gradient: "from-violet-500 to-purple-600",
-    color: "violet",
-  },
-  {
-    step: "03",
-    title: "Get Started",
-    description: "Finalize your deal with confidence. We ensure a smooth, secure, and hassle-free experience from start to finish.",
-    Icon: Home,
-    gradient: "from-pink-500 to-rose-600",
-    color: "pink",
-  },
-];
+const NAV_KEYS = ["nav.houses", "nav.land", "nav.pg", "nav.commercial", "nav.vehicles", "nav.commodities"];
 
-const STATS = [
-  { value: "10,000+", label: "Services", Icon: Building },
-  { value: "500+", label: "Cities", Icon: MapPin },
-  { value: "50,000+", label: "Users", Icon: Users },
+const HOW_IT_WORKS_ICONS = [Search, Users, Home];
+const HOW_IT_WORKS_KEYS = [
+  { title: "how_it_works.search_title", desc: "how_it_works.search_desc" },
+  { title: "how_it_works.connect_title", desc: "how_it_works.connect_desc" },
+  { title: "how_it_works.get_started_title", desc: "how_it_works.get_started_desc" },
 ];
-
+const HOW_IT_WORKS_GRADIENTS = [
+  "from-blue-500 to-indigo-600",
+  "from-violet-500 to-purple-600",
+  "from-pink-500 to-rose-600",
+];
 
 function AnimatedSection({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   const ref = useRef(null);
@@ -148,6 +77,8 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
 }
 
 export default function HomePage() {
+  const { t } = useTranslation();
+
   return (
     <main className="min-h-screen overflow-hidden">
       {/* Hero Section */}
@@ -164,7 +95,6 @@ export default function HomePage() {
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-28 sm:py-36 lg:py-48">
           <div className="text-center space-y-8">
-            {/* Animated badge */}
             <motion.div
               initial={{ opacity: 0, y: -20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -172,10 +102,9 @@ export default function HomePage() {
               className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm font-medium text-white/90 backdrop-blur-md border border-white/20 animate-pulse-glow"
             >
               <Sparkles className="size-4 text-yellow-300" />
-              Trusted by thousands across India
+              {t("hero.badge")}
             </motion.div>
 
-            {/* Headline */}
             <div className="space-y-4">
               <motion.h1
                 initial={{ opacity: 0, y: 30 }}
@@ -183,7 +112,7 @@ export default function HomePage() {
                 transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
                 className="text-5xl sm:text-6xl lg:text-8xl font-bold text-white tracking-tight leading-[1.05]"
               >
-                Find Your Perfect
+                {t("hero.title_line1")}
                 <br />
                 <motion.span
                   className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 animate-text-gradient"
@@ -192,7 +121,7 @@ export default function HomePage() {
                   animate={{ opacity: 1 }}
                   transition={{ duration: 1, delay: 0.5 }}
                 >
-                  Space
+                  {t("hero.title_line2")}
                 </motion.span>
               </motion.h1>
               <motion.p
@@ -201,11 +130,10 @@ export default function HomePage() {
                 transition={{ duration: 0.8, delay: 0.4 }}
                 className="mx-auto max-w-2xl text-lg sm:text-xl text-blue-100/80 leading-relaxed"
               >
-                India&apos;s trusted online marketplace &mdash; discover services, list what you offer, buy, sell &amp; rent
+                {t("hero.subtitle")}
               </motion.p>
             </div>
 
-            {/* Search Bar */}
             <motion.div
               initial={{ opacity: 0, y: 30, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -217,19 +145,9 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Smooth wave divider */}
         <div className="absolute bottom-0 left-0 right-0">
-          <svg
-            viewBox="0 0 1440 120"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full"
-            preserveAspectRatio="none"
-          >
-            <path
-              d="M0 120V60C120 20 240 0 360 10C480 20 600 60 720 70C840 80 960 60 1080 40C1200 20 1320 10 1380 5L1440 0V120H0Z"
-              className="fill-background"
-            />
+          <svg viewBox="0 0 1440 120" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full" preserveAspectRatio="none">
+            <path d="M0 120V60C120 20 240 0 360 10C480 20 600 60 720 70C840 80 960 60 1080 40C1200 20 1320 10 1380 5L1440 0V120H0Z" className="fill-background" />
           </svg>
         </div>
       </section>
@@ -239,64 +157,63 @@ export default function HomePage() {
         <AnimatedSection>
           <div className="text-center space-y-4 mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
-              Explore by{" "}
+              {t("categories.explore_by")}{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600">
-                Category
+                {t("categories.category")}
               </span>
             </h2>
             <p className="mx-auto max-w-xl text-muted-foreground text-lg">
-              Explore our consulting services across multiple categories.
+              {t("categories.subtitle")}
             </p>
           </div>
         </AnimatedSection>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {CATEGORY_DETAILS.map((cat, i) => (
-            <motion.div
-              key={cat.value}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5, delay: i * 0.12 }}
-            >
-              <Link href={cat.href} className="group block">
-                <TiltCard className="relative">
-                  <Card className={`h-full border border-zinc-200/80 dark:border-zinc-800/80 ${cat.borderHover} shadow-3d transition-all duration-500 hover:shadow-2xl ${cat.glowColor} overflow-hidden bg-white dark:bg-zinc-900/80 backdrop-blur-sm`}>
-                    <div className={`h-1 bg-gradient-to-r ${cat.gradient} transition-all duration-500 group-hover:h-1.5`} />
-                    <CardContent className="pt-6 pb-6 space-y-4">
-                      <motion.div
-                        whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
-                        transition={{ duration: 0.5 }}
-                        className={`relative inline-flex items-center justify-center size-16 rounded-2xl bg-gradient-to-br ${cat.gradient} shadow-lg`}
-                      >
-                        <cat.Icon className="size-8 text-white" />
-                        <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${cat.gradient} opacity-0 group-hover:opacity-30 blur-xl -z-10 transition-opacity duration-500`} />
-                      </motion.div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-2xl" role="img" aria-label={cat.label}>
-                            {cat.emoji}
-                          </span>
-                          <h3 className="text-xl font-bold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
-                            {cat.label}
-                          </h3>
+          {CATEGORIES.map((cat, i) => {
+            const Icon = CATEGORY_ICONS[i];
+            const style = CATEGORY_STYLES[i];
+            return (
+              <motion.div
+                key={cat.value}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.12 }}
+              >
+                <Link href={cat.href} className="group block">
+                  <TiltCard className="relative">
+                    <Card className={`h-full border border-zinc-200/80 dark:border-zinc-800/80 ${style.borderHover} shadow-3d transition-all duration-500 hover:shadow-2xl ${style.glowColor} overflow-hidden bg-white dark:bg-zinc-900/80 backdrop-blur-sm`}>
+                      <div className={`h-1 bg-gradient-to-r ${style.gradient} transition-all duration-500 group-hover:h-1.5`} />
+                      <CardContent className="pt-6 pb-6 space-y-4">
+                        <motion.div
+                          whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
+                          transition={{ duration: 0.5 }}
+                          className={`relative inline-flex items-center justify-center size-16 rounded-2xl bg-gradient-to-br ${style.gradient} shadow-lg`}
+                        >
+                          <Icon className="size-8 text-white" />
+                        </motion.div>
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl" role="img" aria-label={cat.label}>{cat.emoji}</span>
+                            <h3 className="text-xl font-bold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                              {t(NAV_KEYS[i])}
+                            </h3>
+                          </div>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {t(CATEGORY_DESC_KEYS[i])}
+                          </p>
                         </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          {cat.description}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400">
-                        Browse {cat.label}
-                        <ChevronRight className="size-4 transition-transform duration-300 group-hover:translate-x-1.5" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TiltCard>
-              </Link>
-            </motion.div>
-          ))}
+                        <div className="flex items-center gap-1.5 text-sm font-semibold text-blue-600 dark:text-blue-400">
+                          {t("categories.browse")} {t(NAV_KEYS[i])}
+                          <ChevronRight className="size-4 transition-transform duration-300 group-hover:translate-x-1.5" />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TiltCard>
+                </Link>
+              </motion.div>
+            );
+          })}
         </div>
       </section>
 
@@ -311,62 +228,62 @@ export default function HomePage() {
           <AnimatedSection>
             <div className="text-center space-y-4 mb-20">
               <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
-                How It{" "}
+                {t("how_it_works.title_prefix")}{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
-                  Works
+                  {t("how_it_works.title_highlight")}
                 </span>
               </h2>
               <p className="mx-auto max-w-xl text-muted-foreground text-lg">
-                Getting started with our consulting services is easy.
+                {t("how_it_works.subtitle")}
               </p>
             </div>
           </AnimatedSection>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
-            {HOW_IT_WORKS.map((item, index) => (
-              <motion.div
-                key={item.step}
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: index * 0.2 }}
-                className="relative text-center"
-              >
-                {index < HOW_IT_WORKS.length - 1 && (
-                  <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-[2px]">
-                    <div className="h-full bg-gradient-to-r from-zinc-300 to-transparent dark:from-zinc-700 rounded-full" />
+            {HOW_IT_WORKS_KEYS.map((item, index) => {
+              const Icon = HOW_IT_WORKS_ICONS[index];
+              const gradient = HOW_IT_WORKS_GRADIENTS[index];
+              const step = String(index + 1).padStart(2, "0");
+              return (
+                <motion.div
+                  key={step}
+                  initial={{ opacity: 0, y: 40 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: index * 0.2 }}
+                  className="relative text-center"
+                >
+                  {index < HOW_IT_WORKS_KEYS.length - 1 && (
+                    <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-[2px]">
+                      <div className="h-full bg-gradient-to-r from-zinc-300 to-transparent dark:from-zinc-700 rounded-full" />
+                      <motion.div
+                        className={`h-full bg-gradient-to-r ${gradient} rounded-full absolute top-0 left-0`}
+                        initial={{ width: "0%" }}
+                        whileInView={{ width: "100%" }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1, delay: 0.5 + index * 0.3 }}
+                      />
+                    </div>
+                  )}
+                  <div className="relative inline-flex flex-col items-center gap-5">
                     <motion.div
-                      className={`h-full bg-gradient-to-r ${item.gradient} rounded-full absolute top-0 left-0`}
-                      initial={{ width: "0%" }}
-                      whileInView={{ width: "100%" }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 1, delay: 0.5 + index * 0.3 }}
-                    />
+                      whileHover={{ scale: 1.1, rotateY: 15 }}
+                      className={`relative flex items-center justify-center size-24 rounded-3xl bg-gradient-to-br ${gradient} shadow-xl`}
+                      style={{ transformStyle: "preserve-3d", perspective: 800 }}
+                    >
+                      <Icon className="size-10 text-white" />
+                    </motion.div>
+                    <span className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">
+                      {t("how_it_works.step")} {step}
+                    </span>
                   </div>
-                )}
-
-                <div className="relative inline-flex flex-col items-center gap-5">
-                  <motion.div
-                    whileHover={{ scale: 1.1, rotateY: 15 }}
-                    className={`relative flex items-center justify-center size-24 rounded-3xl bg-gradient-to-br ${item.gradient} shadow-xl`}
-                    style={{ transformStyle: "preserve-3d", perspective: 800 }}
-                  >
-                    <item.Icon className="size-10 text-white" />
-                    <div className={`absolute inset-0 rounded-3xl bg-gradient-to-br ${item.gradient} opacity-25 blur-xl -z-10`} />
-                  </motion.div>
-                  <span className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">
-                    Step {item.step}
-                  </span>
-                </div>
-
-                <div className="space-y-3 mt-6">
-                  <h3 className="text-2xl font-bold text-foreground">{item.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed max-w-sm mx-auto">
-                    {item.description}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
+                  <div className="space-y-3 mt-6">
+                    <h3 className="text-2xl font-bold text-foreground">{t(item.title)}</h3>
+                    <p className="text-muted-foreground leading-relaxed max-w-sm mx-auto">{t(item.desc)}</p>
+                  </div>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -387,7 +304,11 @@ export default function HomePage() {
           </div>
 
           <div className="relative grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8">
-            {STATS.map((stat, i) => (
+            {[
+              { value: "10,000+", label: t("stats.services"), Icon: Building },
+              { value: "500+", label: t("stats.cities"), Icon: MapPin },
+              { value: "50,000+", label: t("stats.users"), Icon: Users },
+            ].map((stat, i) => (
               <AnimatedCounter
                 key={stat.label}
                 target={stat.value}
@@ -411,14 +332,13 @@ export default function HomePage() {
             <div className="text-center space-y-8">
               <div className="space-y-4">
                 <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
-                  Ready to list your{" "}
+                  {t("cta.ready_to_list")}{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
-                    service?
+                    {t("cta.service")}
                   </span>
                 </h2>
                 <p className="mx-auto max-w-xl text-muted-foreground text-lg leading-relaxed">
-                  Join thousands of sellers who trust BhoomiTayi. List your service
-                  in minutes and reach millions of potential buyers across India.
+                  {t("cta.subtitle")}
                 </p>
               </div>
 
@@ -431,7 +351,7 @@ export default function HomePage() {
                   >
                     <Link href="/sell">
                       <Sparkles className="size-5" />
-                      Register Your Service
+                      {t("cta.register")}
                       <ArrowRight className="size-5" />
                     </Link>
                   </Button>
@@ -443,7 +363,7 @@ export default function HomePage() {
                     size="lg"
                     className="h-14 px-10 rounded-2xl font-semibold text-base border-2 border-zinc-300 dark:border-zinc-700 hover:border-blue-300 dark:hover:border-blue-800 hover:bg-blue-50/50 dark:hover:bg-blue-950/30 transition-all"
                   >
-                    <Link href="/houses">Browse Services</Link>
+                    <Link href="/houses">{t("cta.browse_services")}</Link>
                   </Button>
                 </motion.div>
               </div>

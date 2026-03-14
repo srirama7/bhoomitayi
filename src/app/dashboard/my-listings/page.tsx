@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Trash2, Pencil, Tag } from "lucide-react";
+import { Trash2, Pencil, Tag, FileDown, ChevronDown, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +17,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { db } from "@/lib/firebase/config";
 import {
   collection,
@@ -29,44 +36,48 @@ import {
 } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
 import { formatPrice } from "@/lib/constants";
+import { generateListingPDF } from "@/lib/generate-pdf";
+import { SUPPORTED_LANGUAGES } from "@/lib/i18n";
 import type { Listing } from "@/lib/types/database";
 
-const statusConfig: Record<
-  Listing["status"],
-  { label: string; className: string }
-> = {
-  active: {
-    label: "Active",
-    className: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800",
-  },
-  pending: {
-    label: "Pending",
-    className: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
-  },
-  pending_payment: {
-    label: "Payment Verification",
-    className: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800",
-  },
-  rejected: {
-    label: "Rejected",
-    className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800",
-  },
-  sold: {
-    label: "Sold",
-    className: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800",
-  },
-  archived: {
-    label: "Archived",
-    className: "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-800/50 dark:text-zinc-300 dark:border-zinc-700",
-  },
-};
-
 export default function MyListingsPage() {
+  const { t, i18n } = useTranslation();
   const { user, loading: authLoading } = useAuthStore();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+
+  const statusConfig: Record<
+    Listing["status"],
+    { label: string; className: string }
+  > = {
+    active: {
+      label: t("listing.status.active"),
+      className: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800",
+    },
+    pending: {
+      label: t("listing.status.pending"),
+      className: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
+    },
+    pending_payment: {
+      label: t("listing.status.pending_payment"),
+      className: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800",
+    },
+    rejected: {
+      label: t("listing.status.rejected"),
+      className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800",
+    },
+    sold: {
+      label: t("listing.status.sold"),
+      className: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800",
+    },
+    archived: {
+      label: t("listing.status.archived"),
+      className: "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-800/50 dark:text-zinc-300 dark:border-zinc-700",
+    },
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -124,23 +135,35 @@ export default function MyListingsPage() {
     }
   };
 
+  const handleDownloadPdf = async (listing: Listing, lang: string) => {
+    setGeneratingPdf(listing.id);
+    try {
+      await generateListingPDF(listing, lang);
+      toast.success(t("listing.download_pdf"));
+    } catch (err) {
+      console.error("PDF generation error:", err);
+      toast.error("Failed to generate PDF");
+    }
+    setGeneratingPdf(null);
+  };
+
   if (loading) {
-    return <p className="text-muted-foreground">Loading...</p>;
+    return <p className="text-muted-foreground">{t("common.loading")}</p>;
   }
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">My Listings</h1>
+      <h1 className="mb-6 text-2xl font-bold">{t("listing.my_listings")}</h1>
 
       {listings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Tag className="mb-4 size-12 text-muted-foreground" />
             <p className="text-lg font-medium text-muted-foreground">
-              No listings yet
+              {t("listing.no_listings")}
             </p>
             <p className="text-sm text-muted-foreground">
-              Your listings will appear here once you create one.
+              {t("listing.no_listings_desc")}
             </p>
           </CardContent>
         </Card>
@@ -186,7 +209,7 @@ export default function MyListingsPage() {
                       {formatPrice(listing.price)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Created{" "}
+                      {t("listing.created")}{" "}
                       {new Date(listing.created_at).toLocaleDateString(
                         "en-IN",
                         {
@@ -203,7 +226,7 @@ export default function MyListingsPage() {
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/dashboard/my-listings/edit?id=${listing.id}`}>
                         <Pencil className="size-4" />
-                        Edit
+                        {t("listing.edit")}
                       </Link>
                     </Button>
                     {listing.status === "active" && (
@@ -213,16 +236,62 @@ export default function MyListingsPage() {
                         onClick={() => handleMarkAsSold(listing.id)}
                       >
                         <Tag className="size-4" />
-                        Mark as Sold
+                        {t("listing.mark_as_sold")}
                       </Button>
                     )}
+
+                    {/* PDF Download Dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="gap-1 text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950/40"
+                          disabled={generatingPdf === listing.id}
+                        >
+                          {generatingPdf === listing.id ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <FileDown className="size-4" />
+                          )}
+                          {generatingPdf === listing.id
+                            ? t("listing.generating_pdf")
+                            : t("listing.download_pdf")}
+                          <ChevronDown className="size-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-52 rounded-xl">
+                        <DropdownMenuItem
+                          onClick={() => handleDownloadPdf(listing, i18n.language)}
+                          className="rounded-lg mx-1"
+                        >
+                          <FileDown className="mr-2 size-4" />
+                          {t("listing.download_current_lang")}
+                        </DropdownMenuItem>
+                        {SUPPORTED_LANGUAGES.map((lang) => (
+                          <DropdownMenuItem
+                            key={lang.code}
+                            onClick={() => handleDownloadPdf(listing, lang.code)}
+                            className="rounded-lg mx-1"
+                          >
+                            {lang.nativeLabel}
+                            {lang.code !== "en" && (
+                              <span className="ml-auto text-xs text-muted-foreground">
+                                {lang.label}
+                              </span>
+                            )}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button
                       variant="destructive"
                       size="sm"
                       onClick={() => setDeleteId(listing.id)}
                     >
                       <Trash2 className="size-4" />
-                      Delete
+                      {t("listing.delete")}
                     </Button>
                   </div>
                 </CardContent>
@@ -236,22 +305,21 @@ export default function MyListingsPage() {
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Listing</DialogTitle>
+            <DialogTitle>{t("listing.delete_listing")}</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this listing? This action cannot be
-              undone.
+              {t("listing.delete_confirm")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteId(null)}>
-              Cancel
+              {t("listing.cancel")}
             </Button>
             <Button
               variant="destructive"
               onClick={handleDelete}
               disabled={deleting}
             >
-              {deleting ? "Deleting..." : "Delete"}
+              {deleting ? t("listing.deleting") : t("listing.delete")}
             </Button>
           </DialogFooter>
         </DialogContent>

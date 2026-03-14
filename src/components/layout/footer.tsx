@@ -2,29 +2,31 @@
 
 import Link from "next/link";
 import { Home, ArrowUpRight, Heart } from "lucide-react";
-import { motion } from "framer-motion";
-
-const browseLinks = [
-  { label: "Houses", href: "/houses" },
-  { label: "Land", href: "/land" },
-  { label: "PG", href: "/pg" },
-  { label: "Commercial", href: "/commercial" },
-];
-
-const accountLinks = [
-  { label: "Dashboard", href: "/dashboard" },
-  { label: "Favorites", href: "/dashboard/favorites" },
-  { label: "Register Service", href: "/sell" },
-];
-
-const legalLinks = [
-  { label: "About Us", href: "/about" },
-  { label: "Privacy Policy", href: "/privacy" },
-  { label: "Terms of Service", href: "/terms" },
-  { label: "Contact Us", href: "/contact" },
-];
+import { useTranslation } from "react-i18next";
 
 export function Footer() {
+  const { t } = useTranslation();
+
+  const browseLinks = [
+    { label: t("nav.houses"), href: "/houses" },
+    { label: t("nav.land"), href: "/land" },
+    { label: t("nav.pg"), href: "/pg" },
+    { label: t("nav.commercial"), href: "/commercial" },
+  ];
+
+  const accountLinks = [
+    { label: t("nav.dashboard"), href: "/dashboard" },
+    { label: t("nav.favorites"), href: "/dashboard/favorites" },
+    { label: t("nav.register_service"), href: "/sell" },
+  ];
+
+  const legalLinks = [
+    { label: t("footer.about_us"), href: "/about" },
+    { label: t("footer.privacy_policy"), href: "/privacy" },
+    { label: t("footer.terms"), href: "/terms" },
+    { label: t("footer.contact_us"), href: "/contact" },
+  ];
+
   return (
     <footer className="relative border-t border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-950 overflow-hidden">
       {/* Gradient glow line */}
@@ -49,14 +51,13 @@ export function Footer() {
               </span>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              BhoomiTayi is an online marketplace connecting
-              buyers, sellers, and service providers across India.
+              {t("footer.description")}
             </p>
           </div>
 
           {/* Browse */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-foreground tracking-wide uppercase">Browse</h3>
+            <h3 className="text-sm font-bold text-foreground tracking-wide uppercase">{t("footer.browse")}</h3>
             <ul className="flex flex-col gap-2.5">
               {browseLinks.map((link) => (
                 <li key={link.href}>
@@ -74,7 +75,7 @@ export function Footer() {
 
           {/* Account */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-foreground tracking-wide uppercase">Account</h3>
+            <h3 className="text-sm font-bold text-foreground tracking-wide uppercase">{t("footer.account")}</h3>
             <ul className="flex flex-col gap-2.5">
               {accountLinks.map((link) => (
                 <li key={link.href}>
@@ -92,7 +93,7 @@ export function Footer() {
 
           {/* Legal */}
           <div className="flex flex-col gap-4">
-            <h3 className="text-sm font-bold text-foreground tracking-wide uppercase">Legal</h3>
+            <h3 className="text-sm font-bold text-foreground tracking-wide uppercase">{t("footer.legal")}</h3>
             <ul className="flex flex-col gap-2.5">
               {legalLinks.map((link) => (
                 <li key={link.href}>
@@ -113,10 +114,10 @@ export function Footer() {
         <div className="mt-14 border-t border-zinc-200/80 dark:border-zinc-800/60 pt-8">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} BhoomiTayi. All rights reserved.
+              &copy; {new Date().getFullYear()} BhoomiTayi. {t("footer.copyright")}
             </p>
             <p className="flex items-center gap-1 text-xs text-muted-foreground/60">
-              Made with <Heart className="size-3 text-red-400 fill-red-400" /> in India
+              {t("footer.made_with")} <Heart className="size-3 text-red-400 fill-red-400" /> {t("footer.in_india")}
             </p>
           </div>
         </div>
