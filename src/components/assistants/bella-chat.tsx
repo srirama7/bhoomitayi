@@ -205,8 +205,8 @@ export function BellaChat() {
                     animate={{ opacity: 1 }}
                     className="flex gap-2 items-center"
                   >
-                    <div className="flex-shrink-0 size-7 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
-                      <Bot className="size-4 text-white" />
+                    <div className="flex-shrink-0 size-7 rounded-full overflow-hidden">
+                      <Image src={BELLA_AVATAR} alt="Bella" width={28} height={28} className="size-full object-cover" />
                     </div>
                     <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl rounded-bl-md px-4 py-3">
                       <div className="flex gap-1">

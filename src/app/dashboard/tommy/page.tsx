@@ -189,8 +189,8 @@ export default function TommyPage() {
             ))}
             {isTyping && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-2 items-center">
-                <div className="flex-shrink-0 size-8 rounded-full bg-gradient-to-br from-orange-500 to-amber-600 flex items-center justify-center">
-                  <Bot className="size-4 text-white" />
+                <div className="flex-shrink-0 size-8 rounded-full overflow-hidden">
+                  <Image src={TOMMY_AVATAR} alt="Tommy" width={32} height={32} className="size-full object-cover" />
                 </div>
                 <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl rounded-bl-md px-4 py-3">
                   <div className="flex gap-1">
