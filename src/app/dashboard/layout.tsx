@@ -12,6 +12,8 @@ import {
   Home,
   ArrowLeft,
   Loader2,
+  Bot,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,7 +24,9 @@ const navItems = [
   { label: "My Listings", href: "/dashboard/my-listings", icon: List },
   { label: "Favorites", href: "/dashboard/favorites", icon: Heart },
   { label: "Inquiries", href: "/dashboard/inquiries", icon: MessageSquare },
+  { label: "Tommy AI", href: "/dashboard/tommy", icon: Bot },
   { label: "Profile", href: "/dashboard/profile", icon: User },
+  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
 export default function DashboardLayout({

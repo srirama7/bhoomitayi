@@ -7,6 +7,7 @@ import { I18nProvider } from "@/components/providers/i18n-provider";
 import { LayoutWrapper } from "@/components/layout/layout-wrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { BellaChat } from "@/components/assistants/bella-chat";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,6 +47,7 @@ export default function RootLayout({
             <AuthProvider>
               <TooltipProvider>
                 <LayoutWrapper>{children}</LayoutWrapper>
+                <BellaChat />
                 <Toaster richColors position="top-right" />
               </TooltipProvider>
             </AuthProvider>
