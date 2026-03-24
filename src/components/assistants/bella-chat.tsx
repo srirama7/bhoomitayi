@@ -2,11 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Bot, User, Sparkles } from "lucide-react";
+import { MessageCircle, X, Send, User } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useAuthStore } from "@/lib/store";
+
+const BELLA_AVATAR = "/bella-avatar.jpg";
 
 interface Message {
   id: string;
@@ -116,12 +119,12 @@ export function BellaChat() {
             exit={{ scale: 0, opacity: 0 }}
             className="fixed bottom-6 right-6 z-50"
           >
-            <Button
+            <button
               onClick={() => setOpen(true)}
-              className="size-14 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 hover:from-pink-600 hover:to-rose-700 shadow-xl shadow-pink-500/30 hover:shadow-pink-500/50 transition-all duration-300"
+              className="size-16 rounded-full shadow-xl shadow-pink-500/30 hover:shadow-pink-500/50 transition-all duration-300 overflow-hidden ring-3 ring-pink-400 hover:ring-pink-500 hover:scale-105"
             >
-              <MessageCircle className="size-6 text-white" />
-            </Button>
+              <Image src={BELLA_AVATAR} alt="Bella" width={64} height={64} className="size-full object-cover" />
+            </button>
             <span className="absolute -top-1 -right-1 flex size-4">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
               <span className="relative inline-flex rounded-full size-4 bg-pink-500" />
@@ -145,8 +148,8 @@ export function BellaChat() {
             <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="flex items-center justify-center size-10 rounded-full bg-white/20 backdrop-blur-sm">
-                    <Sparkles className="size-5" />
+                  <div className="size-10 rounded-full overflow-hidden ring-2 ring-white/30">
+                    <Image src={BELLA_AVATAR} alt="Bella" width={40} height={40} className="size-full object-cover" />
                   </div>
                   <span className="absolute bottom-0 right-0 size-3 rounded-full bg-green-400 border-2 border-rose-600" />
                 </div>
@@ -176,8 +179,8 @@ export function BellaChat() {
                     className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     {msg.role === "assistant" && (
-                      <div className="flex-shrink-0 size-7 rounded-full bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center">
-                        <Bot className="size-4 text-white" />
+                      <div className="flex-shrink-0 size-7 rounded-full overflow-hidden">
+                        <Image src={BELLA_AVATAR} alt="Bella" width={28} height={28} className="size-full object-cover" />
                       </div>
                     )}
                     <div
