@@ -8,6 +8,9 @@ import { LayoutWrapper } from "@/components/layout/layout-wrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BellaChat } from "@/components/assistants/bella-chat";
+import { TommyGuide } from "@/components/assistants/tommy-guide";
+import { SettingsWidget } from "@/components/settings/settings-widget";
+import { SettingsApplier } from "@/components/settings/settings-applier";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,7 +50,10 @@ export default function RootLayout({
             <AuthProvider>
               <TooltipProvider>
                 <LayoutWrapper>{children}</LayoutWrapper>
+                <SettingsApplier />
                 <BellaChat />
+                <TommyGuide />
+                <SettingsWidget />
                 <Toaster richColors position="top-right" />
               </TooltipProvider>
             </AuthProvider>

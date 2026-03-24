@@ -125,6 +125,73 @@
   }
 }
 
+/* ── Reading Mode ── */
+.reading-mode {
+  --background: oklch(0.95 0.02 80);
+  --foreground: oklch(0.25 0.02 50);
+  --card: oklch(0.94 0.015 75);
+  --card-foreground: oklch(0.25 0.02 50);
+}
+
+.reading-mode body {
+  font-family: Georgia, "Times New Roman", serif !important;
+  line-height: 1.8 !important;
+  letter-spacing: 0.01em;
+}
+
+.reading-mode.dark {
+  --background: oklch(0.18 0.015 60);
+  --foreground: oklch(0.88 0.02 70);
+  --card: oklch(0.22 0.015 60);
+  --card-foreground: oklch(0.88 0.02 70);
+}
+
+/* ── High Contrast ── */
+.high-contrast {
+  --foreground: oklch(0.05 0 0);
+  --background: oklch(1 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.05 0 0);
+  --muted-foreground: oklch(0.3 0 0);
+  --border: oklch(0.3 0 0);
+}
+
+.high-contrast.dark {
+  --foreground: oklch(0.98 0 0);
+  --background: oklch(0.05 0 0);
+  --card: oklch(0.08 0 0);
+  --card-foreground: oklch(0.98 0 0);
+  --muted-foreground: oklch(0.75 0 0);
+  --border: oklch(0.7 0 0);
+}
+
+/* ── Reduce Animations ── */
+.reduce-animations *,
+.reduce-animations *::before,
+.reduce-animations *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* ── Compact Mode ── */
+.compact-mode body {
+  letter-spacing: -0.01em;
+}
+
+.compact-mode section {
+  padding-top: 1.5rem !important;
+  padding-bottom: 1.5rem !important;
+}
+
+.compact-mode .gap-6 { gap: 0.75rem !important; }
+.compact-mode .gap-8 { gap: 1rem !important; }
+.compact-mode .py-24 { padding-top: 3rem !important; padding-bottom: 3rem !important; }
+.compact-mode .py-28 { padding-top: 3.5rem !important; padding-bottom: 3.5rem !important; }
+.compact-mode .py-32 { padding-top: 4rem !important; padding-bottom: 4rem !important; }
+.compact-mode .mb-16 { margin-bottom: 2rem !important; }
+.compact-mode .mb-20 { margin-bottom: 2.5rem !important; }
+
 /* Ensure Cashfree payment modal appears above all other overlays */
 .cashfree-sdk,
 .cashfree-sdk iframe,
