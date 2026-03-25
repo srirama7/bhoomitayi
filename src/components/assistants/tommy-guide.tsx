@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { X, ChevronRight, ChevronLeft } from "lucide-react";
 import Image from "next/image";
@@ -156,11 +156,27 @@ function getGuideForPath(path: string): PageGuide {
 export function TommyGuide() {
   const pathname = usePathname();
   const { t, i18n } = useTranslation();
-  const [visible, setVisible] = useState(false);
+  const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
+  // Drag state
+  const [position, setPosition] = useState({ x: -1, y: -1 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragOffset = useRef({ x: 0, y: 0 });
+  const dragStartPos = useRef({ x: 0, y: 0 });
+
   const guide = getGuideForPath(pathname);
+
+  // Initialize position at bottom-left on mount
+  useEffect(() => {
+    if (position.x === -1) {
+      setPosition({
+        x: 80,
+        y: window.innerHeight - 80,
+      });
+    }
+  }, [position.x]);
 
   // Resolve text: if it looks like a translation key (contains dots), translate it; otherwise use as-is
   const resolveText = useCallback((key: string) => {
@@ -171,17 +187,17 @@ export function TommyGuide() {
     return key;
   }, [t]);
 
-  // Show Tommy automatically when page changes
+  // Auto-open when page changes (if not dismissed for this page)
   useEffect(() => {
     setCurrentStep(0);
     if (!dismissed.has(pathname)) {
-      const timer = setTimeout(() => setVisible(true), 1200);
+      const timer = setTimeout(() => setOpen(true), 1500);
       return () => clearTimeout(timer);
     }
-    setVisible(false);
+    setOpen(false);
   }, [pathname, dismissed]);
 
-  // Re-show when language changes (clear dismissed so user sees translated guide)
+  // Re-show when language changes
   useEffect(() => {
     setDismissed(new Set());
   }, [i18n.language]);
@@ -196,17 +212,88 @@ export function TommyGuide() {
         const stepIndex = SIGNUP_FIELD_MAP[target.id];
         if (stepIndex !== undefined) {
           setCurrentStep(stepIndex);
-          if (!visible) setVisible(true);
+          if (!open) setOpen(true);
         }
       }
     };
 
     document.addEventListener("focusin", handleFocus);
     return () => document.removeEventListener("focusin", handleFocus);
-  }, [pathname, visible]);
+  }, [pathname, open]);
+
+  // ── Drag handlers ──
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    if (open) return;
+    setIsDragging(true);
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    dragOffset.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    };
+    (e.target as HTMLElement).setPointerCapture(e.pointerId);
+  }, [open, position]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const newX = Math.max(32, Math.min(window.innerWidth - 32, e.clientX - dragOffset.current.x));
+    const newY = Math.max(32, Math.min(window.innerHeight - 32, e.clientY - dragOffset.current.y));
+    setPosition({ x: newX, y: newY });
+  }, [isDragging]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const dx = Math.abs(e.clientX - dragStartPos.current.x);
+    const dy = Math.abs(e.clientY - dragStartPos.current.y);
+    // Only open if it was a click (not a drag)
+    if (dx < 5 && dy < 5) {
+      setOpen(true);
+    }
+  }, [isDragging]);
+
+  // ── Smart guide box position ──
+  const getGuideBoxStyle = useCallback((): React.CSSProperties => {
+    const boxW = 320;
+    const boxH = 300;
+    const pad = 12;
+    const vw = typeof window !== "undefined" ? window.innerWidth : 1024;
+    const vh = typeof window !== "undefined" ? window.innerHeight : 768;
+
+    let left = position.x - boxW / 2;
+    let top = position.y - boxH - pad;
+
+    // Horizontal: prefer right side if near left edge
+    if (position.x < vw / 2) {
+      left = position.x + pad + 32;
+    } else {
+      left = position.x - boxW - pad - 32;
+    }
+
+    // Clamp horizontal
+    if (left + boxW > vw - pad) left = vw - boxW - pad;
+    if (left < pad) left = pad;
+
+    // If not enough space above, open below
+    if (top < pad) {
+      top = position.y + pad + 32;
+    }
+    // Clamp vertical
+    if (top + boxH > vh - pad) {
+      top = vh - boxH - pad;
+    }
+    if (top < pad) top = pad;
+
+    return {
+      position: "fixed",
+      left: `${left}px`,
+      top: `${top}px`,
+      width: `${Math.min(boxW, vw - pad * 2)}px`,
+      zIndex: 41,
+    };
+  }, [position]);
 
   const handleDismiss = () => {
-    setVisible(false);
+    setOpen(false);
     setDismissed((prev) => new Set(prev).add(pathname));
   };
 
@@ -223,86 +310,114 @@ export function TommyGuide() {
   };
 
   if (pathname === "/dashboard/tommy") return null;
-
-  if (!visible) return null;
+  if (position.x === -1) return null;
 
   return (
-    <div
-      className="fixed bottom-24 right-6 z-40 w-[320px] max-w-[calc(100vw-48px)] rounded-2xl border border-orange-200 dark:border-orange-900/50 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300"
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 text-white">
-        <div className="flex items-center gap-2">
-          <div className="size-8 rounded-full overflow-hidden ring-2 ring-white/30">
-            <Image src={TOMMY_AVATAR} alt="Tommy" width={32} height={32} className="size-full object-cover" />
+    <>
+      {/* Draggable Tommy Circle */}
+      {!open && (
+        <div
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          className="fixed z-40 touch-none select-none"
+          style={{
+            left: `${position.x - 32}px`,
+            top: `${position.y - 32}px`,
+            cursor: isDragging ? "grabbing" : "grab",
+          }}
+        >
+          <div className="size-16 rounded-full shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all duration-300 overflow-hidden ring-3 ring-orange-400 hover:ring-orange-500 hover:scale-105">
+            <Image src={TOMMY_AVATAR} alt="Tommy" width={64} height={64} className="size-full object-cover pointer-events-none" />
           </div>
-          <div>
-            <h4 className="font-bold text-xs">{t("tommy.name")}</h4>
-            <p className="text-[10px] text-white/70">
-              {t("tommy.step_of", { current: currentStep + 1, total: guide.steps.length })}
-            </p>
+          <span className="absolute -top-1 -left-1 flex size-4">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+            <span className="relative inline-flex rounded-full size-4 bg-orange-500" />
+          </span>
+        </div>
+      )}
+
+      {/* Guide Panel - smart positioning */}
+      {open && (
+        <div
+          style={getGuideBoxStyle()}
+          className="rounded-2xl border border-orange-200 dark:border-orange-900/50 bg-white dark:bg-zinc-900 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-3 py-2.5 bg-gradient-to-r from-orange-500 to-amber-600 text-white">
+            <div className="flex items-center gap-2">
+              <div className="size-8 rounded-full overflow-hidden ring-2 ring-white/30">
+                <Image src={TOMMY_AVATAR} alt="Tommy" width={32} height={32} className="size-full object-cover" />
+              </div>
+              <div>
+                <h4 className="font-bold text-xs">{t("tommy.name")}</h4>
+                <p className="text-[10px] text-white/70">
+                  {t("tommy.step_of", { current: currentStep + 1, total: guide.steps.length })}
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDismiss}
+              className="size-7 rounded-full text-white hover:bg-white/20"
+            >
+              <X className="size-3.5" />
+            </Button>
+          </div>
+
+          {/* Content */}
+          <div className="p-4">
+            {currentStep === 0 && (
+              <p className="text-xs text-muted-foreground mb-3">{resolveText(guide.greetingKey)}</p>
+            )}
+            <div className="space-y-1.5">
+              <h5 className="font-bold text-sm text-foreground">{resolveText(guide.steps[currentStep].titleKey)}</h5>
+              <p className="text-xs text-muted-foreground leading-relaxed">{resolveText(guide.steps[currentStep].contentKey)}</p>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="px-4 pb-1">
+            <div className="h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-300"
+                style={{ width: `${((currentStep + 1) / guide.steps.length) * 100}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <div className="flex items-center justify-between px-4 py-2.5 border-t border-zinc-100 dark:border-zinc-800">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={prevStep}
+              disabled={currentStep === 0}
+              className="rounded-lg h-8 text-xs gap-1"
+            >
+              <ChevronLeft className="size-3" /> {t("tommy.back")}
+            </Button>
+            <button
+              onClick={handleDismiss}
+              className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {t("tommy.skip")}
+            </button>
+            <Button
+              size="sm"
+              onClick={nextStep}
+              className="rounded-lg h-8 text-xs gap-1 bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:from-orange-600 hover:to-amber-700"
+            >
+              {currentStep < guide.steps.length - 1 ? (
+                <>{t("tommy.next")} <ChevronRight className="size-3" /></>
+              ) : (
+                t("tommy.done")
+              )}
+            </Button>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleDismiss}
-          className="size-7 rounded-full text-white hover:bg-white/20"
-        >
-          <X className="size-3.5" />
-        </Button>
-      </div>
-
-      {/* Content */}
-      <div className="p-4">
-        {currentStep === 0 && (
-          <p className="text-xs text-muted-foreground mb-3">{resolveText(guide.greetingKey)}</p>
-        )}
-        <div className="space-y-1.5">
-          <h5 className="font-bold text-sm text-foreground">{resolveText(guide.steps[currentStep].titleKey)}</h5>
-          <p className="text-xs text-muted-foreground leading-relaxed">{resolveText(guide.steps[currentStep].contentKey)}</p>
-        </div>
-      </div>
-
-      {/* Progress bar */}
-      <div className="px-4 pb-1">
-        <div className="h-1 bg-zinc-100 dark:bg-zinc-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-orange-500 to-amber-500 rounded-full transition-all duration-300"
-            style={{ width: `${((currentStep + 1) / guide.steps.length) * 100}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <div className="flex items-center justify-between px-4 py-2.5 border-t border-zinc-100 dark:border-zinc-800">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={prevStep}
-          disabled={currentStep === 0}
-          className="rounded-lg h-8 text-xs gap-1"
-        >
-          <ChevronLeft className="size-3" /> {t("tommy.back")}
-        </Button>
-        <button
-          onClick={handleDismiss}
-          className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-        >
-          {t("tommy.skip")}
-        </button>
-        <Button
-          size="sm"
-          onClick={nextStep}
-          className="rounded-lg h-8 text-xs gap-1 bg-gradient-to-r from-orange-500 to-amber-600 text-white hover:from-orange-600 hover:to-amber-700"
-        >
-          {currentStep < guide.steps.length - 1 ? (
-            <>{t("tommy.next")} <ChevronRight className="size-3" /></>
-          ) : (
-            t("tommy.done")
-          )}
-        </Button>
-      </div>
-    </div>
+      )}
+    </>
   );
 }
