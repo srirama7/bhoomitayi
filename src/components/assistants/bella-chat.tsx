@@ -7,7 +7,6 @@ import { useTheme } from "next-themes";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useSettingsStore, type SiteSettings } from "@/lib/settings-store";
 
 const BELLA_AVATAR = "/bella-avatar.jpg";
@@ -551,7 +550,7 @@ export function BellaChat() {
           </div>
 
           {/* Messages */}
-          <ScrollArea ref={scrollRef} className="flex-1 p-4">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
             <div className="space-y-4">
               {messages.map((msg) => (
                 <div
@@ -594,7 +593,7 @@ export function BellaChat() {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Input + Exit Button */}
           <div className="border-t border-zinc-200 dark:border-zinc-800 p-3 space-y-2">
