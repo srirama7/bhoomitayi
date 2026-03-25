@@ -310,32 +310,44 @@ export function TommyGuide() {
   };
 
   if (pathname === "/dashboard/tommy") return null;
-  if (position.x === -1) return null;
+
+  // Use mounted flag to avoid SSR mismatch
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
+
+  // Initialize position on first mount
+  if (position.x === -1) {
+    // Will be set by the useEffect, render nothing for now
+    return null;
+  }
 
   return (
-    <>
-      {/* Draggable Tommy Circle */}
-      {!open && (
-        <div
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          className="fixed z-40 touch-none select-none"
-          style={{
-            left: `${position.x - 32}px`,
-            top: `${position.y - 32}px`,
-            cursor: isDragging ? "grabbing" : "grab",
-          }}
-        >
-          <div className="size-16 rounded-full shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all duration-300 overflow-hidden ring-3 ring-orange-400 hover:ring-orange-500 hover:scale-105">
-            <Image src={TOMMY_AVATAR} alt="Tommy" width={64} height={64} className="size-full object-cover pointer-events-none" />
-          </div>
-          <span className="absolute -top-1 -left-1 flex size-4">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-            <span className="relative inline-flex rounded-full size-4 bg-orange-500" />
-          </span>
+    <div id="tommy-guide-root">
+      {/* Draggable Tommy Circle - always visible */}
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        role="button"
+        aria-label="Tommy Guide"
+        className="fixed z-40 touch-none select-none"
+        style={{
+          left: `${position.x - 32}px`,
+          top: `${position.y - 32}px`,
+          cursor: isDragging ? "grabbing" : "grab",
+          display: open ? "none" : "block",
+        }}
+      >
+        <div className="size-16 rounded-full shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all duration-300 overflow-hidden ring-3 ring-orange-400 hover:ring-orange-500 hover:scale-105">
+          <Image src={TOMMY_AVATAR} alt="Tommy" width={64} height={64} className="size-full object-cover pointer-events-none" />
         </div>
-      )}
+        <span className="absolute -top-1 -left-1 flex size-4">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
+          <span className="relative inline-flex rounded-full size-4 bg-orange-500" />
+        </span>
+      </div>
 
       {/* Guide Panel - smart positioning */}
       {open && (
@@ -418,6 +430,6 @@ export function TommyGuide() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
