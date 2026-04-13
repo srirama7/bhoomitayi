@@ -9,10 +9,9 @@ import {
   where,
   orderBy,
   limit,
-  getCountFromServer,
-  startAfter,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
+import { isListingPubliclyVisible } from "@/lib/listing-timer";
 
 import type { QueryConstraint } from "firebase/firestore";
 
@@ -32,7 +31,6 @@ export async function getListings(params: ListingsQueryParams) {
     const page = params.page || 1;
     const pageSize = ITEMS_PER_PAGE;
 
-    // Build base equality constraints (these always work together)
     const baseConstraints: QueryConstraint[] = [
       where("category", "==", params.category),
       where("status", "==", "active"),
@@ -42,26 +40,21 @@ export async function getListings(params: ListingsQueryParams) {
       baseConstraints.push(where("transaction_type", "==", params.transactionType));
     }
 
-    // Determine sort order
-    // When price filters are used, we must order by price first (Firestore requirement)
     const hasPriceFilter = !!(params.minPrice || params.maxPrice);
     let sortConstraint: QueryConstraint;
 
     if (hasPriceFilter || params.sort === "price_asc" || params.sort === "price_desc") {
-      // Use price ordering when price filters or price sort is active
-      const direction = params.sort === "price_desc" ? "desc" as const : "asc" as const;
-      sortConstraint = orderBy("price", direction);
+      sortConstraint = orderBy(
+        "price",
+        params.sort === "price_desc" ? "desc" : "asc"
+      );
     } else {
-      switch (params.sort) {
-        case "oldest":
-          sortConstraint = orderBy("created_at", "asc");
-          break;
-        default:
-          sortConstraint = orderBy("created_at", "desc");
-      }
+      sortConstraint =
+        params.sort === "oldest"
+          ? orderBy("created_at", "asc")
+          : orderBy("created_at", "desc");
     }
 
-    // Build filter constraints
     const filterConstraints: QueryConstraint[] = [];
     if (params.minPrice) {
       filterConstraints.push(where("price", ">=", params.minPrice));
@@ -70,26 +63,16 @@ export async function getListings(params: ListingsQueryParams) {
       filterConstraints.push(where("price", "<=", params.maxPrice));
     }
 
-    // Count query (without price filters for simplicity — gives total in category)
-    const countQuery = query(listingsRef, ...baseConstraints);
-    const countSnapshot = await getCountFromServer(countQuery);
-    const count = countSnapshot.data().count;
-
-    // For pagination: fetch documents up to the current page
-    // Use a simpler approach — fetch all up to current page end, then slice last page
-    const allConstraints = [...baseConstraints, ...filterConstraints, sortConstraint];
-    const fetchLimit = pageSize * page;
-    const q = query(listingsRef, ...allConstraints, limit(fetchLimit));
+    const q = query(listingsRef, ...baseConstraints, ...filterConstraints, sortConstraint);
     const snapshot = await getDocs(q);
 
-    const allDocs = snapshot.docs;
-    const startIndex = (page - 1) * pageSize;
-    const paginatedDocs = allDocs.slice(startIndex, startIndex + pageSize);
+    const allListings = snapshot.docs
+      .map((d) => ({ id: d.id, ...d.data() }) as Listing)
+      .filter(isListingPubliclyVisible);
 
-    const data: Listing[] = paginatedDocs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-    })) as Listing[];
+    const count = allListings.length;
+    const startIndex = (page - 1) * pageSize;
+    const data = allListings.slice(startIndex, startIndex + pageSize);
 
     return { data, count, error: null };
   } catch (error) {
@@ -138,16 +121,15 @@ export async function getSimilarListings(listing: { category: string; id: string
       where("category", "==", listing.category),
       where("status", "==", "active"),
       orderBy("created_at", "desc"),
-      limit(5)
+      limit(8)
     );
 
     const snapshot = await getDocs(q);
-    const data = snapshot.docs
+    return snapshot.docs
       .map((d) => ({ id: d.id, ...d.data() }) as Listing)
+      .filter(isListingPubliclyVisible)
       .filter((item) => item.id !== listing.id)
       .slice(0, 4);
-
-    return data;
   } catch (error) {
     console.error("Error fetching similar listings:", error);
     return [];
@@ -161,11 +143,14 @@ export async function getFeaturedListings() {
       listingsRef,
       where("status", "==", "active"),
       orderBy("created_at", "desc"),
-      limit(8)
+      limit(24)
     );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }) as Listing);
+    return snapshot.docs
+      .map((d) => ({ id: d.id, ...d.data() }) as Listing)
+      .filter(isListingPubliclyVisible)
+      .slice(0, 8);
   } catch (error) {
     console.error("Error fetching featured listings:", error);
     return [];

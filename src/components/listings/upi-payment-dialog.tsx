@@ -17,8 +17,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-
-const LISTING_FEE = 10;
+import { LISTING_FEE } from "@/lib/listing-timer";
 
 interface PaymentGatewayProps {
   open: boolean;

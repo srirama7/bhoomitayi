@@ -26,6 +26,7 @@ import {
   FURNISHING_OPTIONS,
   TRANSACTION_TYPES,
 } from "@/lib/constants";
+import { LISTING_FEE } from "@/lib/listing-timer";
 import { PaymentGateway } from "@/components/listings/upi-payment-dialog";
 
 const STEPS = [
@@ -276,6 +277,7 @@ export default function SellHousePage() {
     try {
       await addDoc(collection(db, "listings"), {
         ...pendingListingData,
+        payment_amount: LISTING_FEE,
         payment_status: "pending",
         status: "pending_payment",
       });

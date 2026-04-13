@@ -29,7 +29,16 @@ export interface Listing {
   latitude: number | null;
   longitude: number | null;
   images: string[];
-  status: "pending" | "pending_payment" | "active" | "rejected" | "sold" | "archived";
+  status: "pending" | "pending_payment" | "active" | "rejected" | "sold" | "archived" | "timed_out";
+  payment_status?: "pending" | "approved" | "not_required";
+  payment_amount?: number;
+  expires_at?: string | null;
+  timer_duration?: {
+    months: number;
+    days: number;
+    minutes: number;
+    seconds: number;
+  } | null;
   details: Json;
   created_at: string;
   updated_at: string;

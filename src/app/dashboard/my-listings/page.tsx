@@ -1,9 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Trash2, Pencil, Tag, FileDown, ChevronDown, Loader2 } from "lucide-react";
+import {
+  Trash2,
+  Pencil,
+  Tag,
+  FileDown,
+  ChevronDown,
+  Loader2,
+  RefreshCw,
+  Clock3,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +47,16 @@ import { useAuthStore } from "@/lib/store";
 import { formatPrice } from "@/lib/constants";
 import { generateListingPDF } from "@/lib/generate-pdf";
 import { SUPPORTED_LANGUAGES } from "@/lib/i18n";
+import {
+  formatRemainingDuration,
+  getEffectiveListingStatus,
+  getRemainingTimeMs,
+  LISTING_FEE,
+} from "@/lib/listing-timer";
 import type { Listing } from "@/lib/types/database";
+import { PaymentGateway } from "@/components/listings/upi-payment-dialog";
+
+type DisplayStatus = Listing["status"];
 
 export default function MyListingsPage() {
   const { t, i18n } = useTranslation();
@@ -48,34 +66,53 @@ export default function MyListingsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
+  const [reactivatingListing, setReactivatingListing] = useState<Listing | null>(null);
+  const [reactivating, setReactivating] = useState(false);
+  const [, forceTick] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => forceTick((prev) => prev + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const statusConfig: Record<
-    Listing["status"],
+    DisplayStatus,
     { label: string; className: string }
   > = {
     active: {
       label: t("listing.status.active"),
-      className: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800",
+      className:
+        "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800",
     },
     pending: {
       label: t("listing.status.pending"),
-      className: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
+      className:
+        "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800",
     },
     pending_payment: {
       label: t("listing.status.pending_payment"),
-      className: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800",
+      className:
+        "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-950/50 dark:text-orange-300 dark:border-orange-800",
     },
     rejected: {
       label: t("listing.status.rejected"),
-      className: "bg-red-100 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800",
+      className:
+        "bg-red-100 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800",
     },
     sold: {
       label: t("listing.status.sold"),
-      className: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800",
+      className:
+        "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800",
     },
     archived: {
       label: t("listing.status.archived"),
-      className: "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-800/50 dark:text-zinc-300 dark:border-zinc-700",
+      className:
+        "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-800/50 dark:text-zinc-300 dark:border-zinc-700",
+    },
+    timed_out: {
+      label: "Timed Out",
+      className:
+        "bg-red-100 text-red-800 border-red-200 dark:bg-red-950/50 dark:text-red-300 dark:border-red-800",
     },
   };
 
@@ -107,6 +144,15 @@ export default function MyListingsPage() {
     fetchListings();
   }, [user, authLoading]);
 
+  const derivedListings = useMemo(
+    () =>
+      listings.map((listing) => ({
+        ...listing,
+        status: getEffectiveListingStatus(listing),
+      })),
+    [listings]
+  );
+
   const handleDelete = async () => {
     if (!deleteId) return;
     setDeleting(true);
@@ -125,14 +171,55 @@ export default function MyListingsPage() {
 
   const handleMarkAsSold = async (id: string) => {
     try {
-      await updateDoc(doc(db, "listings", id), { status: "sold" });
+      await updateDoc(doc(db, "listings", id), {
+        status: "sold",
+        updated_at: new Date().toISOString(),
+      });
       setListings((prev) =>
-        prev.map((l) => (l.id === id ? { ...l, status: "sold" as const } : l))
+        prev.map((l) => (l.id === id ? { ...l, status: "sold" } : l))
       );
       toast.success("Listing marked as sold");
     } catch {
       toast.error("Failed to update listing");
     }
+  };
+
+  const handleReactivatePayment = async () => {
+    if (!reactivatingListing) return;
+
+    setReactivating(true);
+    try {
+      await updateDoc(doc(db, "listings", reactivatingListing.id), {
+        status: "pending_payment",
+        payment_status: "pending",
+        payment_amount: LISTING_FEE,
+        expires_at: null,
+        updated_at: new Date().toISOString(),
+      });
+
+      setListings((prev) =>
+        prev.map((listing) =>
+          listing.id === reactivatingListing.id
+            ? {
+                ...listing,
+                status: "pending_payment",
+                payment_status: "pending",
+                payment_amount: LISTING_FEE,
+                expires_at: null,
+                updated_at: new Date().toISOString(),
+              }
+            : listing
+        )
+      );
+
+      setReactivatingListing(null);
+      toast.success("Reactivation payment submitted for admin approval");
+    } catch (error) {
+      console.error("Failed to submit reactivation payment:", error);
+      toast.error("Failed to submit reactivation payment");
+    }
+
+    setReactivating(false);
   };
 
   const handleDownloadPdf = async (listing: Listing, lang: string) => {
@@ -155,7 +242,7 @@ export default function MyListingsPage() {
     <div>
       <h1 className="mb-6 text-2xl font-bold">{t("listing.my_listings")}</h1>
 
-      {listings.length === 0 ? (
+      {derivedListings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Tag className="mb-4 size-12 text-muted-foreground" />
@@ -169,12 +256,16 @@ export default function MyListingsPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {listings.map((listing) => {
+          {derivedListings.map((listing) => {
             const status = statusConfig[listing.status];
+            const remainingMs = getRemainingTimeMs(listing.expires_at);
+
             return (
-              <Card key={listing.id} className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80 hover:-translate-y-0.5 transition-all duration-300">
+              <Card
+                key={listing.id}
+                className="rounded-2xl border-zinc-200/80 bg-white shadow-3d transition-all duration-300 hover:-translate-y-0.5 dark:border-zinc-800/80 dark:bg-zinc-900/80"
+              >
                 <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                  {/* Thumbnail */}
                   <div className="relative h-24 w-full shrink-0 overflow-hidden rounded-md sm:w-32">
                     {listing.images && listing.images.length > 0 ? (
                       <Image
@@ -191,37 +282,38 @@ export default function MyListingsPage() {
                     )}
                   </div>
 
-                  {/* Info */}
                   <div className="flex flex-1 flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-semibold">{listing.title}</h3>
-                      <Badge
-                        variant="outline"
-                        className={status.className}
-                      >
+                      <Badge variant="outline" className={status.className}>
                         {status.label}
                       </Badge>
                     </div>
                     <p className="text-sm capitalize text-muted-foreground">
                       {listing.category} &middot; {listing.transaction_type}
                     </p>
-                    <p className="text-lg font-bold">
-                      {formatPrice(listing.price)}
-                    </p>
+                    <p className="text-lg font-bold">{formatPrice(listing.price)}</p>
                     <p className="text-xs text-muted-foreground">
                       {t("listing.created")}{" "}
-                      {new Date(listing.created_at).toLocaleDateString(
-                        "en-IN",
-                        {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        }
-                      )}
+                      {new Date(listing.created_at).toLocaleDateString("en-IN", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </p>
+                    {listing.status === "active" && remainingMs !== null && (
+                      <p className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-300">
+                        <Clock3 className="size-3.5" />
+                        Expires in {formatRemainingDuration(remainingMs)}
+                      </p>
+                    )}
+                    {listing.status === "timed_out" && (
+                      <p className="text-xs font-medium text-red-600 dark:text-red-300">
+                        This listing timed out and is hidden from public pages. Pay again to reactivate it.
+                      </p>
+                    )}
                   </div>
 
-                  {/* Actions */}
                   <div className="flex shrink-0 flex-wrap gap-2">
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/dashboard/my-listings/edit?id=${listing.id}`}>
@@ -229,6 +321,7 @@ export default function MyListingsPage() {
                         {t("listing.edit")}
                       </Link>
                     </Button>
+
                     {listing.status === "active" && (
                       <Button
                         variant="outline"
@@ -240,13 +333,22 @@ export default function MyListingsPage() {
                       </Button>
                     )}
 
-                    {/* PDF Download Dropdown */}
+                    {listing.status === "timed_out" && (
+                      <Button
+                        size="sm"
+                        onClick={() => setReactivatingListing(listing)}
+                      >
+                        <RefreshCw className="size-4" />
+                        Reactivate for ₹{LISTING_FEE}
+                      </Button>
+                    )}
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant="outline"
                           size="sm"
-                          className="gap-1 text-blue-600 border-blue-200 hover:bg-blue-50 dark:text-blue-400 dark:border-blue-800 dark:hover:bg-blue-950/40"
+                          className="gap-1 border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/40"
                           disabled={generatingPdf === listing.id}
                         >
                           {generatingPdf === listing.id ? (
@@ -263,7 +365,7 @@ export default function MyListingsPage() {
                       <DropdownMenuContent align="end" className="w-52 rounded-xl">
                         <DropdownMenuItem
                           onClick={() => handleDownloadPdf(listing, i18n.language)}
-                          className="rounded-lg mx-1"
+                          className="mx-1 rounded-lg"
                         >
                           <FileDown className="mr-2 size-4" />
                           {t("listing.download_current_lang")}
@@ -272,7 +374,7 @@ export default function MyListingsPage() {
                           <DropdownMenuItem
                             key={lang.code}
                             onClick={() => handleDownloadPdf(listing, lang.code)}
-                            className="rounded-lg mx-1"
+                            className="mx-1 rounded-lg"
                           >
                             {lang.nativeLabel}
                             {lang.code !== "en" && (
@@ -301,14 +403,11 @@ export default function MyListingsPage() {
         </div>
       )}
 
-      {/* Delete confirmation dialog */}
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{t("listing.delete_listing")}</DialogTitle>
-            <DialogDescription>
-              {t("listing.delete_confirm")}
-            </DialogDescription>
+            <DialogDescription>{t("listing.delete_confirm")}</DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteId(null)}>
@@ -324,6 +423,17 @@ export default function MyListingsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PaymentGateway
+        open={!!reactivatingListing}
+        onOpenChange={(open) => {
+          if (!open && !reactivating) {
+            setReactivatingListing(null);
+          }
+        }}
+        onPaymentConfirmed={handleReactivatePayment}
+        submitting={reactivating}
+      />
     </div>
   );
 }

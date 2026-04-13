@@ -22,6 +22,11 @@ import {
 } from "@/components/ui/dialog";
 import { formatPrice, formatArea } from "@/lib/constants";
 import {
+  formatRemainingDuration,
+  getEffectiveListingStatus,
+  getRemainingTimeMs,
+} from "@/lib/listing-timer";
+import {
   MapPin, Bed, Bath, Maximize, Calendar, Car, Wifi,
   Wind, ShowerHead, Building2, Fence, Compass,
   Users, UtensilsCrossed, Home, ChevronRight, Flag,
@@ -47,6 +52,7 @@ export default function ListingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [, forceTick] = useState(0);
 
   const isOwner = user && listing && user.uid === listing.user_id;
 
@@ -84,6 +90,11 @@ export default function ListingDetailPage() {
     load();
   }, [id]);
 
+  useEffect(() => {
+    const timer = setInterval(() => forceTick((prev) => prev + 1), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
@@ -116,6 +127,9 @@ export default function ListingDetailPage() {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const details = listing.details as Record<string, any>;
+  const effectiveStatus = getEffectiveListingStatus(listing);
+  const remainingMs = getRemainingTimeMs(listing.expires_at);
+  const canReceiveInquiries = effectiveStatus === "active";
 
   return (
     <div className="min-h-screen bg-background">
@@ -144,8 +158,8 @@ export default function ListingDetailPage() {
                   <div className="flex items-center gap-2 mb-3">
                     <Badge variant="secondary" className="capitalize rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200 dark:border-blue-800">{listing.category}</Badge>
                     <Badge className="capitalize rounded-lg">{listing.transaction_type}</Badge>
-                    {listing.status !== "active" && (
-                      <Badge variant="destructive" className="capitalize rounded-lg">{listing.status}</Badge>
+                    {effectiveStatus !== "active" && (
+                      <Badge variant="destructive" className="capitalize rounded-lg">{effectiveStatus.replace("_", " ")}</Badge>
                     )}
                   </div>
                   <h1 className="text-2xl md:text-3xl font-bold text-foreground">{listing.title}</h1>
@@ -153,6 +167,16 @@ export default function ListingDetailPage() {
                     <MapPin className="h-4 w-4 text-blue-500" />
                     {listing.address} - {listing.pincode}
                   </p>
+                  {remainingMs !== null && effectiveStatus === "active" && (
+                    <p className="mt-2 text-sm font-medium text-blue-600 dark:text-blue-300">
+                      Expires in {formatRemainingDuration(remainingMs)}
+                    </p>
+                  )}
+                  {effectiveStatus === "timed_out" && (
+                    <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-300">
+                      This listing has timed out and is no longer visible in public property browsing.
+                    </p>
+                  )}
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">{formatPrice(listing.price)}</p>
@@ -304,10 +328,21 @@ export default function ListingDetailPage() {
               </Card>
             )}
 
-            <InquiryForm
-              listingId={listing.id}
-              ownerName={profile?.full_name || "Owner"}
-            />
+            {canReceiveInquiries ? (
+              <InquiryForm
+                listingId={listing.id}
+                ownerName={profile?.full_name || "Owner"}
+              />
+            ) : (
+              <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80">
+                <CardContent className="py-4">
+                  <p className="font-medium text-foreground">Contact unavailable</p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    This listing is currently {effectiveStatus.replace("_", " ")}.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
 

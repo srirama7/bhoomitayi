@@ -56,6 +56,7 @@ import {
   CONDITION_OPTIONS,
   INDIAN_STATES,
 } from "@/lib/constants";
+import { LISTING_FEE } from "@/lib/listing-timer";
 
 type PropertyCategory = "house" | "land" | "pg" | "commercial" | "vehicle" | "commodity";
 type TransactionType = "sell" | "rent" | "commercial_lease";
@@ -470,6 +471,7 @@ function SellPageContent() {
     try {
       await addDoc(collection(db, "listings"), {
         ...pendingListingData,
+        payment_amount: LISTING_FEE,
         payment_status: "pending",
         status: "pending_payment",
       });

@@ -14,12 +14,13 @@ import {
   Loader2,
   Bot,
   Settings,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/store";
 
-const navItems = [
+const baseNavItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "My Listings", href: "/dashboard/my-listings", icon: List },
   { label: "Favorites", href: "/dashboard/favorites", icon: Heart },
@@ -29,6 +30,10 @@ const navItems = [
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
+const adminNavItems = [
+  { label: "Admin Listings", href: "/dashboard/admin/listings", icon: Shield },
+];
+
 export default function DashboardLayout({
   children,
 }: {
@@ -36,8 +41,12 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, loading } = useAuthStore();
+  const { user, profile, loading } = useAuthStore();
   const [redirecting, setRedirecting] = useState(false);
+  const navItems =
+    profile?.role === "admin"
+      ? [...baseNavItems, ...adminNavItems]
+      : baseNavItems;
 
   useEffect(() => {
     if (!loading && !user) {
