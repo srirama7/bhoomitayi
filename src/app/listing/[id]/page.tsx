@@ -25,6 +25,7 @@ import {
   formatRemainingDuration,
   getEffectiveListingStatus,
   getRemainingTimeMs,
+  LISTING_FEE,
 } from "@/lib/listing-timer";
 import {
   MapPin, Bed, Bath, Maximize, Calendar, Car, Wifi,
@@ -174,7 +175,7 @@ export default function ListingDetailPage() {
                   )}
                   {effectiveStatus === "timed_out" && (
                     <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-300">
-                      This listing has timed out and is no longer visible in public property browsing.
+                      This listing has timed out and is no longer visible in public property browsing. Only admin can restart it after the seller pays ₹{LISTING_FEE} again.
                     </p>
                   )}
                 </div>

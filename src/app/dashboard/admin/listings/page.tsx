@@ -30,6 +30,8 @@ import { formatPrice } from "@/lib/constants";
 import {
   addTimerDuration,
   DEFAULT_TIMER_DURATION,
+  LISTING_FEE,
+  formatTimerDuration,
   formatRemainingDuration,
   getEffectiveListingStatus,
   getRemainingTimeMs,
@@ -138,6 +140,7 @@ export default function AdminListingsPage() {
 
     try {
       const expiresAt = addTimerDuration(new Date(), duration).toISOString();
+      const updatedAt = new Date().toISOString();
       const nextStatus =
         activateAfterSave || listing.status === "pending_payment" ? "active" : listing.status;
 
@@ -146,7 +149,7 @@ export default function AdminListingsPage() {
         payment_status: nextStatus === "active" ? "approved" : listing.payment_status ?? "approved",
         expires_at: expiresAt,
         timer_duration: duration,
-        updated_at: new Date().toISOString(),
+        updated_at: updatedAt,
       });
 
       setListings((prev) =>
@@ -161,7 +164,7 @@ export default function AdminListingsPage() {
                     : item.payment_status ?? "approved",
                 expires_at: expiresAt,
                 timer_duration: duration,
-                updated_at: new Date().toISOString(),
+                updated_at: updatedAt,
               }
             : item
         )
@@ -326,6 +329,29 @@ export default function AdminListingsPage() {
                           year: "numeric",
                         })}
                       </p>
+                      <p className="text-xs text-muted-foreground">
+                        Timer: {formatTimerDuration(timer)}
+                      </p>
+                      {listing.payment_amount ? (
+                        <p className="text-xs text-muted-foreground">
+                          Payment: ₹{listing.payment_amount}
+                          {listing.payment_reason === "reactivation"
+                            ? ` restart request${listing.reactivation_count ? ` (${listing.reactivation_count} total)` : ""}`
+                            : " initial listing"}
+                        </p>
+                      ) : null}
+                      {listing.last_payment_submitted_at ? (
+                        <p className="text-xs text-muted-foreground">
+                          Last payment submitted{" "}
+                          {new Date(listing.last_payment_submitted_at).toLocaleString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      ) : null}
                       {remainingMs !== null && effectiveStatus === "active" && (
                         <p className="text-xs font-medium text-blue-600 dark:text-blue-300">
                           Time left: {formatRemainingDuration(remainingMs)}
@@ -362,7 +388,7 @@ export default function AdminListingsPage() {
                         Listing Timer
                       </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
                       <TimerField
                         label="Months"
                         value={timer.months}
@@ -375,6 +401,13 @@ export default function AdminListingsPage() {
                         value={timer.days}
                         onChange={(value) =>
                           updateTimerField(listing.id, "days", value)
+                        }
+                      />
+                      <TimerField
+                        label="Hours"
+                        value={timer.hours}
+                        onChange={(value) =>
+                          updateTimerField(listing.id, "hours", value)
                         }
                       />
                       <TimerField
@@ -420,13 +453,15 @@ export default function AdminListingsPage() {
                           ) : (
                             <CheckCircle2 className="size-4" />
                           )}
-                          Approve Payment and Start Timer
+                          {listing.payment_reason === "reactivation"
+                            ? "Approve Restart Payment and Restart Timer"
+                            : "Approve Payment and Start Timer"}
                         </Button>
                       )}
 
                       {effectiveStatus === "timed_out" && (
                         <p className="text-xs text-muted-foreground">
-                          Timed out listings stay hidden until the seller pays the reactivation fee again.
+                          Timed out listings stay hidden until the seller pays ₹{LISTING_FEE} again and admin restarts the timer.
                         </p>
                       )}
                     </div>

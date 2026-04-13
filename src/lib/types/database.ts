@@ -32,10 +32,14 @@ export interface Listing {
   status: "pending" | "pending_payment" | "active" | "rejected" | "sold" | "archived" | "timed_out";
   payment_status?: "pending" | "approved" | "not_required";
   payment_amount?: number;
+  payment_reason?: "initial_listing" | "reactivation";
+  last_payment_submitted_at?: string | null;
+  reactivation_count?: number;
   expires_at?: string | null;
   timer_duration?: {
     months: number;
     days: number;
+    hours: number;
     minutes: number;
     seconds: number;
   } | null;

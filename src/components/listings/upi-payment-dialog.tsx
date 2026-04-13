@@ -24,6 +24,9 @@ interface PaymentGatewayProps {
   onOpenChange: (open: boolean) => void;
   onPaymentConfirmed: () => void;
   submitting: boolean;
+  flowLabel?: string;
+  reviewMessage?: string;
+  submitLabel?: string;
 }
 
 type GatewayStep = "qr" | "confirmed";
@@ -33,6 +36,9 @@ export function PaymentGateway({
   onOpenChange,
   onPaymentConfirmed,
   submitting,
+  flowLabel = "Listing Fee",
+  reviewMessage = "Your listing will be submitted and reviewed by our admin. Once your payment is verified, your listing will go live.",
+  submitLabel = "Submit Listing for Review",
 }: PaymentGatewayProps) {
   const [step, setStep] = useState<GatewayStep>("qr");
 
@@ -52,8 +58,10 @@ export function PaymentGateway({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent showCloseButton={false} className="sm:max-w-[420px] p-0 gap-0 overflow-hidden">
-        {/* Header */}
+      <DialogContent
+        showCloseButton={false}
+        className="gap-0 overflow-hidden p-0 sm:max-w-[420px]"
+      >
         <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-4 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -62,28 +70,34 @@ export function PaymentGateway({
               </div>
               <div>
                 <DialogHeader className="p-0">
-                  <DialogTitle className="text-white text-base font-bold">Pay via UPI</DialogTitle>
+                  <DialogTitle className="text-base font-bold text-white">
+                    Pay via UPI
+                  </DialogTitle>
                 </DialogHeader>
-                <DialogDescription className="text-blue-100 text-xs mt-0.5">Scan QR code to pay</DialogDescription>
+                <DialogDescription className="mt-0.5 text-xs text-blue-100">
+                  Scan QR code to pay
+                </DialogDescription>
               </div>
             </div>
-            <button onClick={handleClose} disabled={submitting} className="rounded-full p-1.5 hover:bg-white/20 transition-colors disabled:opacity-50">
+            <button
+              onClick={handleClose}
+              disabled={submitting}
+              className="rounded-full p-1.5 transition-colors hover:bg-white/20 disabled:opacity-50"
+            >
               <X className="size-4" />
             </button>
           </div>
         </div>
 
-        {/* Amount */}
         <div className="flex items-center justify-between border-b bg-muted/30 px-6 py-3">
-          <span className="text-sm text-muted-foreground">Listing Fee</span>
+          <span className="text-sm text-muted-foreground">{flowLabel}</span>
           <span className="text-2xl font-bold text-foreground">₹{LISTING_FEE}.00</span>
         </div>
 
-        {/* QR Code Step */}
         {step === "qr" && (
-          <div className="px-6 py-5 space-y-4">
+          <div className="space-y-4 px-6 py-5">
             <div className="flex flex-col items-center gap-3">
-              <div className="relative w-[250px] h-[250px] rounded-xl overflow-hidden border-2 border-gray-200">
+              <div className="relative h-[250px] w-[250px] overflow-hidden rounded-xl border-2 border-gray-200">
                 <Image
                   src="/qr_code.png"
                   alt="UPI QR Code"
@@ -92,26 +106,31 @@ export function PaymentGateway({
                   priority
                 />
               </div>
-              <div className="text-center space-y-1">
-                <p className="text-sm font-medium text-foreground">Scan with any UPI app</p>
+              <div className="space-y-1 text-center">
+                <p className="text-sm font-medium text-foreground">
+                  Scan with any UPI app
+                </p>
                 <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
                   <Smartphone className="size-3.5" />
                   GPay, PhonePe, Paytm, etc.
                 </div>
-                <p className="text-xs font-mono text-muted-foreground mt-1">UPI ID: amoghabhat7403@oksbi</p>
+                <p className="mt-1 text-xs font-mono text-muted-foreground">
+                  UPI ID: amoghabhat7403@oksbi
+                </p>
               </div>
             </div>
 
-            <div className="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 px-4 py-3">
-              <p className="text-xs text-amber-700 dark:text-amber-400 text-center">
-                After paying ₹{LISTING_FEE}, click the button below to confirm. Your listing will be reviewed by admin before going live.
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 dark:border-amber-800 dark:bg-amber-950/20">
+              <p className="text-center text-xs text-amber-700 dark:text-amber-400">
+                After paying ₹{LISTING_FEE}, click the button below to confirm.
+                Admin will review the payment before the timer can start.
               </p>
             </div>
 
             <Button
               type="button"
               onClick={handlePaidConfirm}
-              className="w-full gap-2 bg-green-600 hover:bg-green-700 text-white h-12 text-base"
+              className="h-12 w-full gap-2 bg-green-600 text-base text-white hover:bg-green-700"
             >
               <CheckCircle2 className="size-5" />
               I&apos;ve Paid ₹{LISTING_FEE}
@@ -119,40 +138,40 @@ export function PaymentGateway({
           </div>
         )}
 
-        {/* Confirmed Step */}
         {step === "confirmed" && (
-          <div className="px-6 py-8 flex flex-col items-center gap-4 text-center">
+          <div className="flex flex-col items-center gap-4 px-6 py-8 text-center">
             <div className="flex size-16 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/30">
               <Clock className="size-9 text-amber-600" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400">Payment Under Review</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Your listing will be submitted and reviewed by our admin. Once your payment is verified, your listing will go live.
+              <h3 className="text-lg font-bold text-amber-700 dark:text-amber-400">
+                Payment Under Review
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {reviewMessage}
               </p>
             </div>
             <Button
               onClick={handleSubmitListing}
               disabled={submitting}
-              className="w-full gap-2 bg-blue-600 hover:bg-blue-700 text-white mt-2"
+              className="mt-2 w-full gap-2 bg-blue-600 text-white hover:bg-blue-700"
             >
               {submitting ? (
                 <>
-                  <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Submitting listing...
+                  <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Submitting...
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="size-4" />
-                  Submit Listing for Review
+                  {submitLabel}
                 </>
               )}
             </Button>
           </div>
         )}
 
-        {/* Footer */}
-        <div className="border-t bg-muted/30 px-6 py-2.5 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <div className="flex items-center justify-center gap-1.5 border-t bg-muted/30 px-6 py-2.5 text-xs text-muted-foreground">
           <Clock className="size-3.5 text-amber-600" />
           Admin approval required before listing goes live
         </div>

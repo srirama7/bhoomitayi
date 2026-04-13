@@ -189,12 +189,18 @@ export default function MyListingsPage() {
 
     setReactivating(true);
     try {
+      const nextReactivationCount = (reactivatingListing.reactivation_count ?? 0) + 1;
+      const submittedAt = new Date().toISOString();
+
       await updateDoc(doc(db, "listings", reactivatingListing.id), {
         status: "pending_payment",
         payment_status: "pending",
         payment_amount: LISTING_FEE,
+        payment_reason: "reactivation",
+        last_payment_submitted_at: submittedAt,
+        reactivation_count: nextReactivationCount,
         expires_at: null,
-        updated_at: new Date().toISOString(),
+        updated_at: submittedAt,
       });
 
       setListings((prev) =>
@@ -205,15 +211,18 @@ export default function MyListingsPage() {
                 status: "pending_payment",
                 payment_status: "pending",
                 payment_amount: LISTING_FEE,
+                payment_reason: "reactivation",
+                last_payment_submitted_at: submittedAt,
+                reactivation_count: nextReactivationCount,
                 expires_at: null,
-                updated_at: new Date().toISOString(),
+                updated_at: submittedAt,
               }
             : listing
         )
       );
 
       setReactivatingListing(null);
-      toast.success("Reactivation payment submitted for admin approval");
+      toast.success("Restart payment submitted. Admin will review it and restart the timer.");
     } catch (error) {
       console.error("Failed to submit reactivation payment:", error);
       toast.error("Failed to submit reactivation payment");
@@ -307,9 +316,15 @@ export default function MyListingsPage() {
                         Expires in {formatRemainingDuration(remainingMs)}
                       </p>
                     )}
+                    {listing.status === "pending_payment" &&
+                      listing.payment_reason === "reactivation" && (
+                        <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                          Restart payment of ₹{LISTING_FEE} submitted. Waiting for admin approval to restart the timer.
+                        </p>
+                      )}
                     {listing.status === "timed_out" && (
                       <p className="text-xs font-medium text-red-600 dark:text-red-300">
-                        This listing timed out and is hidden from public pages. Pay again to reactivate it.
+                        This listing timed out and is hidden from public pages. Pay ₹{LISTING_FEE} again to restart it.
                       </p>
                     )}
                   </div>
@@ -339,7 +354,7 @@ export default function MyListingsPage() {
                         onClick={() => setReactivatingListing(listing)}
                       >
                         <RefreshCw className="size-4" />
-                        Reactivate for ₹{LISTING_FEE}
+                        Restart for ₹{LISTING_FEE}
                       </Button>
                     )}
 
@@ -433,6 +448,9 @@ export default function MyListingsPage() {
         }}
         onPaymentConfirmed={handleReactivatePayment}
         submitting={reactivating}
+        flowLabel="Restart Fee"
+        reviewMessage="Your restart payment has been submitted. Admin will verify it and restart the listing timer."
+        submitLabel="Submit Restart Request"
       />
     </div>
   );

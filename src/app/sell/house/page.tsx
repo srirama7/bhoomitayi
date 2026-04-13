@@ -279,6 +279,9 @@ export default function SellHousePage() {
         ...pendingListingData,
         payment_amount: LISTING_FEE,
         payment_status: "pending",
+        payment_reason: "initial_listing",
+        reactivation_count: 0,
+        last_payment_submitted_at: new Date().toISOString(),
         status: "pending_payment",
       });
 
