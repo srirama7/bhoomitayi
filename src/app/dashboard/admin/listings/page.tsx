@@ -6,6 +6,7 @@ import Link from "next/link";
 import {
   CheckCircle2,
   Clock3,
+  IndianRupee,
   Loader2,
   ShieldAlert,
   Tag,
@@ -277,6 +278,23 @@ export default function AdminListingsPage() {
                 className="rounded-2xl border-zinc-200/80 bg-white shadow-3d transition-all duration-300 dark:border-zinc-800/80 dark:bg-zinc-900/80"
               >
                 <CardContent className="flex flex-col gap-5 p-5">
+                  {listing.status === "pending_payment" && listing.payment_reason === "reactivation" && (
+                    <div className="flex items-center gap-3 rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 p-3 dark:border-amber-700 dark:from-amber-950/30 dark:to-orange-950/20">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/40">
+                        <IndianRupee className="size-4 text-amber-700 dark:text-amber-300" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-amber-800 dark:text-amber-200">
+                          RESTART PAYMENT PENDING
+                        </p>
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                          Seller paid ₹{listing.payment_amount ?? LISTING_FEE} to restart this listing
+                          {listing.reactivation_count ? ` (${listing.reactivation_count} total restart${listing.reactivation_count === 1 ? "" : "s"})` : ""}.
+                          Approve below to reactivate.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
                     <div className="relative h-24 w-full shrink-0 overflow-hidden rounded-md sm:w-32">
                       {listing.images?.[0] ? (
@@ -333,11 +351,11 @@ export default function AdminListingsPage() {
                         Timer: {formatTimerDuration(timer)}
                       </p>
                       {listing.payment_amount ? (
-                        <p className="text-xs text-muted-foreground">
+                        <p className={`text-xs font-medium ${listing.payment_reason === "reactivation" ? "text-amber-700 dark:text-amber-400" : "text-muted-foreground"}`}>
                           Payment: ₹{listing.payment_amount}
                           {listing.payment_reason === "reactivation"
-                            ? ` restart request${listing.reactivation_count ? ` (${listing.reactivation_count} total)` : ""}`
-                            : " initial listing"}
+                            ? ` — RESTART request${listing.reactivation_count ? ` (${listing.reactivation_count} total restart${listing.reactivation_count === 1 ? "" : "s"})` : ""}`
+                            : " — initial listing"}
                         </p>
                       ) : null}
                       {listing.last_payment_submitted_at ? (

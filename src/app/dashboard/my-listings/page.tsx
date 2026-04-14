@@ -10,8 +10,6 @@ import {
   FileDown,
   ChevronDown,
   Loader2,
-  RefreshCw,
-  Clock3,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
@@ -48,11 +46,11 @@ import { formatPrice } from "@/lib/constants";
 import { generateListingPDF } from "@/lib/generate-pdf";
 import { SUPPORTED_LANGUAGES } from "@/lib/i18n";
 import {
-  formatRemainingDuration,
   getEffectiveListingStatus,
   getRemainingTimeMs,
   LISTING_FEE,
 } from "@/lib/listing-timer";
+import { ListingCountdown } from "@/components/listings/listing-countdown";
 import type { Listing } from "@/lib/types/database";
 import { PaymentGateway } from "@/components/listings/upi-payment-dialog";
 
@@ -310,23 +308,19 @@ export default function MyListingsPage() {
                         year: "numeric",
                       })}
                     </p>
-                    {listing.status === "active" && remainingMs !== null && (
-                      <p className="flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-300">
-                        <Clock3 className="size-3.5" />
-                        Expires in {formatRemainingDuration(remainingMs)}
-                      </p>
-                    )}
+                    <ListingCountdown
+                      expiresAt={listing.expires_at}
+                      status={listing.status}
+                      onReactivate={() => setReactivatingListing(listing)}
+                      reactivating={reactivating}
+                      showRestartButton={listing.status === "timed_out"}
+                    />
                     {listing.status === "pending_payment" &&
                       listing.payment_reason === "reactivation" && (
                         <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
                           Restart payment of ₹{LISTING_FEE} submitted. Waiting for admin approval to restart the timer.
                         </p>
                       )}
-                    {listing.status === "timed_out" && (
-                      <p className="text-xs font-medium text-red-600 dark:text-red-300">
-                        This listing timed out and is hidden from public pages. Pay ₹{LISTING_FEE} again to restart it.
-                      </p>
-                    )}
                   </div>
 
                   <div className="flex shrink-0 flex-wrap gap-2">
@@ -345,16 +339,6 @@ export default function MyListingsPage() {
                       >
                         <Tag className="size-4" />
                         {t("listing.mark_as_sold")}
-                      </Button>
-                    )}
-
-                    {listing.status === "timed_out" && (
-                      <Button
-                        size="sm"
-                        onClick={() => setReactivatingListing(listing)}
-                      >
-                        <RefreshCw className="size-4" />
-                        Restart for ₹{LISTING_FEE}
                       </Button>
                     )}
 

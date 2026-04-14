@@ -22,11 +22,10 @@ import {
 } from "@/components/ui/dialog";
 import { formatPrice, formatArea } from "@/lib/constants";
 import {
-  formatRemainingDuration,
   getEffectiveListingStatus,
   getRemainingTimeMs,
-  LISTING_FEE,
 } from "@/lib/listing-timer";
+import { ListingCountdown } from "@/components/listings/listing-countdown";
 import {
   MapPin, Bed, Bath, Maximize, Calendar, Car, Wifi,
   Wind, ShowerHead, Building2, Fence, Compass,
@@ -168,16 +167,12 @@ export default function ListingDetailPage() {
                     <MapPin className="h-4 w-4 text-blue-500" />
                     {listing.address} - {listing.pincode}
                   </p>
-                  {remainingMs !== null && effectiveStatus === "active" && (
-                    <p className="mt-2 text-sm font-medium text-blue-600 dark:text-blue-300">
-                      Expires in {formatRemainingDuration(remainingMs)}
-                    </p>
-                  )}
-                  {effectiveStatus === "timed_out" && (
-                    <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-300">
-                      This listing has timed out and is no longer visible in public property browsing. Only admin can restart it after the seller pays ₹{LISTING_FEE} again.
-                    </p>
-                  )}
+                  <div className="mt-2">
+                    <ListingCountdown
+                      expiresAt={listing.expires_at}
+                      status={effectiveStatus}
+                    />
+                  </div>
                 </div>
                 <div className="text-right shrink-0">
                   <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">{formatPrice(listing.price)}</p>
