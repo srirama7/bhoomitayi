@@ -417,6 +417,16 @@ html {
   opacity: 0.05;
 }
 
+/* ── Pulse subtle ── */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.9; transform: scale(0.995); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+
 /* ── Smooth transition for theme switching ── */
 html.transitioning,
 html.transitioning *,

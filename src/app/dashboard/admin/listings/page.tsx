@@ -334,9 +334,14 @@ export default function AdminListingsPage() {
                       </div>
                     )}
                     {effectiveStatus === "timed_out" && (
-                      <div className="p-3 rounded-xl bg-red-50 border border-red-100 dark:bg-red-950/20 dark:border-red-900/50 flex items-center gap-2">
-                        <AlertTriangle className="size-4 text-red-600" />
-                        <span className="text-xs font-bold text-red-700 dark:text-red-400">Timed Out</span>
+                      <div className="p-4 rounded-xl bg-red-50 border-2 border-red-200 dark:bg-red-950/20 dark:border-red-900 flex flex-col gap-2">
+                        <div className="flex items-center gap-2">
+                          <AlertTriangle className="size-5 text-red-600" />
+                          <span className="text-sm font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Timed Out</span>
+                        </div>
+                        <p className="text-[10px] text-red-600/80 leading-tight">
+                          This listing has expired and is hidden from public view. Set a new timer to reactivate it.
+                        </p>
                       </div>
                     )}
                   </div>
@@ -366,29 +371,37 @@ export default function AdminListingsPage() {
                 </div>
 
                 {/* Timer Configuration Section */}
-                <div className="rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border p-4 space-y-4">
+                <div className={`rounded-xl border p-4 space-y-4 ${
+                  effectiveStatus === "timed_out" 
+                    ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900" 
+                    : "bg-zinc-50 dark:bg-zinc-800/40 border-zinc-200 dark:border-zinc-800"
+                }`}>
                   <div className="flex items-center gap-2">
                     <Clock3 className="size-4 text-blue-600" />
-                    <span className="text-sm font-bold">Set Timer Duration</span>
-                    <span className="text-[10px] text-muted-foreground ml-auto">Current: {formatTimerDuration(listing.timer_duration)}</span>
+                    <span className="text-sm font-bold">
+                      {effectiveStatus === "timed_out" ? "Reactivation Timer" : "Set Timer Duration"}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground ml-auto font-medium">
+                      Current: {formatTimerDuration(listing.timer_duration)}
+                    </span>
                   </div>
                   
                   <div className="grid grid-cols-5 gap-2">
-                    <TimerInput label="MO" value={timer.months} onChange={(v) => updateTimerField(listing.id, "months", v)} />
-                    <TimerInput label="D" value={timer.days} onChange={(v) => updateTimerField(listing.id, "days", v)} />
-                    <TimerInput label="H" value={timer.hours} onChange={(v) => updateTimerField(listing.id, "hours", v)} />
-                    <TimerInput label="M" value={timer.minutes} onChange={(v) => updateTimerField(listing.id, "minutes", v)} />
-                    <TimerInput label="S" value={timer.seconds} onChange={(v) => updateTimerField(listing.id, "seconds", v)} />
+                    <TimerInput label="MONTH" value={timer.months} onChange={(v) => updateTimerField(listing.id, "months", v)} />
+                    <TimerInput label="DAY" value={timer.days} onChange={(v) => updateTimerField(listing.id, "days", v)} />
+                    <TimerInput label="HR" value={timer.hours} onChange={(v) => updateTimerField(listing.id, "hours", v)} />
+                    <TimerInput label="MIN" value={timer.minutes} onChange={(v) => updateTimerField(listing.id, "minutes", v)} />
+                    <TimerInput label="SEC" value={timer.seconds} onChange={(v) => updateTimerField(listing.id, "seconds", v)} />
                   </div>
 
                   <div className="flex gap-2">
                     <Button 
-                      className="flex-1" 
-                      onClick={() => handleSetTimer(listing, false)}
+                      className={`flex-1 ${effectiveStatus === "timed_out" ? "bg-blue-600 hover:bg-blue-700" : ""}`} 
+                      onClick={() => handleSetTimer(listing, effectiveStatus === "timed_out")}
                       disabled={updatingId === listing.id}
                     >
                       {updatingId === listing.id ? <Loader2 className="size-4 animate-spin mr-1" /> : <Clock3 className="size-4 mr-1" />}
-                      {effectiveStatus === "active" ? "Update Timer" : "Save & Start Timer"}
+                      {effectiveStatus === "active" ? "Update Timer" : effectiveStatus === "timed_out" ? "Reactivate & Start Timer" : "Save & Start Timer"}
                     </Button>
                     
                     {listing.status === "pending_payment" && (

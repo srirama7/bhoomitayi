@@ -54,39 +54,54 @@ export function ListingCountdown({
     status === "timed_out" ||
     (status === "active" && remainingMs !== null && remainingMs === 0);
 
+  if (remainingMs === null && status === "active") {
+    return (
+      <div className="rounded-xl border-2 border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 p-4 dark:border-blue-800 dark:from-blue-950/30 dark:to-indigo-950/20">
+        <div className="flex items-center gap-2">
+          <Clock className="size-4 text-blue-600 dark:text-blue-400" />
+          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+            Awaiting Timer Activation
+          </span>
+        </div>
+        <p className="mt-1 text-xs text-blue-600/80 dark:text-blue-400/80">
+          Admin will set the visibility timer shortly.
+        </p>
+      </div>
+    );
+  }
+
   if (isTimedOut) {
     return (
-      <div className="rounded-xl border-2 border-red-200 bg-gradient-to-r from-red-50 to-orange-50 p-4 dark:border-red-800 dark:from-red-950/30 dark:to-orange-950/20">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="flex size-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/40">
-            <AlertTriangle className="size-5 text-red-600 dark:text-red-400" />
+      <div className="rounded-xl border-4 border-red-500 bg-red-50 p-6 dark:bg-red-950/20 animate-pulse-subtle">
+        <div className="flex items-center gap-4 mb-4">
+          <div className="flex size-14 items-center justify-center rounded-full bg-red-600 text-white">
+            <AlertTriangle className="size-8" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-red-700 dark:text-red-300">
-              Listing Timed Out
+            <h3 className="text-xl font-black text-red-600 dark:text-red-500 uppercase tracking-tighter">
+              TIMED OUT
             </h3>
-            <p className="text-xs text-red-600/80 dark:text-red-400/80">
-              This listing is no longer visible to the public.
+            <p className="text-sm font-bold text-red-700 dark:text-red-400">
+              Listing Expired & Hidden
             </p>
           </div>
         </div>
-        <p className="text-sm text-red-700 dark:text-red-300 mb-3">
-          Only admin can restart this listing. Pay ₹{LISTING_FEE} to submit a
-          restart request for admin approval.
+        <p className="text-sm font-medium text-red-800 dark:text-red-300 mb-4 bg-white/50 dark:bg-black/20 p-3 rounded-lg border border-red-200 dark:border-red-900">
+          This post has reached its time limit. To reinstall your post, a fee of ₹{LISTING_FEE} is required. Admin will reactivate it after payment confirmation.
         </p>
         {showRestartButton && onReactivate && (
           <Button
-            size="sm"
+            size="lg"
             onClick={onReactivate}
             disabled={reactivating}
-            className="gap-2 bg-gradient-to-r from-red-600 to-orange-600 text-white hover:from-red-700 hover:to-orange-700"
+            className="w-full gap-2 bg-red-600 text-white hover:bg-red-700 font-bold text-base shadow-lg shadow-red-200 dark:shadow-none py-6"
           >
             {reactivating ? (
-              <span className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <span className="size-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
-              <RefreshCw className="size-4" />
+              <RefreshCw className="size-5" />
             )}
-            Restart for ₹{LISTING_FEE}
+            REINSTALL POST (₹{LISTING_FEE})
           </Button>
         )}
       </div>
@@ -130,42 +145,38 @@ export function ListingCountdown({
       <div className="grid grid-cols-5 gap-2 text-center">
         <CountdownUnit
           value={timeLeft.months}
-          label="Months"
+          label="MONTH"
           isUrgent={isUrgent}
         />
         <CountdownUnit
           value={timeLeft.days}
-          label="Days"
+          label="DAY"
           isUrgent={isUrgent}
         />
         <CountdownUnit
           value={timeLeft.hours}
-          label="Hrs"
+          label="HR"
           isUrgent={isUrgent}
         />
         <CountdownUnit
           value={timeLeft.minutes}
-          label="Mins"
+          label="MIN"
           isUrgent={isUrgent}
         />
         <CountdownUnit
           value={timeLeft.seconds}
-          label="Sec"
+          label="SEC"
           isUrgent={isUrgent}
         />
       </div>
       <p
-        className={`mt-2 text-center text-xs ${
+        className={`mt-2 text-center text-xs font-bold ${
           isUrgent
             ? "text-amber-600 dark:text-amber-400"
             : "text-blue-600 dark:text-blue-400"
         }`}
       >
-        {timeLeft.months} month{timeLeft.months !== 1 ? "s" : ""} /{" "}
-        {timeLeft.days} day{timeLeft.days !== 1 ? "s" : ""} /{" "}
-        {timeLeft.hours} hr{timeLeft.hours !== 1 ? "s" : ""} /{" "}
-        {timeLeft.minutes} min{timeLeft.minutes !== 1 ? "s" : ""} /{" "}
-        {timeLeft.seconds} sec
+        {String(timeLeft.months).padStart(2, "0")} : {String(timeLeft.days).padStart(2, "0")} : {String(timeLeft.hours).padStart(2, "0")} : {String(timeLeft.minutes).padStart(2, "0")} : {String(timeLeft.seconds).padStart(2, "0")}
       </p>
     </div>
   );
