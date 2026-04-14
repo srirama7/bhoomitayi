@@ -42,7 +42,7 @@ function EditListingForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const listingId = searchParams.get("id");
-  const { user, loading: authLoading } = useAuthStore();
+  const { user, profile, loading: authLoading } = useAuthStore();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -60,12 +60,14 @@ function EditListingForm() {
         const docSnap = await getDoc(doc(db, "listings", listingId!));
         if (!docSnap.exists()) {
           toast.error("Listing not found");
-          router.push("/dashboard/my-listings");
+          router.push(profile?.role === "admin" ? "/dashboard/admin/listings" : "/dashboard/my-listings");
           return;
         }
         const data = { id: docSnap.id, ...docSnap.data() } as ListingData;
-        if (data.user_id !== user!.uid) {
-          toast.error("You can only edit your own listings");
+        
+        // Allow if owner OR admin
+        if (data.user_id !== user!.uid && profile?.role !== "admin") {
+          toast.error("You don't have permission to edit this listing");
           router.push("/dashboard/my-listings");
           return;
         }
@@ -77,7 +79,7 @@ function EditListingForm() {
     }
 
     fetchListing();
-  }, [user, authLoading, listingId, router]);
+  }, [user, profile, authLoading, listingId, router]);
 
   async function handleSave() {
     if (!form || !listingId) return;
@@ -99,13 +101,13 @@ function EditListingForm() {
         price: Number(form.price),
         address: form.address.trim(),
         pincode: form.pincode.trim(),
-        owner_name: form.owner_name.trim(),
-        owner_phone: form.owner_phone.trim(),
-        owner_email: form.owner_email.trim(),
+        owner_name: form.owner_name?.trim() || "",
+        owner_phone: form.owner_phone?.trim() || "",
+        owner_email: form.owner_email?.trim() || "",
         updated_at: new Date().toISOString(),
       });
       toast.success("Listing updated successfully!");
-      router.push("/dashboard/my-listings");
+      router.push(profile?.role === "admin" ? "/dashboard/admin/listings" : "/dashboard/my-listings");
     } catch {
       toast.error("Failed to update listing");
     } finally {

@@ -3,13 +3,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, MapPin, Bed, Bath, Maximize, Building2, Car, Package } from "lucide-react";
+import { Heart, MapPin, Bed, Bath, Maximize, Building2, Car, Package, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { db } from "@/lib/firebase/config";
 import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
 import { formatPrice } from "@/lib/constants";
+import { getEffectiveListingStatus, getRemainingTimeMs, formatRemainingDuration } from "@/lib/listing-timer";
 import type {
   Listing,
   HouseDetails,
@@ -53,6 +54,7 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
+  const [, forceTick] = useState(0);
 
   const primaryImage = listing.images?.[0] && typeof listing.images[0] === "string" ? listing.images[0] : null;
   const [imageError, setImageError] = useState(false);
@@ -60,6 +62,11 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
 
   const handleImageError = useCallback(() => {
     setImageError(true);
+  }, []);
+
+  useEffect(() => {
+    const timer = setInterval(() => forceTick((prev) => prev + 1), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   useEffect(() => {
@@ -248,6 +255,9 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
     }
   };
 
+  const effectiveStatus = getEffectiveListingStatus(listing);
+  const remainingMs = getRemainingTimeMs(listing.expires_at);
+
   return (
     <Link href={`/listing/${listing.id}`}>
       <motion.div
@@ -326,6 +336,17 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
                   {isFavorited ? "Remove from favorites" : "Add to favorites"}
                 </span>
               </Button>
+            )}
+
+            {remainingMs !== null && effectiveStatus === "active" && (
+              <div className={`absolute bottom-2 right-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold backdrop-blur-md border ${
+                remainingMs < 3600000 
+                  ? "bg-amber-100/90 text-amber-700 border-amber-200 dark:bg-amber-950/90 dark:text-amber-300 dark:border-amber-800 animate-pulse" 
+                  : "bg-white/90 text-blue-600 border-zinc-200 dark:bg-zinc-900/90 dark:text-blue-400 dark:border-zinc-800"
+              }`}>
+                <Clock className="size-3" />
+                {formatRemainingDuration(remainingMs)}
+              </div>
             )}
           </div>
 
