@@ -18,7 +18,7 @@ import {
   MapPin,
 } from "lucide-react";
 import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SearchBar } from "@/components/home/search-bar";
@@ -26,6 +26,9 @@ import { HeroParticles } from "@/components/home/hero-particles";
 import { TiltCard } from "@/components/home/tilt-card";
 import { AnimatedCounter } from "@/components/home/animated-counter";
 import { CATEGORIES } from "@/lib/constants";
+import { getFeaturedListings } from "@/lib/queries";
+import { ListingCard } from "@/components/listings/listing-card";
+import type { Listing } from "@/lib/types/database";
 
 const CATEGORY_ICONS = [Home, Mountain, Bed, Building2, Car, Package];
 const CATEGORY_DESC_KEYS = [
@@ -78,6 +81,12 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
 
 export default function HomePage() {
   const { t } = useTranslation();
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loadingListings, setLoadingListings] = useState(true);
+
+  useEffect(() => {
+    getFeaturedListings().then(setListings).finally(() => setLoadingListings(false));
+  }, []);
 
   return (
     <main className="min-h-screen overflow-hidden">
@@ -215,6 +224,54 @@ export default function HomePage() {
             );
           })}
         </div>
+      </section>
+
+      {/* Featured Listings Section */}
+      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 bg-zinc-50/50 dark:bg-zinc-950/20 rounded-3xl mb-12">
+        <AnimatedSection>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12 px-4">
+            <div className="space-y-2">
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
+                Featured <span className="text-blue-600">Services</span>
+              </h2>
+              <p className="text-muted-foreground">
+                Hand-picked listings with active visibility timers.
+              </p>
+            </div>
+            <Button variant="ghost" className="group text-blue-600" asChild>
+              <Link href="/houses">
+                View all services
+                <ArrowRight className="ml-2 size-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </Button>
+          </div>
+        </AnimatedSection>
+
+        {loadingListings ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-72 rounded-2xl bg-muted animate-pulse" />
+            ))}
+          </div>
+        ) : listings.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
+            {listings.map((l, i) => (
+              <motion.div
+                key={l.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+              >
+                <ListingCard listing={l} />
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No active listings available at the moment.</p>
+          </div>
+        )}
       </section>
 
       {/* How It Works Section */}
