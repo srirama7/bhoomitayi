@@ -64,6 +64,10 @@ type AdminListing = Listing & {
 
 type TimerMap = Record<string, TimerDuration>;
 
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+type FilterStatus = "all" | "active" | "timed_out" | "pending_payment" | "sold";
+
 export default function AdminListingsPage() {
   const { user, profile, loading: authLoading } = useAuthStore();
   const [listings, setListings] = useState<AdminListing[]>([]);
@@ -72,6 +76,7 @@ export default function AdminListingsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [timerInputs, setTimerInputs] = useState<TimerMap>({});
+  const [filter, setFilter] = useState<FilterStatus>("all");
   const [, forceTick] = useState(0);
 
   useEffect(() => {
@@ -132,10 +137,39 @@ export default function AdminListingsPage() {
     fetchListings();
   }, [user, profile, authLoading]);
 
-  const visibleListings = useMemo(
-    () => listings.filter((listing) => listing.status !== "archived"),
-    [listings]
-  );
+  const filteredListings = useMemo(() => {
+    const visible = listings.filter((l) => l.status !== "archived");
+    if (filter === "all") return visible;
+    
+    return visible.filter((listing) => {
+      const effective = getEffectiveListingStatus(listing);
+      if (filter === "timed_out") return effective === "timed_out";
+      if (filter === "active") return effective === "active";
+      return listing.status === filter;
+    });
+  }, [listings, filter]);
+
+  const stats = useMemo(() => {
+    const visible = listings.filter((l) => l.status !== "archived");
+    const counts = {
+      all: visible.length,
+      active: 0,
+      timed_out: 0,
+      pending_payment: 0,
+      sold: 0,
+    };
+
+    visible.forEach((l) => {
+      const effective = getEffectiveListingStatus(l);
+      if (effective === "active") counts.active++;
+      else if (effective === "timed_out") counts.timed_out++;
+      
+      if (l.status === "pending_payment") counts.pending_payment++;
+      if (l.status === "sold") counts.sold++;
+    });
+
+    return counts;
+  }, [listings]);
 
   const updateTimerField = (
     listingId: string,
@@ -262,165 +296,193 @@ export default function AdminListingsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold">Admin Listings Control Panel</h1>
           <p className="text-muted-foreground text-sm">Full administrative control over all property and service listings.</p>
         </div>
-        <Badge variant="outline" className="px-3 py-1">{visibleListings.length} Total</Badge>
+        <div className="flex items-center gap-2">
+           <Badge variant="outline" className="px-3 py-1">{stats.all} Total</Badge>
+           <Badge variant="destructive" className="px-3 py-1 bg-red-500 text-white">{stats.timed_out} Timed Out</Badge>
+        </div>
       </div>
 
+      <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterStatus)} className="w-full">
+        <TabsList className="bg-zinc-100 dark:bg-zinc-800/80 rounded-xl p-1 mb-6 flex-wrap h-auto">
+          <TabsTrigger value="all" className="rounded-lg data-[state=active]:shadow-sm">All ({stats.all})</TabsTrigger>
+          <TabsTrigger value="active" className="rounded-lg data-[state=active]:shadow-sm">Active ({stats.active})</TabsTrigger>
+          <TabsTrigger value="timed_out" className="rounded-lg data-[state=active]:shadow-sm text-red-600 dark:text-red-400 font-bold">Timed Out ({stats.timed_out})</TabsTrigger>
+          <TabsTrigger value="pending_payment" className="rounded-lg data-[state=active]:shadow-sm text-blue-600 dark:text-blue-400">Pending ({stats.pending_payment})</TabsTrigger>
+          <TabsTrigger value="sold" className="rounded-lg data-[state=active]:shadow-sm">Sold ({stats.sold})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="grid gap-4">
-        {visibleListings.map((listing) => {
-          const effectiveStatus = getEffectiveListingStatus(listing);
-          const remainingMs = getRemainingTimeMs(listing.expires_at);
-          const timer = timerInputs[listing.id] ?? DEFAULT_TIMER_DURATION;
+        {filteredListings.length === 0 ? (
+          <Card className="py-12 text-center border-dashed">
+            <p className="text-muted-foreground">No listings found for this filter.</p>
+          </Card>
+        ) : (
+          filteredListings.map((listing) => {
+            const effectiveStatus = getEffectiveListingStatus(listing);
+            const remainingMs = getRemainingTimeMs(listing.expires_at);
+            const timer = timerInputs[listing.id] ?? DEFAULT_TIMER_DURATION;
 
-          return (
-            <Card
-              key={listing.id}
-              className="rounded-2xl border-zinc-200/80 bg-white shadow-3d dark:border-zinc-800/80 dark:bg-zinc-900/80"
-            >
-              <CardContent className="p-5 flex flex-col gap-6">
-                {/* Status Bar */}
-                {listing.status === "pending_payment" && (
-                  <div className={`flex items-center gap-3 rounded-xl border-2 p-3 ${
-                    listing.payment_reason === "reactivation" 
-                      ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/20" 
-                      : "border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/20"
-                  }`}>
-                    <IndianRupee className={`size-5 ${listing.payment_reason === "reactivation" ? "text-amber-600" : "text-blue-600"}`} />
-                    <div className="flex-1">
-                      <p className="font-bold text-sm uppercase">
-                        {listing.payment_reason === "reactivation" ? "RESTART request Pending" : "Initial Payment Pending"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Seller paid ₹{listing.payment_amount ?? LISTING_FEE}. Approve to {listing.payment_reason === "reactivation" ? "restart timer" : "activate listing"}.
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                <div className="flex flex-col md:flex-row gap-6">
-                  {/* Left: Image & Main Info */}
-                  <div className="flex gap-4 flex-1">
-                    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border">
-                      {listing.images?.[0] ? (
-                        <Image src={listing.images[0]} alt="" fill className="object-cover" />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-muted text-[10px]">No Image</div>
-                      )}
-                    </div>
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h2 className="font-bold truncate max-w-[200px]">{listing.title}</h2>
-                        <Badge className="capitalize text-[10px] h-5">{effectiveStatus.replace("_", " ")}</Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-1">{listing.address}</p>
-                      <p className="text-sm font-bold text-blue-600">{formatPrice(listing.price)}</p>
-                      <div className="flex flex-col gap-0.5 text-[10px] text-muted-foreground mt-2">
-                        <span>Seller: <span className="text-foreground font-medium">{listing.sellerName}</span></span>
-                        {listing.sellerPhone && <span>Phone: <span className="text-foreground font-medium">{listing.sellerPhone}</span></span>}
-                        <span>ID: {listing.id}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right: Countdown or Timer Stats */}
-                  <div className="md:w-64 space-y-2">
-                    {effectiveStatus === "active" && (
-                      <div className="scale-90 origin-top-right">
-                        <ListingCountdown expiresAt={listing.expires_at} status={effectiveStatus} />
-                      </div>
-                    )}
-                    {effectiveStatus === "timed_out" && (
-                      <div className="p-4 rounded-xl bg-red-50 border-2 border-red-200 dark:bg-red-950/20 dark:border-red-900 flex flex-col gap-2">
-                        <div className="flex items-center gap-2">
-                          <AlertTriangle className="size-5 text-red-600" />
-                          <span className="text-sm font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Timed Out</span>
-                        </div>
-                        <p className="text-[10px] text-red-600/80 leading-tight">
-                          This listing has expired and is hidden from public view. Set a new timer to reactivate it.
+            return (
+              <Card
+                key={listing.id}
+                className={`rounded-2xl border-2 transition-all duration-300 ${
+                  effectiveStatus === "timed_out" 
+                    ? "border-red-200 bg-red-50/30 dark:border-red-900/40 dark:bg-red-950/5" 
+                    : "border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-zinc-900/80"
+                } shadow-3d`}
+              >
+                <CardContent className="p-5 flex flex-col gap-6">
+                  {/* Status Bar */}
+                  {listing.status === "pending_payment" && (
+                    <div className={`flex items-center gap-3 rounded-xl border-2 p-3 ${
+                      listing.payment_reason === "reactivation" 
+                        ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/20" 
+                        : "border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/20"
+                    }`}>
+                      <IndianRupee className={`size-5 ${listing.payment_reason === "reactivation" ? "text-amber-600" : "text-blue-600"}`} />
+                      <div className="flex-1">
+                        <p className="font-bold text-sm uppercase">
+                          {listing.payment_reason === "reactivation" ? "RESTART request Pending" : "Initial Payment Pending"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Seller paid ₹{listing.payment_amount ?? LISTING_FEE}. Approve to {listing.payment_reason === "reactivation" ? "restart timer" : "activate listing"}.
                         </p>
                       </div>
-                    )}
-                  </div>
-                </div>
+                    </div>
+                  )}
 
-                {/* Admin Actions Row */}
-                <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t">
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/listing/${listing.id}`} target="_blank"><ExternalLink className="size-3.5 mr-1" />View</Link>
-                    </Button>
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/dashboard/my-listings/edit?id=${listing.id}`}><Pencil className="size-3.5 mr-1" />Edit</Link>
-                    </Button>
-                    <Button variant="destructive" size="sm" onClick={() => setDeleteId(listing.id)}>
-                      <Trash2 className="size-3.5 mr-1" />Delete
-                    </Button>
+                  <div className="flex flex-col md:flex-row gap-6">
+                    {/* Left: Image & Main Info */}
+                    <div className="flex gap-4 flex-1">
+                      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border">
+                        {listing.images?.[0] ? (
+                          <Image src={listing.images[0]} alt="" fill className="object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-muted text-[10px]">No Image</div>
+                        )}
+                      </div>
+                      <div className="space-y-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="font-bold truncate max-w-[200px]">{listing.title}</h2>
+                          <Badge 
+                            variant={effectiveStatus === "timed_out" ? "destructive" : "secondary"} 
+                            className={`capitalize text-[10px] h-5 ${effectiveStatus === "timed_out" ? "animate-pulse" : ""}`}
+                          >
+                            {effectiveStatus.replace("_", " ")}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{listing.address}</p>
+                        <p className="text-sm font-bold text-blue-600">{formatPrice(listing.price)}</p>
+                        <div className="flex flex-col gap-0.5 text-[10px] text-muted-foreground mt-2">
+                          <span>Seller: <span className="text-foreground font-medium">{listing.sellerName}</span></span>
+                          {listing.sellerPhone && <span>Phone: <span className="text-foreground font-medium">{listing.sellerPhone}</span></span>}
+                          <span>ID: {listing.id}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Countdown or Timer Stats */}
+                    <div className="md:w-64 space-y-2">
+                      {effectiveStatus === "active" && (
+                        <div className="scale-90 origin-top-right">
+                          <ListingCountdown expiresAt={listing.expires_at} status={effectiveStatus} />
+                        </div>
+                      )}
+                      {effectiveStatus === "timed_out" && (
+                        <div className="p-4 rounded-xl bg-red-50 border-2 border-red-200 dark:bg-red-950/20 dark:border-red-900 flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <AlertTriangle className="size-5 text-red-600" />
+                            <span className="text-sm font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Timed Out</span>
+                          </div>
+                          <p className="text-[10px] text-red-600/80 leading-tight">
+                            This listing has expired and is hidden from public view. Set a new timer to reactivate it.
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    {effectiveStatus === "sold" ? (
-                      <Button size="sm" onClick={() => handleUpdateStatus(listing.id, "active")}>Restore to Active</Button>
-                    ) : (
-                      <Button variant="secondary" size="sm" onClick={() => handleUpdateStatus(listing.id, "sold")}>Mark as Sold</Button>
-                    )}
-                  </div>
-                </div>
+                  {/* Admin Actions Row */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t">
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/listing/${listing.id}`} target="_blank"><ExternalLink className="size-3.5 mr-1" />View</Link>
+                      </Button>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/dashboard/my-listings/edit?id=${listing.id}`}><Pencil className="size-3.5 mr-1" />Edit</Link>
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => setDeleteId(listing.id)}>
+                        <Trash2 className="size-3.5 mr-1" />Delete
+                      </Button>
+                    </div>
 
-                {/* Timer Configuration Section */}
-                <div className={`rounded-xl border p-4 space-y-4 ${
-                  effectiveStatus === "timed_out" 
-                    ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900" 
-                    : "bg-zinc-50 dark:bg-zinc-800/40 border-zinc-200 dark:border-zinc-800"
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <Clock3 className="size-4 text-blue-600" />
-                    <span className="text-sm font-bold">
-                      {effectiveStatus === "timed_out" ? "Reactivation Timer" : "Set Timer Duration"}
-                    </span>
-                    <span className="text-[10px] text-muted-foreground ml-auto font-medium">
-                      Current: {formatTimerDuration(listing.timer_duration)}
-                    </span>
-                  </div>
-                  
-                  <div className="grid grid-cols-5 gap-2">
-                    <TimerInput label="MONTH" value={timer.months} onChange={(v) => updateTimerField(listing.id, "months", v)} />
-                    <TimerInput label="DAY" value={timer.days} onChange={(v) => updateTimerField(listing.id, "days", v)} />
-                    <TimerInput label="HR" value={timer.hours} onChange={(v) => updateTimerField(listing.id, "hours", v)} />
-                    <TimerInput label="MIN" value={timer.minutes} onChange={(v) => updateTimerField(listing.id, "minutes", v)} />
-                    <TimerInput label="SEC" value={timer.seconds} onChange={(v) => updateTimerField(listing.id, "seconds", v)} />
+                    <div className="flex flex-wrap gap-2">
+                      {effectiveStatus === "sold" ? (
+                        <Button size="sm" onClick={() => handleUpdateStatus(listing.id, "active")}>Restore to Active</Button>
+                      ) : (
+                        <Button variant="secondary" size="sm" onClick={() => handleUpdateStatus(listing.id, "sold")}>Mark as Sold</Button>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <Button 
-                      className={`flex-1 ${effectiveStatus === "timed_out" ? "bg-blue-600 hover:bg-blue-700" : ""}`} 
-                      onClick={() => handleSetTimer(listing, effectiveStatus === "timed_out")}
-                      disabled={updatingId === listing.id}
-                    >
-                      {updatingId === listing.id ? <Loader2 className="size-4 animate-spin mr-1" /> : <Clock3 className="size-4 mr-1" />}
-                      {effectiveStatus === "active" ? "Update Timer" : effectiveStatus === "timed_out" ? "Reactivate & Start Timer" : "Save & Start Timer"}
-                    </Button>
+                  {/* Timer Configuration Section */}
+                  <div className={`rounded-xl border p-4 space-y-4 ${
+                    effectiveStatus === "timed_out" 
+                      ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900 shadow-lg shadow-amber-500/10" 
+                      : "bg-zinc-50 dark:bg-zinc-800/40 border-zinc-200 dark:border-zinc-800"
+                  }`}>
+                    <div className="flex items-center gap-2">
+                      <Clock3 className={`size-4 ${effectiveStatus === "timed_out" ? "text-red-600" : "text-blue-600"}`} />
+                      <span className="text-sm font-bold">
+                        {effectiveStatus === "timed_out" ? "Reactivation Timer (Start New)" : "Set Timer Duration"}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground ml-auto font-medium">
+                        Current: {formatTimerDuration(listing.timer_duration)}
+                      </span>
+                    </div>
                     
-                    {listing.status === "pending_payment" && (
+                    <div className="grid grid-cols-5 gap-2">
+                      <TimerInput label="MONTH" value={timer.months} onChange={(v) => updateTimerField(listing.id, "months", v)} />
+                      <TimerInput label="DAY" value={timer.days} onChange={(v) => updateTimerField(listing.id, "days", v)} />
+                      <TimerInput label="HR" value={timer.hours} onChange={(v) => updateTimerField(listing.id, "hours", v)} />
+                      <TimerInput label="MIN" value={timer.minutes} onChange={(v) => updateTimerField(listing.id, "minutes", v)} />
+                      <TimerInput label="SEC" value={timer.seconds} onChange={(v) => updateTimerField(listing.id, "seconds", v)} />
+                    </div>
+
+                    <div className="flex gap-2">
                       <Button 
-                        variant="default"
-                        className="bg-green-600 hover:bg-green-700 text-white flex-1"
-                        onClick={() => handleSetTimer(listing, true)}
+                        className={`flex-1 ${effectiveStatus === "timed_out" ? "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/20" : ""}`} 
+                        onClick={() => handleSetTimer(listing, effectiveStatus === "timed_out")}
                         disabled={updatingId === listing.id}
                       >
-                        <CheckCircle2 className="size-4 mr-1" />
-                        Approve & Start
+                        {updatingId === listing.id ? <Loader2 className="size-4 animate-spin mr-1" /> : <Clock3 className="size-4 mr-1" />}
+                        {effectiveStatus === "active" ? "Update Timer" : effectiveStatus === "timed_out" ? "RESTART TIMER & REACTIVATE" : "Save & Start Timer"}
                       </Button>
-                    )}
+                      
+                      {listing.status === "pending_payment" && (
+                        <Button 
+                          variant="default"
+                          className="bg-green-600 hover:bg-green-700 text-white flex-1"
+                          onClick={() => handleSetTimer(listing, true)}
+                          disabled={updatingId === listing.id}
+                        >
+                          <CheckCircle2 className="size-4 mr-1" />
+                          Approve & Start
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
       </div>
 
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
