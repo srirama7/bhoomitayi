@@ -50,7 +50,30 @@ function LoginForm() {
       const loginEmail = email.trim() === "admin" ? "admin@admin.com" : email.trim();
       const loginPassword = email.trim() === "admin" && password === "admin" ? "admin123" : password;
 
-      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      const userCredential = await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
+      const user = userCredential.user;
+
+      // Special check for 'admin' user profile
+      if (email.trim() === "admin") {
+        try {
+          const profileRef = doc(db, "profiles", user.uid);
+          const profileSnap = await getDoc(profileRef);
+          if (!profileSnap.exists()) {
+            await setDoc(profileRef, {
+              id: user.uid,
+              full_name: "System Admin",
+              role: "admin",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+          } else if (profileSnap.data().role !== "admin") {
+            // Ensure the role is admin even if profile existed with wrong role
+            await updateDoc(profileRef, { role: "admin" });
+          }
+        } catch (profileError) {
+          console.error("Failed to setup admin profile:", profileError);
+        }
+      }
 
       toast.success("Signed in successfully!");
       router.push(redirectTo);
