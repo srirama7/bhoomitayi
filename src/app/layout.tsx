@@ -50,10 +50,6 @@ export default function RootLayout({
             <AuthProvider>
               <TooltipProvider>
                 <LayoutWrapper>{children}</LayoutWrapper>
-                <SettingsApplier />
-                <BellaChat />
-                <TommyGuide />
-                <SettingsWidget />
                 <Toaster richColors position="top-right" />
               </TooltipProvider>
             </AuthProvider>
