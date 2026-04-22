@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'BhoomiTayi',
   webDir: 'www',
   server: {
-    url: 'https://propnest.vercel.app',
+    url: 'https://bhoomitayi.vercel.app',
     cleartext: true,
   },
   android: {

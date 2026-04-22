@@ -4,11 +4,10 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const hostname = request.headers.get("host");
 
-  // Handle admin domain and localhost for easy testing
+  // Handle admin domain
   const isAdminDomain = 
-    hostname === "propnest-admin.vercel.app" || 
     hostname?.includes("admin-bhoomitayi") ||
-    hostname?.startsWith("localhost");
+    hostname?.includes("admin.vercel.app");
 
   if (isAdminDomain) {
     // If accessing root, rewrite to admin listings

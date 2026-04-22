@@ -2,7 +2,7 @@
 
 ## Admin Timer Tests
 
-Tests for admin timer management functionality on propnest-admin.vercel.app
+Tests for admin timer management functionality on admin-bhoomitayi.vercel.app
 
 ### Run Tests
 

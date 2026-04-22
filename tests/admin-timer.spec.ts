@@ -88,7 +88,7 @@ test.describe("Admin Timer Management", () => {
       const listingId = href.split("/listing/")[1];
 
       // Navigate to main website listing page
-      await page.goto(`https://propnest.vercel.app/listing/${listingId}`);
+      await page.goto(`https://bhoomitayi.vercel.app/listing/${listingId}`);
 
       // Wait for page to load
       await page.waitForTimeout(2000);

@@ -27,7 +27,7 @@ export async function POST(request: Request) {
         customer_phone: customerPhone || "9999999999",
       },
       order_meta: {
-        return_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://propnest-gamma.vercel.app"}/api/payment/callback?order_id={order_id}`,
+        return_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://bhoomitayi.vercel.app"}/api/payment/callback?order_id={order_id}`,
       },
     };
 

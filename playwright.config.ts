@@ -8,7 +8,7 @@ export default defineConfig({
   workers: 1,
   reporter: "html",
   use: {
-    baseURL: "https://propnest-admin.vercel.app",
+    baseURL: "https://admin-bhoomitayi.vercel.app",
     trace: "on-first-retry",
     screenshot: "only-on-failure",
   },
