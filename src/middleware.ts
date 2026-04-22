@@ -6,10 +6,22 @@ export async function middleware(request: NextRequest) {
 
   // Handle admin domain and localhost for easy testing
   if (hostname === "propnest-admin.vercel.app" || hostname?.startsWith("localhost")) {
-    // Redirect root to admin listings page
+    // If accessing root, rewrite to admin listings
     if (url.pathname === "/") {
       url.pathname = "/dashboard/admin/listings";
-      return NextResponse.redirect(url, { status: 302 });
+      return NextResponse.rewrite(url);
+    }
+    
+    // Ensure all other admin dashboard paths are accessible
+    // but redirect public routes (like /about, /houses, /listing/id) to admin listings 
+    // to maintain separation if accessed from admin domain
+    const isAdminPath = url.pathname.startsWith("/dashboard/admin");
+    const isApi = url.pathname.startsWith("/api");
+    const isAuth = url.pathname.startsWith("/auth");
+    
+    if (!isAdminPath && !isApi && !isAuth && url.pathname !== "/dashboard/admin/listings") {
+       url.pathname = "/dashboard/admin/listings";
+       return NextResponse.rewrite(url);
     }
   }
 
