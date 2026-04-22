@@ -3,11 +3,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, MapPin, Bed, Bath, Maximize, Building2, Car, Package } from "lucide-react";
+import { Heart, MapPin, Bed, Bath, Maximize, Building2, Car, Package, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 
 import { db } from "@/lib/firebase/config";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDocs, addDoc, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
 import { formatPrice } from "@/lib/constants";
 import type {
@@ -45,11 +45,74 @@ const transactionColors: Record<string, string> = {
   rent: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800",
 };
 
+// Countdown Timer Component
+function CountdownTimer({ expiresAt, onExpire }: { expiresAt: string; onExpire: () => void }) {
+  const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const difference = new Date(expiresAt).getTime() - new Date().getTime();
+      if (difference <= 0) {
+        onExpire();
+        return null;
+      }
+
+      return {
+        d: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        h: Math.floor((difference / (1000 * 60 * 60)) % 24),
+        m: Math.floor((difference / 1000 / 60) % 60),
+        s: Math.floor((difference / 1000) % 60),
+      };
+    };
+
+    const initial = calculateTimeLeft();
+    if (initial) setTimeLeft(initial);
+    
+    const timer = setInterval(() => {
+      const remaining = calculateTimeLeft();
+      setTimeLeft(remaining);
+      if (!remaining) clearInterval(timer);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [expiresAt, onExpire]);
+
+  if (!timeLeft) return null;
+
+  return (
+    <div className="flex items-center gap-1 rounded-full bg-black/60 px-2 py-1 text-[10px] font-bold text-white backdrop-blur-md shadow-lg border border-white/20">
+      <Clock className="size-3" />
+      <span>
+        {timeLeft.d > 0 && `${timeLeft.d}d `}
+        {String(timeLeft.h).padStart(2, "0")}:
+        {String(timeLeft.m).padStart(2, "0")}:
+        {String(timeLeft.s).padStart(2, "0")}
+      </span>
+    </div>
+  );
+}
+
 export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }: ListingCardProps) {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [favoriteDocId, setFavoriteDocId] = useState<string | null>(null);
+  const [isExpired, setIsExpired] = useState(false);
+  const isAdmin = profile?.role === "admin";
+
+  const handleExpire = useCallback(async () => {
+    setIsExpired(true);
+    if (listing.status === "active") {
+      try {
+        await updateDoc(doc(db, "listings", listing.id), {
+          status: "timed_out",
+        });
+      } catch (error) {
+        console.error("Failed to update status on expiry:", error);
+      }
+    }
+  }, [listing.id, listing.status]);
+
   const cardRef = useRef<HTMLDivElement>(null);
   const [rotateX, setRotateX] = useState(0);
   const [rotateY, setRotateY] = useState(0);
@@ -248,6 +311,11 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
     }
   };
 
+  // Hide if expired and not admin
+  if ((isExpired || listing.status === "timed_out") && !isAdmin) {
+    return null;
+  }
+
   return (
     <Link href={`/listing/${listing.id}`}>
       <motion.div
@@ -288,23 +356,35 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-            <div className="absolute left-2.5 top-2.5 flex items-center gap-1.5">
-              <Badge
-                variant="secondary"
-                className={`${categoryColors[listing.category]} text-xs font-semibold border backdrop-blur-md`}
-              >
-                {listing.category === "pg"
-                  ? "PG"
-                  : listing.category.charAt(0).toUpperCase() +
-                    listing.category.slice(1)}
-              </Badge>
-              <Badge
-                variant="secondary"
-                className={`${transactionColors[listing.transaction_type]} text-xs font-semibold border backdrop-blur-md`}
-              >
-                {listing.transaction_type.charAt(0).toUpperCase() +
-                  listing.transaction_type.slice(1)}
-              </Badge>
+            <div className="absolute left-2.5 top-2.5 flex flex-col gap-1.5 items-start">
+              <div className="flex items-center gap-1.5">
+                <Badge
+                  variant="secondary"
+                  className={`${categoryColors[listing.category]} text-xs font-semibold border backdrop-blur-md`}
+                >
+                  {listing.category === "pg"
+                    ? "PG"
+                    : listing.category.charAt(0).toUpperCase() +
+                      listing.category.slice(1)}
+                </Badge>
+                <Badge
+                  variant="secondary"
+                  className={`${transactionColors[listing.transaction_type]} text-xs font-semibold border backdrop-blur-md`}
+                >
+                  {listing.transaction_type.charAt(0).toUpperCase() +
+                    listing.transaction_type.slice(1)}
+                </Badge>
+              </div>
+              
+              {listing.status === "active" && listing.expires_at && (
+                <CountdownTimer expiresAt={listing.expires_at} onExpire={handleExpire} />
+              )}
+              
+              {listing.status === "timed_out" && (
+                <Badge variant="destructive" className="text-[10px] font-bold backdrop-blur-md">
+                  Timed Out
+                </Badge>
+              )}
             </div>
 
             {showFavorite && user && (

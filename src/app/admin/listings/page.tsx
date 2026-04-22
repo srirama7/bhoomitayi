@@ -9,10 +9,15 @@ import {
   Loader2,
   Search,
   Eye,
+  Clock,
+  RotateCcw,
+  Edit,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Tabs,
   TabsList,
@@ -37,6 +42,7 @@ import {
   deleteDoc,
   query,
   orderBy,
+  Timestamp,
 } from "firebase/firestore";
 import { formatPrice } from "@/lib/constants";
 import { toast } from "sonner";
@@ -46,7 +52,7 @@ type ListingWithOwner = Listing & {
   profiles: Pick<Profile, "full_name"> | null;
 };
 
-type StatusFilter = "all" | "pending" | "active" | "rejected";
+type StatusFilter = "all" | "pending" | "active" | "rejected" | "timed_out";
 
 export default function AdminListingsPage() {
   const router = useRouter();
@@ -58,10 +64,17 @@ export default function AdminListingsPage() {
   // Dialog state
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogAction, setDialogAction] = useState<
-    "approve" | "reject" | "delete" | null
+    "approve" | "reject" | "delete" | "relaunch" | null
   >(null);
   const [selectedListing, setSelectedListing] =
     useState<ListingWithOwner | null>(null);
+
+  // Timing state
+  const [timingDialogOpen, setTimingDialogOpen] = useState(false);
+  const [days, setDays] = useState("0");
+  const [hours, setHours] = useState("0");
+  const [minutes, setMinutes] = useState("0");
+  const [seconds, setSeconds] = useState("0");
 
   const fetchListings = useCallback(async () => {
     setLoading(true);
@@ -93,11 +106,24 @@ export default function AdminListingsPage() {
             }
           }
 
-          return {
+          const listing = {
             id: listingDoc.id,
             ...data,
             profiles: ownerProfile,
           } as ListingWithOwner;
+
+          // Auto-update status if expired
+          if (listing.status === "active" && listing.expires_at) {
+            const expiryDate = new Date(listing.expires_at);
+            if (expiryDate < new Date()) {
+              await updateDoc(doc(db, "listings", listing.id), {
+                status: "timed_out",
+              });
+              listing.status = "timed_out";
+            }
+          }
+
+          return listing;
         })
       );
 
@@ -121,11 +147,16 @@ export default function AdminListingsPage() {
 
   const openConfirmDialog = (
     listing: ListingWithOwner,
-    action: "approve" | "reject" | "delete"
+    action: "approve" | "reject" | "delete" | "relaunch"
   ) => {
     setSelectedListing(listing);
     setDialogAction(action);
     setDialogOpen(true);
+  };
+
+  const openTimingDialog = (listing: ListingWithOwner) => {
+    setSelectedListing(listing);
+    setTimingDialogOpen(true);
   };
 
   const handleAction = async () => {
@@ -137,10 +168,18 @@ export default function AdminListingsPage() {
       if (dialogAction === "delete") {
         await deleteDoc(doc(db, "listings", selectedListing.id));
         toast.success("Listing deleted successfully");
+      } else if (dialogAction === "relaunch") {
+        await updateDoc(doc(db, "listings", selectedListing.id), {
+          status: "active",
+          expires_at: null,
+          updated_at: new Date().toISOString(),
+        });
+        toast.success("Listing relaunched successfully");
       } else {
         const newStatus = dialogAction === "approve" ? "active" : "rejected";
         await updateDoc(doc(db, "listings", selectedListing.id), {
           status: newStatus,
+          updated_at: new Date().toISOString(),
         });
         toast.success(
           `Listing ${dialogAction === "approve" ? "approved" : "rejected"} successfully`
@@ -156,6 +195,45 @@ export default function AdminListingsPage() {
       setDialogOpen(false);
       setSelectedListing(null);
       setDialogAction(null);
+    }
+  };
+
+  const handleSetTiming = async () => {
+    if (!selectedListing) return;
+
+    const totalMs = 
+      parseInt(days || "0") * 86400000 +
+      parseInt(hours || "0") * 3600000 +
+      parseInt(minutes || "0") * 60000 +
+      parseInt(seconds || "0") * 1000;
+
+    if (totalMs <= 0) {
+      toast.error("Please set a valid duration");
+      return;
+    }
+
+    const expiresAt = new Date(Date.now() + totalMs).toISOString();
+    setActionLoading(selectedListing.id);
+
+    try {
+      await updateDoc(doc(db, "listings", selectedListing.id), {
+        expires_at: expiresAt,
+        status: "active",
+        updated_at: new Date().toISOString(),
+      });
+      toast.success("Timing set successfully");
+      await fetchListings();
+    } catch (error) {
+      console.error("Error setting timing:", error);
+      toast.error("Failed to set timing");
+    } finally {
+      setActionLoading(null);
+      setTimingDialogOpen(false);
+      setSelectedListing(null);
+      setDays("0");
+      setHours("0");
+      setMinutes("0");
+      setSeconds("0");
     }
   };
 
@@ -177,6 +255,12 @@ export default function AdminListingsPage() {
         return (
           <Badge className="bg-red-500/10 text-red-600 border-red-500/20">
             Rejected
+          </Badge>
+        );
+      case "timed_out":
+        return (
+          <Badge className="bg-orange-500/10 text-orange-600 border-orange-500/20">
+            Timed Out
           </Badge>
         );
       case "sold":
@@ -215,12 +299,18 @@ export default function AdminListingsPage() {
           title: "Delete Listing",
           description: `Are you sure you want to permanently delete "${selectedListing.title}"? This action cannot be undone.`,
         };
+      case "relaunch":
+        return {
+          title: "Relaunch Listing",
+          description: `Are you sure you want to relaunch "${selectedListing.title}"? This will reset the timing and set it to active.`,
+        };
     }
   };
 
   const pendingCount = listings.filter((l) => l.status === "pending").length;
   const activeCount = listings.filter((l) => l.status === "active").length;
   const rejectedCount = listings.filter((l) => l.status === "rejected").length;
+  const timedOutCount = listings.filter((l) => l.status === "timed_out").length;
 
   return (
     <div>
@@ -240,10 +330,11 @@ export default function AdminListingsPage() {
           <TabsTrigger value="pending">Pending ({pendingCount})</TabsTrigger>
           <TabsTrigger value="active">Active ({activeCount})</TabsTrigger>
           <TabsTrigger value="rejected">Rejected ({rejectedCount})</TabsTrigger>
+          <TabsTrigger value="timed_out">Timed Out ({timedOutCount})</TabsTrigger>
         </TabsList>
 
         {/* All tabs share the same content structure */}
-        {(["all", "pending", "active", "rejected"] as StatusFilter[]).map(
+        {(["all", "pending", "active", "rejected", "timed_out"] as StatusFilter[]).map(
           (tab) => (
             <TabsContent key={tab} value={tab}>
               {loading ? (
@@ -260,7 +351,7 @@ export default function AdminListingsPage() {
                     <p className="text-muted-foreground mt-1 text-sm">
                       {tab === "all"
                         ? "There are no listings in the system yet."
-                        : `There are no ${tab} listings.`}
+                        : `There are no ${tab.replace("_", " ")} listings.`}
                     </p>
                   </CardContent>
                 </Card>
@@ -321,7 +412,33 @@ export default function AdminListingsPage() {
                                   >
                                     <Eye className="size-3.5" />
                                   </Button>
-                                  {listing.status !== "active" && (
+                                  {listing.status === "active" && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      title="Set Timings"
+                                      className="text-blue-600 hover:text-blue-700"
+                                      disabled={actionLoading === listing.id}
+                                      onClick={() => openTimingDialog(listing)}
+                                    >
+                                      <Clock className="size-3.5" />
+                                    </Button>
+                                  )}
+                                  {(listing.status === "timed_out" || listing.status === "rejected") && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon-xs"
+                                      title="Relaunch"
+                                      className="text-indigo-600 hover:text-indigo-700"
+                                      disabled={actionLoading === listing.id}
+                                      onClick={() =>
+                                        openConfirmDialog(listing, "relaunch")
+                                      }
+                                    >
+                                      <RotateCcw className="size-3.5" />
+                                    </Button>
+                                  )}
+                                  {listing.status === "pending" && (
                                     <Button
                                       variant="ghost"
                                       size="icon-xs"
@@ -335,7 +452,7 @@ export default function AdminListingsPage() {
                                       <CheckCircle2 className="size-3.5" />
                                     </Button>
                                   )}
-                                  {listing.status !== "rejected" && (
+                                  {listing.status !== "rejected" && listing.status !== "timed_out" && (
                                     <Button
                                       variant="ghost"
                                       size="icon-xs"
@@ -404,8 +521,83 @@ export default function AdminListingsPage() {
                 "Approve"
               ) : dialogAction === "reject" ? (
                 "Reject"
+              ) : dialogAction === "relaunch" ? (
+                "Relaunch"
               ) : (
                 "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Timing Dialog */}
+      <Dialog open={timingDialogOpen} onOpenChange={setTimingDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Listing Expiry</DialogTitle>
+            <DialogDescription>
+              Set how long this listing should remain active. After this time, it will be automatically hidden.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-4 gap-4 py-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="days">Days</Label>
+              <Input
+                id="days"
+                type="number"
+                min="0"
+                value={days}
+                onChange={(e) => setDays(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="hours">Hours</Label>
+              <Input
+                id="hours"
+                type="number"
+                min="0"
+                max="23"
+                value={hours}
+                onChange={(e) => setHours(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="mins">Mins</Label>
+              <Input
+                id="mins"
+                type="number"
+                min="0"
+                max="59"
+                value={minutes}
+                onChange={(e) => setMinutes(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="secs">Secs</Label>
+              <Input
+                id="secs"
+                type="number"
+                min="0"
+                max="59"
+                value={seconds}
+                onChange={(e) => setSeconds(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setTimingDialogOpen(false)}
+              disabled={actionLoading !== null}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSetTiming} disabled={actionLoading !== null}>
+              {actionLoading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                "Save Timing"
               )}
             </Button>
           </DialogFooter>

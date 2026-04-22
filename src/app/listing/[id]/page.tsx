@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { getListingById, getSimilarListings } from "@/lib/queries";
 import { ImageGallery } from "@/components/listings/image-gallery";
@@ -12,11 +12,13 @@ import { ListingCard } from "@/components/listings/listing-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatPrice, formatArea } from "@/lib/constants";
+import { useAuthStore } from "@/lib/store";
 import {
   MapPin, Bed, Bath, Maximize, Calendar, Car, Wifi,
   Wind, ShowerHead, Building2, Fence, Compass,
   Users, UtensilsCrossed, Home, ChevronRight, Flag,
-  Gauge, Fuel, Settings2, Package, ShieldCheck,
+  Gauge, Fuel, Settings2, Package, ShieldCheck, Clock,
+  AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
 import type { Listing } from "@/lib/types/database";
@@ -24,14 +26,92 @@ import { ReportButton } from "@/components/listings/report-button";
 import { ShareButton } from "@/components/listings/share-button";
 import { Skeleton } from "@/components/ui/skeleton";
 
+// Countdown Timer Component
+function CountdownTimer({ expiresAt, onExpire }: { expiresAt: string; onExpire: () => void }) {
+  const [timeLeft, setTimeLeft] = useState<{ d: number; h: number; m: number; s: number } | null>(null);
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const difference = new Date(expiresAt).getTime() - new Date().getTime();
+      if (difference <= 0) {
+        onExpire();
+        return null;
+      }
+
+      return {
+        d: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        h: Math.floor((difference / (1000 * 60 * 60)) % 24),
+        m: Math.floor((difference / 1000 / 60) % 60),
+        s: Math.floor((difference / 1000) % 60),
+      };
+    };
+
+    const initial = calculateTimeLeft();
+    if (initial) setTimeLeft(initial);
+    
+    const timer = setInterval(() => {
+      const remaining = calculateTimeLeft();
+      setTimeLeft(remaining);
+      if (!remaining) clearInterval(timer);
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [expiresAt, onExpire]);
+
+  if (!timeLeft) return null;
+
+  return (
+    <div className="flex items-center gap-2 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 px-4 py-2 border border-orange-500/20 text-orange-600 dark:text-orange-400 font-mono font-bold">
+      <Clock className="size-5" />
+      <div className="flex gap-2">
+        <div className="flex flex-col items-center">
+          <span className="text-xl">{String(timeLeft.d).padStart(2, '0')}</span>
+          <span className="text-[10px] uppercase font-sans">Days</span>
+        </div>
+        <span className="text-xl">:</span>
+        <div className="flex flex-col items-center">
+          <span className="text-xl">{String(timeLeft.h).padStart(2, '0')}</span>
+          <span className="text-[10px] uppercase font-sans">Hrs</span>
+        </div>
+        <span className="text-xl">:</span>
+        <div className="flex flex-col items-center">
+          <span className="text-xl">{String(timeLeft.m).padStart(2, '0')}</span>
+          <span className="text-[10px] uppercase font-sans">Min</span>
+        </div>
+        <span className="text-xl">:</span>
+        <div className="flex flex-col items-center">
+          <span className="text-xl">{String(timeLeft.s).padStart(2, '0')}</span>
+          <span className="text-[10px] uppercase font-sans">Sec</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ListingDetailPage() {
   const params = useParams();
   const id = params.id as string;
+  const { profile: authProfile } = useAuthStore();
+  const isAdmin = authProfile?.role === "admin";
 
   const [listing, setListing] = useState<Listing | null>(null);
-  const [profile, setProfile] = useState<{ full_name: string; phone: string | null; avatar_url: string | null } | null>(null);
+  const [ownerProfile, setOwnerProfile] = useState<{ full_name: string; phone: string | null; avatar_url: string | null } | null>(null);
   const [similar, setSimilar] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isExpired, setIsExpired] = useState(false);
+
+  const handleExpire = useCallback(async () => {
+    setIsExpired(true);
+    if (listing && listing.status === "active") {
+      try {
+        await updateDoc(doc(db, "listings", listing.id), {
+          status: "timed_out",
+        });
+      } catch (error) {
+        console.error("Failed to update status on expiry:", error);
+      }
+    }
+  }, [listing]);
 
   useEffect(() => {
     if (!id) return;
@@ -40,9 +120,11 @@ export default function ListingDetailPage() {
       const { data } = await getListingById(id);
       if (data) {
         setListing(data);
+        if (data.status === "timed_out") setIsExpired(true);
+        
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const profiles = (data as any).profiles;
-        if (profiles) setProfile(profiles);
+        if (profiles) setOwnerProfile(profiles);
 
         const sim = await getSimilarListings({ category: data.category, id: data.id });
         setSimilar(sim);
@@ -83,6 +165,24 @@ export default function ListingDetailPage() {
     );
   }
 
+  // Handle expired state for non-admins
+  if ((isExpired || listing.status === "timed_out") && !isAdmin) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-orange-50 dark:bg-orange-950/20 p-8 rounded-3xl border border-orange-200 dark:border-orange-800/30 max-w-md shadow-3d">
+          <div className="bg-orange-100 dark:bg-orange-900/50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="size-8 text-orange-600 dark:text-orange-400" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground mb-3">Listing Timed Out</h1>
+          <p className="text-muted-foreground mb-8">This listing has reached its time limit and is no longer active. Please contact the owner or search for similar properties.</p>
+          <Link href="/" className="inline-flex items-center justify-center h-11 px-8 font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all shadow-lg hover:shadow-blue-500/20 active:scale-95">
+            Back to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const details = listing.details as Record<string, any>;
 
@@ -100,6 +200,14 @@ export default function ListingDetailPage() {
           <span className="text-foreground font-medium truncate max-w-[200px]">{listing.title}</span>
         </nav>
 
+        {/* Expiry Warning for Admin */}
+        {isAdmin && isExpired && (
+          <div className="mb-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center gap-3 text-orange-600 dark:text-orange-400">
+            <AlertTriangle className="size-5" />
+            <p className="font-medium">Admin View: This listing has timed out and is hidden from public view.</p>
+          </div>
+        )}
+
         {/* Image Gallery */}
         <ImageGallery images={listing.images ?? []} title={listing.title} />
 
@@ -114,7 +222,7 @@ export default function ListingDetailPage() {
                     <Badge variant="secondary" className="capitalize rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200 dark:border-blue-800">{listing.category}</Badge>
                     <Badge className="capitalize rounded-lg">{listing.transaction_type}</Badge>
                     {listing.status !== "active" && (
-                      <Badge variant="destructive" className="capitalize rounded-lg">{listing.status}</Badge>
+                      <Badge variant="destructive" className="capitalize rounded-lg">{listing.status.replace("_", " ")}</Badge>
                     )}
                   </div>
                   <h1 className="text-2xl md:text-3xl font-bold text-foreground">{listing.title}</h1>
@@ -123,10 +231,14 @@ export default function ListingDetailPage() {
                     {listing.address} - {listing.pincode}
                   </p>
                 </div>
-                <div className="text-right shrink-0">
+                <div className="text-right shrink-0 space-y-3 flex flex-col items-end">
                   <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">{formatPrice(listing.price)}</p>
                   {listing.transaction_type === "rent" && (
                     <p className="text-sm text-muted-foreground">/month</p>
+                  )}
+                  
+                  {listing.status === "active" && listing.expires_at && (
+                    <CountdownTimer expiresAt={listing.expires_at} onExpire={handleExpire} />
                   )}
                 </div>
               </div>
@@ -254,17 +366,17 @@ export default function ListingDetailPage() {
               <ReportButton listingId={listing.id} />
             </div>
 
-            {profile && (
+            {ownerProfile && (
               <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80">
                 <CardContent className="py-4">
-                  <p className="font-semibold text-foreground">{profile.full_name}</p>
+                  <p className="font-semibold text-foreground">{ownerProfile.full_name}</p>
                 </CardContent>
               </Card>
             )}
 
             <InquiryForm
               listingId={listing.id}
-              ownerName={profile?.full_name || "Owner"}
+              ownerName={ownerProfile?.full_name || "Owner"}
             />
           </div>
         </div>

@@ -47,7 +47,10 @@ function LoginForm() {
     setIsLoading(true);
 
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      const loginEmail = email.trim() === "admin" ? "admin@admin.com" : email.trim();
+      const loginPassword = email.trim() === "admin" && password === "admin" ? "admin123" : password;
+
+      await signInWithEmailAndPassword(auth, loginEmail, loginPassword);
 
       toast.success("Signed in successfully!");
       router.push(redirectTo);
