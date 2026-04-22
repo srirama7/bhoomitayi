@@ -127,12 +127,17 @@ function EditListingForm() {
       if (profile?.role === "admin") {
         updateData.timer_duration = timer;
         
-        // Only update expires_at if:
+        // Update expires_at if:
         // 1. Admin explicitly checked "Reset/Start Timer"
-        // 2. Listing is currently timed_out or pending_payment and has a timer duration
+        // 2. Listing is currently timed_out or pending_payment
+        // 3. Admin changed the timer fields (we'll assume they want to apply the new duration from now)
         const isInactive = form.status === "timed_out" || form.status === "pending_payment";
         
-        if ((resetTimer || isInactive) && hasTimerDuration(timer)) {
+        // Check if timer duration changed from original
+        const originalTimer = sanitizeTimerDuration(form.timer_duration);
+        const timerChanged = JSON.stringify(timer) !== JSON.stringify(originalTimer);
+
+        if ((resetTimer || isInactive || timerChanged) && hasTimerDuration(timer)) {
           updateData.expires_at = addTimerDuration(new Date(), timer).toISOString();
           if (isInactive) {
             updateData.status = "active";
@@ -141,9 +146,10 @@ function EditListingForm() {
       }
 
       await updateDoc(doc(db, "listings", listingId), updateData);
-      toast.success("Listing updated successfully!");
+      toast.success(profile?.role === "admin" && (resetTimer || form.status !== "active") ? "Listing activated and timer started!" : "Listing updated successfully!");
       router.push(profile?.role === "admin" ? "/dashboard/admin/listings" : "/dashboard/my-listings");
-    } catch {
+    } catch (error) {
+      console.error("Update failed:", error);
       toast.error("Failed to update listing");
     } finally {
       setSaving(false);
@@ -153,6 +159,8 @@ function EditListingForm() {
   const updateTimerField = (field: keyof TimerDuration, value: string) => {
     const num = Math.max(0, Number(value || 0));
     setTimer(prev => ({ ...prev, [field]: num }));
+    // Automatically check reset timer if admin changes fields
+    setResetTimer(true);
   };
 
   if (loading) {
@@ -173,6 +181,9 @@ function EditListingForm() {
       </div>
     );
   }
+
+  const expiresAt = form.expires_at ? new Date(form.expires_at) : null;
+  const isExpired = expiresAt ? expiresAt < new Date() : false;
 
   return (
     <div>
@@ -248,7 +259,15 @@ function EditListingForm() {
                 </div>
               </div>
               <CardContent className="p-4 space-y-4">
-                <p className="text-xs text-muted-foreground">Adjust the visibility timer for this listing. Saving will update the expiry time.</p>
+                <div className="flex flex-col gap-1">
+                  <p className="text-xs text-muted-foreground font-medium">Adjust the visibility timer for this listing.</p>
+                  {expiresAt && (
+                    <p className={`text-[10px] font-bold ${isExpired ? "text-red-500" : "text-green-600"}`}>
+                      Current Expiry: {expiresAt.toLocaleString()} {isExpired && "(EXPIRED)"}
+                    </p>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-5 gap-2">
                   <div className="space-y-1">
                     <Label className="text-[10px] font-bold block text-center">MONTH</Label>
@@ -279,9 +298,14 @@ function EditListingForm() {
                     onCheckedChange={(v) => setResetTimer(v as boolean)} 
                   />
                   <Label htmlFor="reset-timer" className="text-xs font-bold cursor-pointer text-blue-700">
-                    Reset/Restart Timer from Now
+                    Apply changes & restart timer from now
                   </Label>
                 </div>
+                {resetTimer && (
+                  <p className="text-[9px] text-blue-600 font-medium italic">
+                    * Saving will set the new expiry to now + the duration above.
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}

@@ -4,8 +4,8 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const hostname = request.headers.get("host");
 
-  // Handle admin domain
-  if (hostname === "propnest-admin.vercel.app") {
+  // Handle admin domain and localhost for easy testing
+  if (hostname === "propnest-admin.vercel.app" || hostname?.startsWith("localhost")) {
     // Redirect root to admin listings page
     if (url.pathname === "/") {
       url.pathname = "/dashboard/admin/listings";
