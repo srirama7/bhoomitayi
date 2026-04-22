@@ -10,7 +10,12 @@ import { db } from "@/lib/firebase/config";
 import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
 import { formatPrice } from "@/lib/constants";
-import { getEffectiveListingStatus, getRemainingTimeMs, formatRemainingDuration } from "@/lib/listing-timer";
+import {
+  formatRemainingDuration,
+  formatTimerDuration,
+  getEffectiveListingStatus,
+  getRemainingTimeMs,
+} from "@/lib/listing-timer";
 import type {
   Listing,
   HouseDetails,
@@ -368,6 +373,27 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
             </div>
 
             {renderDetails()}
+
+            {(effectiveStatus === "active" || listing.timer_duration) && (
+              <div className="mt-1 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 dark:border-blue-900/60 dark:bg-blue-950/20">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                    <Clock className="size-3.5" />
+                    Visibility Timer
+                  </span>
+                  {remainingMs !== null && effectiveStatus === "active" && (
+                    <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300">
+                      {formatRemainingDuration(remainingMs)} left
+                    </span>
+                  )}
+                </div>
+                {listing.timer_duration && (
+                  <p className="mt-1 text-xs text-blue-700/80 dark:text-blue-200/80">
+                    Total: {formatTimerDuration(listing.timer_duration)}
+                  </p>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
       </motion.div>
