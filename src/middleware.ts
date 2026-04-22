@@ -7,26 +7,24 @@ export async function middleware(request: NextRequest) {
   // Handle admin domain and localhost for easy testing
   const isAdminDomain = 
     hostname === "propnest-admin.vercel.app" || 
-    hostname === "admin-bhoomitayi.vercel.app" ||
+    hostname?.includes("admin-bhoomitayi") ||
     hostname?.startsWith("localhost");
 
   if (isAdminDomain) {
     // If accessing root, rewrite to admin listings
     if (url.pathname === "/") {
-      url.pathname = "/dashboard/admin/listings";
-      return NextResponse.rewrite(url);
+      return NextResponse.rewrite(new URL("/dashboard/admin/listings", request.url));
     }
     
     // Ensure all other admin dashboard paths are accessible
-    // but redirect public routes (like /about, /houses, /listing/id) to admin listings 
-    // to maintain separation if accessed from admin domain
     const isAdminPath = url.pathname.startsWith("/dashboard/admin");
     const isApi = url.pathname.startsWith("/api");
     const isAuth = url.pathname.startsWith("/auth");
+    const isNext = url.pathname.startsWith("/_next");
+    const isStatic = url.pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico)$/);
     
-    if (!isAdminPath && !isApi && !isAuth && url.pathname !== "/dashboard/admin/listings") {
-       url.pathname = "/dashboard/admin/listings";
-       return NextResponse.rewrite(url);
+    if (!isAdminPath && !isApi && !isAuth && !isNext && !isStatic) {
+       return NextResponse.rewrite(new URL("/dashboard/admin/listings", request.url));
     }
   }
 
