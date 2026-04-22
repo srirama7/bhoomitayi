@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
@@ -58,6 +59,7 @@ function EditListingForm() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<ListingData | null>(null);
   const [timer, setTimer] = useState<TimerDuration>(DEFAULT_TIMER_DURATION);
+  const [resetTimer, setResetTimer] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -124,12 +126,15 @@ function EditListingForm() {
       // Only admins can update the timer
       if (profile?.role === "admin") {
         updateData.timer_duration = timer;
-        if (hasTimerDuration(timer)) {
-          // Recalculate expiry based on new duration and current time
-          // (Assuming admin wants to reset/refresh the timer duration)
+        
+        // Only update expires_at if:
+        // 1. Admin explicitly checked "Reset/Start Timer"
+        // 2. Listing is currently timed_out or pending_payment and has a timer duration
+        const isInactive = form.status === "timed_out" || form.status === "pending_payment";
+        
+        if ((resetTimer || isInactive) && hasTimerDuration(timer)) {
           updateData.expires_at = addTimerDuration(new Date(), timer).toISOString();
-          // If it was timed out, set it back to active
-          if (form.status === "timed_out") {
+          if (isInactive) {
             updateData.status = "active";
           }
         }
@@ -244,23 +249,38 @@ function EditListingForm() {
               </div>
               <CardContent className="p-4 space-y-4">
                 <p className="text-xs text-muted-foreground">Adjust the visibility timer for this listing. Saving will update the expiry time.</p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-5 gap-2">
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold">MONTHS</Label>
-                    <Input type="number" min="0" value={timer.months} onChange={(e) => updateTimerField("months", e.target.value)} className="h-9" />
+                    <Label className="text-[10px] font-bold block text-center">MONTH</Label>
+                    <Input type="number" min="0" value={timer.months} onChange={(e) => updateTimerField("months", e.target.value)} className="h-9 text-center" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold">DAYS</Label>
-                    <Input type="number" min="0" value={timer.days} onChange={(e) => updateTimerField("days", e.target.value)} className="h-9" />
+                    <Label className="text-[10px] font-bold block text-center">DAY</Label>
+                    <Input type="number" min="0" value={timer.days} onChange={(e) => updateTimerField("days", e.target.value)} className="h-9 text-center" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold">HOURS</Label>
-                    <Input type="number" min="0" value={timer.hours} onChange={(e) => updateTimerField("hours", e.target.value)} className="h-9" />
+                    <Label className="text-[10px] font-bold block text-center">HR</Label>
+                    <Input type="number" min="0" value={timer.hours} onChange={(e) => updateTimerField("hours", e.target.value)} className="h-9 text-center" />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[10px] font-bold">MINUTES</Label>
-                    <Input type="number" min="0" value={timer.minutes} onChange={(e) => updateTimerField("minutes", e.target.value)} className="h-9" />
+                    <Label className="text-[10px] font-bold block text-center">MIN</Label>
+                    <Input type="number" min="0" value={timer.minutes} onChange={(e) => updateTimerField("minutes", e.target.value)} className="h-9 text-center" />
                   </div>
+                  <div className="space-y-1">
+                    <Label className="text-[10px] font-bold block text-center">SEC</Label>
+                    <Input type="number" min="0" value={timer.seconds} onChange={(e) => updateTimerField("seconds", e.target.value)} className="h-9 text-center" />
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2 border-t">
+                  <Checkbox 
+                    id="reset-timer" 
+                    checked={resetTimer} 
+                    onCheckedChange={(v) => setResetTimer(v as boolean)} 
+                  />
+                  <Label htmlFor="reset-timer" className="text-xs font-bold cursor-pointer text-blue-700">
+                    Reset/Restart Timer from Now
+                  </Label>
                 </div>
               </CardContent>
             </Card>

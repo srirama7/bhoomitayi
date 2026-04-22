@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { Clock, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   getRemainingTimeMs,
   LISTING_FEE,
+  formatTimerDuration,
+  type TimerDuration,
 } from "@/lib/listing-timer";
 
 interface ListingCountdownProps {
@@ -14,6 +17,7 @@ interface ListingCountdownProps {
   onReactivate?: () => void;
   reactivating?: boolean;
   showRestartButton?: boolean;
+  timerDuration?: TimerDuration | null;
 }
 
 interface TimeLeft {
@@ -41,6 +45,7 @@ export function ListingCountdown({
   onReactivate,
   reactivating = false,
   showRestartButton = false,
+  timerDuration,
 }: ListingCountdownProps) {
   const [, forceTick] = useState(0);
 
@@ -66,6 +71,12 @@ export function ListingCountdown({
         <p className="mt-1 text-xs text-blue-600/80 dark:text-blue-400/80">
           Admin will set the visibility timer shortly.
         </p>
+        {timerDuration && (
+          <div className="mt-2 pt-2 border-t border-blue-100 dark:border-blue-900/50">
+            <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Requested Duration</p>
+            <p className="text-sm font-bold text-blue-800 dark:text-blue-200">{formatTimerDuration(timerDuration)}</p>
+          </div>
+        )}
       </div>
     );
   }
@@ -89,6 +100,12 @@ export function ListingCountdown({
         <p className="text-sm font-medium text-red-800 dark:text-red-300 mb-4 bg-white/50 dark:bg-black/20 p-3 rounded-lg border border-red-200 dark:border-red-900">
           This post has reached its time limit. To reinstall your post, a fee of ₹{LISTING_FEE} is required. Admin will reactivate it after payment confirmation.
         </p>
+        {timerDuration && (
+          <div className="mb-4 p-3 rounded-lg bg-red-100/50 border border-red-200 dark:bg-red-900/20 dark:border-red-800">
+            <p className="text-[10px] font-bold text-red-600 uppercase tracking-wider mb-1">Last Set Duration</p>
+            <p className="text-sm font-bold text-red-800 dark:text-red-200">{formatTimerDuration(timerDuration)}</p>
+          </div>
+        )}
         {showRestartButton && onReactivate && (
           <Button
             size="lg"
@@ -124,23 +141,30 @@ export function ListingCountdown({
           : "border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50 dark:border-blue-800 dark:from-blue-950/30 dark:to-indigo-950/20"
       }`}
     >
-      <div className="flex items-center gap-2 mb-3">
-        <Clock
-          className={`size-4 ${
-            isUrgent
-              ? "text-amber-600 dark:text-amber-400"
-              : "text-blue-600 dark:text-blue-400"
-          }`}
-        />
-        <span
-          className={`text-sm font-semibold ${
-            isUrgent
-              ? "text-amber-700 dark:text-amber-300"
-              : "text-blue-700 dark:text-blue-300"
-          }`}
-        >
-          {isUrgent ? "Expires Soon!" : "Time Remaining"}
-        </span>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <Clock
+            className={`size-4 ${
+              isUrgent
+                ? "text-amber-600 dark:text-amber-400"
+                : "text-blue-600 dark:text-blue-400"
+            }`}
+          />
+          <span
+            className={`text-sm font-semibold ${
+              isUrgent
+                ? "text-amber-700 dark:text-amber-300"
+                : "text-blue-700 dark:text-blue-300"
+            }`}
+          >
+            {isUrgent ? "Expires Soon!" : "Time Remaining"}
+          </span>
+        </div>
+        {timerDuration && (
+          <Badge variant="outline" className={`text-[10px] font-bold ${isUrgent ? "border-amber-200 text-amber-600 bg-amber-50" : "border-blue-200 text-blue-600 bg-blue-50"}`}>
+            Total: {formatTimerDuration(timerDuration)}
+          </Badge>
+        )}
       </div>
       <div className="grid grid-cols-5 gap-2 text-center">
         <CountdownUnit

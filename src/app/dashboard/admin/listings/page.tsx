@@ -389,9 +389,13 @@ export default function AdminListingsPage() {
 
                     {/* Right: Countdown or Timer Stats */}
                     <div className="md:w-64 space-y-2">
-                      {effectiveStatus === "active" && (
+                      {(effectiveStatus === "active" || effectiveStatus === "pending_payment") && (
                         <div className="scale-90 origin-top-right">
-                          <ListingCountdown expiresAt={listing.expires_at} status={effectiveStatus} />
+                          <ListingCountdown 
+                            expiresAt={listing.expires_at} 
+                            status={effectiveStatus} 
+                            timerDuration={listing.timer_duration}
+                          />
                         </div>
                       )}
                       {effectiveStatus === "timed_out" && (
@@ -432,15 +436,15 @@ export default function AdminListingsPage() {
                   </div>
 
                   {/* Timer Configuration Section */}
-                  <div className={`rounded-xl border p-4 space-y-4 ${
-                    effectiveStatus === "timed_out" 
-                      ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900 shadow-lg shadow-amber-500/10" 
+                  <div className={`rounded-xl border-2 p-4 space-y-4 ${
+                    effectiveStatus === "timed_out" || listing.status === "pending_payment"
+                      ? "bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800 shadow-lg shadow-amber-500/10" 
                       : "bg-zinc-50 dark:bg-zinc-800/40 border-zinc-200 dark:border-zinc-800"
                   }`}>
                     <div className="flex items-center gap-2">
-                      <Clock3 className={`size-4 ${effectiveStatus === "timed_out" ? "text-red-600" : "text-blue-600"}`} />
+                      <Clock3 className={`size-4 ${effectiveStatus === "timed_out" || listing.status === "pending_payment" ? "text-amber-600" : "text-blue-600"}`} />
                       <span className="text-sm font-bold">
-                        {effectiveStatus === "timed_out" ? "Reactivation Timer (Start New)" : "Set Timer Duration"}
+                        {listing.status === "pending_payment" ? "SET VISIBILITY TIMER BEFORE APPROVAL" : effectiveStatus === "timed_out" ? "Reactivation Timer (Start New)" : "Adjust Timer Duration"}
                       </span>
                       <span className="text-[10px] text-muted-foreground ml-auto font-medium">
                         Current: {formatTimerDuration(listing.timer_duration)}

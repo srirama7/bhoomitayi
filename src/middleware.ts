@@ -4,10 +4,13 @@ export async function middleware(request: NextRequest) {
   const url = request.nextUrl.clone();
   const hostname = request.headers.get("host");
 
-  // Redirect admin domain root to the admin listings page
-  if (hostname === "propnest-admin.vercel.app" && url.pathname === "/") {
-    url.pathname = "/dashboard/admin/listings";
-    return NextResponse.redirect(url);
+  // Handle admin domain
+  if (hostname === "propnest-admin.vercel.app") {
+    // Redirect root to admin listings page
+    if (url.pathname === "/") {
+      url.pathname = "/dashboard/admin/listings";
+      return NextResponse.redirect(url, { status: 302 });
+    }
   }
 
   return NextResponse.next();

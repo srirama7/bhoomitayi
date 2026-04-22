@@ -314,6 +314,7 @@ export default function MyListingsPage() {
                       onReactivate={() => setReactivatingListing(listing)}
                       reactivating={reactivating}
                       showRestartButton={listing.status === "timed_out"}
+                      timerDuration={listing.timer_duration}
                     />
                     {listing.status === "pending_payment" &&
                       listing.payment_reason === "reactivation" && (

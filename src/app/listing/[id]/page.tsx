@@ -171,6 +171,7 @@ export default function ListingDetailPage() {
                     <ListingCountdown
                       expiresAt={listing.expires_at}
                       status={effectiveStatus}
+                      timerDuration={listing.timer_duration}
                     />
                   </div>
                 </div>
