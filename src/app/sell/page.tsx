@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import Script from "next/script";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import {
@@ -22,9 +21,6 @@ import {
   User,
   Phone,
   Mail,
-  IndianRupee,
-  ShieldCheck,
-  CreditCard,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -111,7 +107,6 @@ const STEPS = [
   "Property Details",
   "Location & Images",
   "Personal Details",
-  "Payment",
   "Preview & Submit",
 ];
 
@@ -197,11 +192,6 @@ export default function SellPage() {
   const [ownerName, setOwnerName] = useState(profile?.full_name || "");
   const [ownerPhone, setOwnerPhone] = useState(profile?.phone || "");
   const [ownerEmail, setOwnerEmail] = useState(user?.email || "");
-
-  // Step 5: Payment
-  const [paymentDone, setPaymentDone] = useState(false);
-  const [paymentId, setPaymentId] = useState("");
-  const [payingNow, setPayingNow] = useState(false);
 
   // Update personal details when profile loads
   useEffect(() => {
@@ -323,9 +313,6 @@ export default function SellPage() {
         if (!ownerPhone.trim() || !/^\d{10}$/.test(ownerPhone)) { toast.error("Please enter a valid 10-digit phone number"); return false; }
         if (!ownerEmail.trim()) { toast.error("Please enter your email"); return false; }
         return true;
-      case 4:
-        if (!paymentDone) { toast.error("Please complete the payment of ₹" + LISTING_FEE + " to proceed"); return false; }
-        return true;
       default:
         return true;
     }
@@ -338,56 +325,6 @@ export default function SellPage() {
   function handlePrevious() {
     setStep((prev) => Math.max(prev - 1, 0));
   }
-
-  const handleRazorpayPayment = useCallback(async () => {
-    if (!user) return;
-    setPayingNow(true);
-
-    try {
-      const res = await fetch("/api/razorpay", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: LISTING_FEE }),
-      });
-
-      if (!res.ok) throw new Error("Failed to create order");
-      const { orderId } = await res.json();
-
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: LISTING_FEE * 100,
-        currency: "INR",
-        name: "PropNest",
-        description: "Property Listing Fee",
-        order_id: orderId,
-        handler: (response: { razorpay_payment_id: string; razorpay_order_id: string }) => {
-          setPaymentId(response.razorpay_payment_id);
-          setPaymentDone(true);
-          setPayingNow(false);
-          toast.success("Payment successful! You can now submit your listing.");
-        },
-        prefill: {
-          name: ownerName,
-          email: ownerEmail,
-          contact: ownerPhone,
-        },
-        theme: { color: "#16a34a" },
-        modal: {
-          ondismiss: () => { setPayingNow(false); },
-        },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.on("payment.failed", () => {
-        toast.error("Payment failed. Please try again.");
-        setPayingNow(false);
-      });
-      rzp.open();
-    } catch {
-      toast.error("Could not initiate payment. Please try again.");
-      setPayingNow(false);
-    }
-  }, [user, ownerName, ownerEmail, ownerPhone]);
 
   function fileToBase64(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -506,8 +443,6 @@ export default function SellPage() {
         owner_name: ownerName.trim(),
         owner_phone: ownerPhone.trim(),
         owner_email: ownerEmail.trim(),
-        payment_id: paymentId,
-        payment_amount: LISTING_FEE,
         status: "active",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -552,7 +487,6 @@ export default function SellPage() {
 
   return (
     <main className="min-h-screen bg-background">
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       {/* Page Hero */}
       <div className="relative overflow-hidden border-b border-zinc-200/80 dark:border-zinc-800/80 bg-gradient-to-br from-green-50 via-emerald-50/50 to-background dark:from-green-950/30 dark:via-emerald-950/20 dark:to-background">
         <div className="absolute inset-0 overflow-hidden">
@@ -1107,78 +1041,8 @@ export default function SellPage() {
           </motion.div>
         )}
 
-        {/* Step 5: Payment */}
+        {/* Step 5: Preview & Submit */}
         {step === 4 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <IndianRupee className="size-5 text-green-600" />
-                  Listing Fee Payment
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="rounded-xl border-2 border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <ShieldCheck className="size-5 text-green-600" />
-                    <p className="font-semibold text-green-800 dark:text-green-300">One-time listing fee</p>
-                  </div>
-                  <p className="text-sm text-green-700 dark:text-green-400">
-                    A small fee of <span className="font-bold text-lg">&#8377;{LISTING_FEE}</span> is required to publish your listing. This helps us maintain quality listings on PropNest.
-                  </p>
-                </div>
-
-                {paymentDone ? (
-                  <div className="flex flex-col items-center gap-4 py-6">
-                    <div className="flex items-center justify-center size-16 rounded-full bg-green-100 dark:bg-green-950/50">
-                      <CheckCircle2 className="size-8 text-green-600" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-xl font-bold text-green-600">Payment Successful!</p>
-                      <p className="text-sm text-muted-foreground mt-1">Transaction ID: {paymentId}</p>
-                      <p className="text-sm text-muted-foreground">Amount: &#8377;{LISTING_FEE}</p>
-                    </div>
-                    <p className="text-sm text-muted-foreground">Click &quot;Next&quot; to review and submit your listing.</p>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center gap-5 py-4">
-                    <div className="flex items-center justify-center size-20 rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800">
-                      <CreditCard className="size-10 text-green-600" />
-                    </div>
-                    <div className="text-center">
-                      <p className="text-3xl font-bold text-foreground">&#8377;{LISTING_FEE}</p>
-                      <p className="text-sm text-muted-foreground mt-1">Pay securely via UPI using Razorpay</p>
-                    </div>
-                    <Button
-                      size="lg"
-                      onClick={handleRazorpayPayment}
-                      disabled={payingNow}
-                      className="gap-2 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-600/20 px-8 text-base"
-                    >
-                      {payingNow ? (
-                        <>
-                          <Loader2 className="size-5 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <IndianRupee className="size-5" />
-                          Pay &#8377;{LISTING_FEE} via UPI
-                        </>
-                      )}
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center max-w-sm">
-                      Secure payment powered by Razorpay. Only UPI payment method is available.
-                    </p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-
-        {/* Step 6: Preview & Submit */}
-        {step === 5 && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
             <Card>
               <CardHeader>
@@ -1332,16 +1196,6 @@ export default function SellPage() {
                     <div><dt className="text-muted-foreground">Name</dt><dd className="font-medium">{ownerName}</dd></div>
                     <div><dt className="text-muted-foreground">Phone</dt><dd className="font-medium">{ownerPhone}</dd></div>
                     <div><dt className="text-muted-foreground">Email</dt><dd className="font-medium">{ownerEmail}</dd></div>
-                  </dl>
-                </div>
-
-                {/* Payment */}
-                <div>
-                  <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">Payment</h3>
-                  <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 text-sm">
-                    <div><dt className="text-muted-foreground">Amount Paid</dt><dd className="font-medium text-green-600">&#8377;{LISTING_FEE}</dd></div>
-                    <div><dt className="text-muted-foreground">Razorpay Payment ID</dt><dd className="font-medium">{paymentId}</dd></div>
-                    <div><dt className="text-muted-foreground">Payment Status</dt><dd className="font-medium text-green-600">Paid</dd></div>
                   </dl>
                 </div>
               </CardContent>
