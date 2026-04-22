@@ -5,7 +5,12 @@ export async function middleware(request: NextRequest) {
   const hostname = request.headers.get("host");
 
   // Handle admin domain and localhost for easy testing
-  if (hostname === "propnest-admin.vercel.app" || hostname?.startsWith("localhost")) {
+  const isAdminDomain = 
+    hostname === "propnest-admin.vercel.app" || 
+    hostname === "admin-bhoomitayi.vercel.app" ||
+    hostname?.startsWith("localhost");
+
+  if (isAdminDomain) {
     // If accessing root, rewrite to admin listings
     if (url.pathname === "/") {
       url.pathname = "/dashboard/admin/listings";
