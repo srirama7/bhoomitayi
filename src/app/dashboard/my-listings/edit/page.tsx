@@ -14,6 +14,7 @@ import { db } from "@/lib/firebase/config";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 import {
   addTimerDuration,
   DEFAULT_TIMER_DURATION,
@@ -46,6 +47,21 @@ export default function EditListingPage() {
     <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2 className="size-6 animate-spin text-muted-foreground" /></div>}>
       <EditListingForm />
     </Suspense>
+  );
+}
+
+function TimerInputUnit({ label, value, onChange }: { label: string; value: number; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1">
+      <Label className="text-[10px] font-bold block text-center text-muted-foreground uppercase">{label}</Label>
+      <Input
+        type="number"
+        min="0"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 text-center text-xs px-1 font-bold border-amber-200 focus-visible:ring-amber-500"
+      />
+    </div>
   );
 }
 
@@ -251,61 +267,54 @@ function EditListingForm() {
         <div className="space-y-6">
           {/* Admin Timer Controls */}
           {profile?.role === "admin" && (
-            <Card className="rounded-2xl border-blue-200 dark:border-blue-900 bg-blue-50/30 dark:bg-blue-950/10 shadow-3d overflow-hidden">
-              <div className="bg-blue-600 px-4 py-3 text-white">
+            <Card className="rounded-2xl border-amber-300 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/20 shadow-xl overflow-hidden border-2">
+              <div className="bg-amber-600 px-4 py-3 text-white flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Clock className="size-4" />
-                  <h3 className="font-bold text-sm uppercase tracking-wider">Admin: Listing Timer</h3>
+                  <Clock className="size-5" />
+                  <h3 className="font-bold text-sm uppercase tracking-wider text-white">ADMIN: VISIBILITY TIMER</h3>
                 </div>
+                {expiresAt && (
+                   <Badge className={isExpired ? "bg-red-500" : "bg-green-600"}>
+                     {isExpired ? "EXPIRED" : "ACTIVE"}
+                   </Badge>
+                )}
               </div>
-              <CardContent className="p-4 space-y-4">
-                <div className="flex flex-col gap-1">
-                  <p className="text-xs text-muted-foreground font-medium">Adjust the visibility timer for this listing.</p>
-                  {expiresAt && (
-                    <p className={`text-[10px] font-bold ${isExpired ? "text-red-500" : "text-green-600"}`}>
-                      Current Expiry: {expiresAt.toLocaleString()} {isExpired && "(EXPIRED)"}
+              <CardContent className="p-5 space-y-4">
+                <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-white/80 dark:bg-zinc-900/80 border border-amber-200 dark:border-amber-900">
+                  <p className="text-xs font-bold text-amber-800 dark:text-amber-400">Current Listing Status</p>
+                  {expiresAt ? (
+                    <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Expires: <span className="font-bold">{expiresAt.toLocaleString()}</span>
                     </p>
+                  ) : (
+                    <p className="text-sm font-medium text-zinc-500 italic">No timer currently active</p>
                   )}
                 </div>
 
-                <div className="grid grid-cols-5 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-bold block text-center">MONTH</Label>
-                    <Input type="number" min="0" value={timer.months} onChange={(e) => updateTimerField("months", e.target.value)} className="h-9 text-center" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-bold block text-center">DAY</Label>
-                    <Input type="number" min="0" value={timer.days} onChange={(e) => updateTimerField("days", e.target.value)} className="h-9 text-center" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-bold block text-center">HR</Label>
-                    <Input type="number" min="0" value={timer.hours} onChange={(e) => updateTimerField("hours", e.target.value)} className="h-9 text-center" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-bold block text-center">MIN</Label>
-                    <Input type="number" min="0" value={timer.minutes} onChange={(e) => updateTimerField("minutes", e.target.value)} className="h-9 text-center" />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[10px] font-bold block text-center">SEC</Label>
-                    <Input type="number" min="0" value={timer.seconds} onChange={(e) => updateTimerField("seconds", e.target.value)} className="h-9 text-center" />
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black text-amber-800 dark:text-amber-500 uppercase tracking-widest text-center">Set Duration (applied on save)</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    <TimerInputUnit label="MONTH" value={timer.months} onChange={(v) => updateTimerField("months", v)} />
+                    <TimerInputUnit label="DAY" value={timer.days} onChange={(v) => updateTimerField("days", v)} />
+                    <TimerInputUnit label="HR" value={timer.hours} onChange={(v) => updateTimerField("hours", v)} />
+                    <TimerInputUnit label="MIN" value={timer.minutes} onChange={(v) => updateTimerField("minutes", v)} />
+                    <TimerInputUnit label="SEC" value={timer.seconds} onChange={(v) => updateTimerField("seconds", v)} />
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 pt-2 border-t">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
                   <Checkbox 
                     id="reset-timer" 
                     checked={resetTimer} 
                     onCheckedChange={(v) => setResetTimer(v as boolean)} 
                   />
-                  <Label htmlFor="reset-timer" className="text-xs font-bold cursor-pointer text-blue-700">
-                    Apply changes & restart timer from now
-                  </Label>
+                  <div className="flex flex-col">
+                    <Label htmlFor="reset-timer" className="text-xs font-bold cursor-pointer text-blue-800 dark:text-blue-300">
+                      Restart Timer from Current Moment
+                    </Label>
+                    <p className="text-[9px] text-blue-600/80 dark:text-blue-400/80">Check this to apply the new duration starting from right now.</p>
+                  </div>
                 </div>
-                {resetTimer && (
-                  <p className="text-[9px] text-blue-600 font-medium italic">
-                    * Saving will set the new expiry to now + the duration above.
-                  </p>
-                )}
               </CardContent>
             </Card>
           )}
