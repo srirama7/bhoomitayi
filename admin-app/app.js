@@ -8,46 +8,93 @@ firebase.initializeApp({
   appId: "1:128735139971:web:62d74234071e656e3023b6"
 });
 const db = firebase.firestore();
-let allListings = [], allProfiles = {}, allReports = [], currentFilter = "all", countdownIntervals = {};
+const auth = firebase.auth();
+let allListings = [], allProfiles = {}, currentFilter = "all", countdownIntervals = {};
 
-// AUTH
-document.getElementById("loginBtn").onclick = () => {
+// AUTH - Sign in with Firebase Auth so Firestore rules work
+document.getElementById("loginBtn").onclick = async () => {
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value.trim();
-  if (u === "admin" && p === "admin") { sessionStorage.setItem("adminAuth","true"); showDashboard(); }
-  else { const e = document.getElementById("loginError"); e.style.display="block"; setTimeout(()=>e.style.display="none",3000); }
+  if (u === "admin" && p === "admin") {
+    try {
+      // Sign in with Firebase Auth using the admin account
+      await auth.signInWithEmailAndPassword("admin@admin.com", "admin123");
+      sessionStorage.setItem("adminAuth", "true");
+      showDashboard();
+    } catch (e) {
+      console.error("Firebase Auth error:", e);
+      const err = document.getElementById("loginError");
+      err.textContent = "Auth failed: " + e.message;
+      err.style.display = "block";
+      setTimeout(() => err.style.display = "none", 5000);
+    }
+  } else {
+    const e = document.getElementById("loginError");
+    e.textContent = "Invalid credentials";
+    e.style.display = "block";
+    setTimeout(() => e.style.display = "none", 3000);
+  }
 };
-document.getElementById("password").addEventListener("keydown",e=>{if(e.key==="Enter")document.getElementById("loginBtn").click()});
-function logout(){sessionStorage.removeItem("adminAuth");location.reload()}
-function showDashboard(){document.getElementById("loginPage").classList.add("hidden");document.getElementById("dashboard").classList.remove("hidden");refreshData()}
-if(sessionStorage.getItem("adminAuth")==="true")showDashboard();
+document.getElementById("password").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("loginBtn").click() });
+
+function logout() {
+  auth.signOut();
+  sessionStorage.removeItem("adminAuth");
+  location.reload();
+}
+
+function showDashboard() {
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("dashboard").classList.remove("hidden");
+  refreshData();
+}
+
+// Auto-login if session exists and Firebase auth state persists
+auth.onAuthStateChanged(user => {
+  if (user && sessionStorage.getItem("adminAuth") === "true") {
+    showDashboard();
+  }
+});
 
 // TABS
-const tabIds=["tab-overview","tab-listings","tab-analytics","tab-revenue"];
-document.querySelectorAll(".tab").forEach(t=>{t.addEventListener("click",function(){
-  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));this.classList.add("active");
-  tabIds.forEach(id=>document.getElementById(id).classList.add("hidden"));
-  document.getElementById("tab-"+this.dataset.tab).classList.remove("hidden");
-})});
+const tabIds = ["tab-overview", "tab-listings", "tab-analytics", "tab-revenue"];
+document.querySelectorAll(".tab").forEach(t => {
+  t.addEventListener("click", function () {
+    document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
+    this.classList.add("active");
+    tabIds.forEach(id => document.getElementById(id).classList.add("hidden"));
+    document.getElementById("tab-" + this.dataset.tab).classList.remove("hidden");
+  });
+});
 
 // DATA
-async function refreshData(){
-  try{
-    const [listSnap,profSnap,repSnap]=await Promise.all([
-      db.collection("listings").orderBy("created_at","desc").get(),
-      db.collection("profiles").get(),
-      db.collection("reports").get()
+async function refreshData() {
+  // Wait for auth to be ready
+  if (!auth.currentUser) {
+    console.log("Waiting for auth...");
+    await new Promise(resolve => {
+      const unsub = auth.onAuthStateChanged(user => { unsub(); resolve(user); });
+    });
+  }
+  try {
+    const [listSnap, profSnap] = await Promise.all([
+      db.collection("listings").orderBy("created_at", "desc").get(),
+      db.collection("profiles").get()
     ]);
-    allProfiles={};profSnap.forEach(d=>allProfiles[d.id]=d.data());
-    allReports=[];repSnap.forEach(d=>allReports.push({id:d.id,...d.data()}));
-    allListings=[];
-    for(const d of listSnap.docs){
-      const data={id:d.id,...d.data()};
-      if(data.status==="active"&&data.expires_at&&new Date(data.expires_at)<new Date()){
-        await db.collection("listings").doc(d.id).update({status:"timed_out"});data.status="timed_out";
+    allProfiles = {};
+    profSnap.forEach(d => allProfiles[d.id] = d.data());
+    allListings = [];
+    for (const d of listSnap.docs) {
+      const data = { id: d.id, ...d.data() };
+      if (data.status === "active" && data.expires_at && new Date(data.expires_at) < new Date()) {
+        try {
+          await db.collection("listings").doc(d.id).update({ status: "timed_out" });
+          data.status = "timed_out";
+        } catch (e) { console.warn("Could not auto-expire:", d.id, e); }
       }
       allListings.push(data);
     }
+    console.log("Loaded", allListings.length, "listings,", Object.keys(allProfiles).length, "profiles");
     updateAll();
   }catch(e){console.error("Error:",e)}
 }
@@ -279,7 +326,7 @@ function renderAnalytics(){
   document.getElementById("anaListings").textContent=allListings.length;
   const prices=allListings.filter(l=>l.price).map(l=>l.price);
   document.getElementById("anaAvgPrice").textContent=prices.length?formatPrice(prices.reduce((a,b)=>a+b,0)/prices.length):"₹0";
-  document.getElementById("anaReports").textContent=allReports.length;
+  document.getElementById("anaReports").textContent = 0;
 
   // Category chart
   const cats=["House","Land","PG","Commercial","Vehicle","Commodity"];
