@@ -11,7 +11,6 @@ import {
   Eye,
   Clock,
   RotateCcw,
-  Edit,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +41,6 @@ import {
   deleteDoc,
   query,
   orderBy,
-  Timestamp,
 } from "firebase/firestore";
 import { formatPrice } from "@/lib/constants";
 import { toast } from "sonner";
@@ -71,10 +69,11 @@ export default function AdminListingsPage() {
 
   // Timing state
   const [timingDialogOpen, setTimingDialogOpen] = useState(false);
+  const [years, setYears] = useState("0");
+  const [months, setMonths] = useState("0");
   const [days, setDays] = useState("0");
   const [hours, setHours] = useState("0");
   const [minutes, setMinutes] = useState("0");
-  const [seconds, setSeconds] = useState("0");
 
   const fetchListings = useCallback(async () => {
     setLoading(true);
@@ -156,6 +155,26 @@ export default function AdminListingsPage() {
 
   const openTimingDialog = (listing: ListingWithOwner) => {
     setSelectedListing(listing);
+    // Pre-fill with remaining time if listing has an active timer
+    if (listing.expires_at) {
+      const diff = new Date(listing.expires_at).getTime() - Date.now();
+      if (diff > 0) {
+        const totalMins = Math.floor(diff / 60000);
+        const totalHrs = Math.floor(totalMins / 60);
+        const totalDays = Math.floor(totalHrs / 24);
+        const totalMonths = Math.floor(totalDays / 30);
+        const totalYears = Math.floor(totalMonths / 12);
+        setYears(String(totalYears));
+        setMonths(String(totalMonths % 12));
+        setDays(String(totalDays % 30));
+        setHours(String(totalHrs % 24));
+        setMinutes(String(totalMins % 60));
+      } else {
+        setYears("0"); setMonths("0"); setDays("0"); setHours("0"); setMinutes("0");
+      }
+    } else {
+      setYears("0"); setMonths("0"); setDays("0"); setHours("0"); setMinutes("0");
+    }
     setTimingDialogOpen(true);
   };
 
@@ -201,11 +220,12 @@ export default function AdminListingsPage() {
   const handleSetTiming = async () => {
     if (!selectedListing) return;
 
-    const totalMs = 
-      parseInt(days || "0") * 86400000 +
-      parseInt(hours || "0") * 3600000 +
-      parseInt(minutes || "0") * 60000 +
-      parseInt(seconds || "0") * 1000;
+    const totalMs =
+      parseInt(years || "0") * 365 * 24 * 60 * 60 * 1000 +
+      parseInt(months || "0") * 30 * 24 * 60 * 60 * 1000 +
+      parseInt(days || "0") * 24 * 60 * 60 * 1000 +
+      parseInt(hours || "0") * 60 * 60 * 1000 +
+      parseInt(minutes || "0") * 60 * 1000;
 
     if (totalMs <= 0) {
       toast.error("Please set a valid duration");
@@ -221,7 +241,7 @@ export default function AdminListingsPage() {
         status: "active",
         updated_at: new Date().toISOString(),
       });
-      toast.success("Timing set successfully");
+      toast.success("Timing set successfully — listing is now active");
       await fetchListings();
     } catch (error) {
       console.error("Error setting timing:", error);
@@ -230,10 +250,31 @@ export default function AdminListingsPage() {
       setActionLoading(null);
       setTimingDialogOpen(false);
       setSelectedListing(null);
+      setYears("0");
+      setMonths("0");
       setDays("0");
       setHours("0");
       setMinutes("0");
-      setSeconds("0");
+    }
+  };
+
+  const handleClearTiming = async () => {
+    if (!selectedListing) return;
+    setActionLoading(selectedListing.id);
+    try {
+      await updateDoc(doc(db, "listings", selectedListing.id), {
+        expires_at: null,
+        updated_at: new Date().toISOString(),
+      });
+      toast.success("Timer removed — listing has no expiry");
+      await fetchListings();
+    } catch (error) {
+      console.error("Error clearing timing:", error);
+      toast.error("Failed to clear timing");
+    } finally {
+      setActionLoading(null);
+      setTimingDialogOpen(false);
+      setSelectedListing(null);
     }
   };
 
@@ -365,6 +406,7 @@ export default function AdminListingsPage() {
                             <th className="px-4 py-3 font-medium">Title</th>
                             <th className="px-4 py-3 font-medium">Category</th>
                             <th className="px-4 py-3 font-medium">Status</th>
+                            <th className="px-4 py-3 font-medium">Timer</th>
                             <th className="px-4 py-3 font-medium">Price</th>
                             <th className="px-4 py-3 font-medium">Owner</th>
                             <th className="px-4 py-3 font-medium">Date</th>
@@ -384,6 +426,23 @@ export default function AdminListingsPage() {
                               </td>
                               <td className="px-4 py-3">
                                 {getStatusBadge(listing.status)}
+                              </td>
+                              <td className="px-4 py-3 text-xs text-muted-foreground">
+                                {listing.expires_at ? (
+                                  new Date(listing.expires_at) > new Date() ? (
+                                    <Badge className="bg-blue-500/10 text-blue-600 border-blue-500/20 text-[10px]">
+                                      <Clock className="size-3 mr-1" />
+                                      {new Date(listing.expires_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}{" "}
+                                      {new Date(listing.expires_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                                    </Badge>
+                                  ) : (
+                                    <Badge className="bg-red-500/10 text-red-600 border-red-500/20 text-[10px]">
+                                      Expired
+                                    </Badge>
+                                  )
+                                ) : (
+                                  <span className="italic">No Timer</span>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-sm">
                                 {formatPrice(listing.price)}
@@ -412,18 +471,16 @@ export default function AdminListingsPage() {
                                   >
                                     <Eye className="size-3.5" />
                                   </Button>
-                                  {listing.status === "active" && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-xs"
-                                      title="Set Timings"
-                                      className="text-blue-600 hover:text-blue-700"
-                                      disabled={actionLoading === listing.id}
-                                      onClick={() => openTimingDialog(listing)}
-                                    >
-                                      <Clock className="size-3.5" />
-                                    </Button>
-                                  )}
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    title="Set Timer"
+                                    className="text-blue-600 hover:text-blue-700"
+                                    disabled={actionLoading === listing.id}
+                                    onClick={() => openTimingDialog(listing)}
+                                  >
+                                    <Clock className="size-3.5" />
+                                  </Button>
                                   {(listing.status === "timed_out" || listing.status === "rejected") && (
                                     <Button
                                       variant="ghost"
@@ -533,26 +590,54 @@ export default function AdminListingsPage() {
 
       {/* Timing Dialog */}
       <Dialog open={timingDialogOpen} onOpenChange={setTimingDialogOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Set Listing Expiry</DialogTitle>
+            <DialogTitle>Set Listing Timer</DialogTitle>
             <DialogDescription>
-              Set how long this listing should remain active. After this time, it will be automatically hidden.
+              Set how long &quot;{selectedListing?.title}&quot; should remain active. Format: Years / Months / Days / Hours / Minutes. Setting a timer will also activate the listing.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid grid-cols-4 gap-4 py-4">
+          {selectedListing?.expires_at && new Date(selectedListing.expires_at) > new Date() && (
+            <div className="rounded-lg bg-blue-500/10 border border-blue-500/20 px-3 py-2 text-xs text-blue-600">
+              <strong>Current timer expires:</strong>{" "}
+              {new Date(selectedListing.expires_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}
+            </div>
+          )}
+          <div className="grid grid-cols-5 gap-3 py-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="days">Days</Label>
+              <Label htmlFor="years" className="text-xs font-semibold">Years</Label>
+              <Input
+                id="years"
+                type="number"
+                min="0"
+                value={years}
+                onChange={(e) => setYears(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="months" className="text-xs font-semibold">Months</Label>
+              <Input
+                id="months"
+                type="number"
+                min="0"
+                max="11"
+                value={months}
+                onChange={(e) => setMonths(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="days" className="text-xs font-semibold">Days</Label>
               <Input
                 id="days"
                 type="number"
                 min="0"
+                max="30"
                 value={days}
                 onChange={(e) => setDays(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="hours">Hours</Label>
+              <Label htmlFor="hours" className="text-xs font-semibold">Hours</Label>
               <Input
                 id="hours"
                 type="number"
@@ -563,7 +648,7 @@ export default function AdminListingsPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="mins">Mins</Label>
+              <Label htmlFor="mins" className="text-xs font-semibold">Mins</Label>
               <Input
                 id="mins"
                 type="number"
@@ -573,36 +658,37 @@ export default function AdminListingsPage() {
                 onChange={(e) => setMinutes(e.target.value)}
               />
             </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="secs">Secs</Label>
-              <Input
-                id="secs"
-                type="number"
-                min="0"
-                max="59"
-                value={seconds}
-                onChange={(e) => setSeconds(e.target.value)}
-              />
-            </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex gap-2 sm:justify-between">
             <Button
-              variant="outline"
-              onClick={() => setTimingDialogOpen(false)}
-              disabled={actionLoading !== null}
+              variant="destructive"
+              size="sm"
+              onClick={handleClearTiming}
+              disabled={actionLoading !== null || !selectedListing?.expires_at}
+              className="mr-auto"
             >
-              Cancel
+              Clear Timer
             </Button>
-            <Button onClick={handleSetTiming} disabled={actionLoading !== null}>
-              {actionLoading ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                "Save Timing"
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setTimingDialogOpen(false)}
+                disabled={actionLoading !== null}
+              >
+                Cancel
+              </Button>
+              <Button onClick={handleSetTiming} disabled={actionLoading !== null}>
+                {actionLoading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  "Save Timer"
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
 }
+
