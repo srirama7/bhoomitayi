@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BhoomiTayi Admin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- LOGIN -->
+  <div id="loginPage" class="login-page">
+    <div class="login-card">
+      <div class="login-logo">B</div>
+      <div class="login-title">BhoomiTayi Admin</div>
+      <div class="login-sub">Payment Verification Panel</div>
+      <label class="login-label">Username</label>
+      <input id="username" class="login-input" placeholder="Enter username">
+      <label class="login-label">Password</label>
+      <input id="password" class="login-input" type="password" placeholder="Enter password">
+      <button id="loginBtn" class="login-btn">Sign In</button>
+      <div id="loginError" class="login-error">Invalid credentials</div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="hidden">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-logo">B</div>
+        <div><div class="header-title">BhoomiTayi Admin</div><div class="header-sub">Full Control Dashboard</div></div>
+      </div>
+      <div class="header-right">
+        <button class="btn" onclick="refreshData()">Refresh</button>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="listings">Listings</button>
+      <button class="tab" data-tab="analytics">Analytics</button>
+      <button class="tab" data-tab="revenue">Revenue</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="tab-overview" class="content">
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-blue"></span> All Listings</div><div class="stat-value" id="statAll">0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-orange"></span> Awaiting Approval</div><div class="stat-value" id="statPending">0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-green"></span> Live</div><div class="stat-value" id="statActive">0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-red"></span> Rejected</div><div class="stat-value" id="statRejected">0</div></div>
+      </div>
+      <div class="revenue-cards">
+        <div class="revenue-card rev-green"><div class="rev-label">Total Listing Value</div><div class="rev-value" id="revTotal">₹0</div><div class="rev-sub" id="revTotalSub">Across 0 listings</div></div>
+        <div class="revenue-card rev-yellow"><div class="rev-label">Active Timers</div><div class="rev-value" id="revTimers">0</div><div class="rev-sub">Listings with active timers</div></div>
+        <div class="revenue-card rev-blue"><div class="rev-label">Timed Out</div><div class="rev-value" id="revTimedOut">0</div><div class="rev-sub">Expired listings</div></div>
+      </div>
+      <div class="chart-card">
+        <h3 class="chart-title">Listings by Category</h3>
+        <canvas id="overviewChart" height="280"></canvas>
+      </div>
+    </div>
+
+    <!-- LISTINGS -->
+    <div id="tab-listings" class="content hidden">
+      <div class="stats-row" id="listingStats"></div>
+      <input class="search-bar" id="searchInput" placeholder="Search by title, name, phone, category, address...">
+      <div id="listingsContainer"></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="tab-analytics" class="content hidden">
+      <h2 class="section-title">Analytics</h2>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-blue"></span> Total Users</div><div class="stat-value" id="anaUsers">0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-green"></span> Total Listings</div><div class="stat-value" id="anaListings">0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-orange"></span> Avg Price</div><div class="stat-value" id="anaAvgPrice">₹0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-red"></span> Reports</div><div class="stat-value" id="anaReports">0</div></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card"><h3 class="chart-title">Listings by Category</h3><canvas id="catChart" height="300"></canvas></div>
+        <div class="chart-card"><h3 class="chart-title">Listings by Status</h3><canvas id="statusChart" height="300"></canvas></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card"><h3 class="chart-title">Transaction Type</h3><canvas id="txnChart" height="300"></canvas></div>
+        <div class="chart-card"><h3 class="chart-title">Listings Over Time (Last 30 Days)</h3><canvas id="timeChart" height="300"></canvas></div>
+      </div>
+    </div>
+
+    <!-- REVENUE -->
+    <div id="tab-revenue" class="content hidden">
+      <h2 class="section-title">Revenue Overview</h2>
+      <div class="revenue-cards">
+        <div class="revenue-card rev-green"><div class="rev-label">Total Listing Value</div><div class="rev-value" id="rvTotal">₹0</div><div class="rev-sub" id="rvTotalSub"></div></div>
+        <div class="revenue-card rev-yellow"><div class="rev-label">Average Listing Price</div><div class="rev-value" id="rvAvg">₹0</div><div class="rev-sub">Across active listings</div></div>
+        <div class="revenue-card rev-blue"><div class="rev-label">Highest Listing</div><div class="rev-value" id="rvMax">₹0</div><div class="rev-sub" id="rvMaxSub"></div></div>
+      </div>
+      <div class="chart-card" style="margin-top:20px"><h3 class="chart-title">Value by Category</h3><canvas id="revCatChart" height="300"></canvas></div>
+      <div class="chart-card" style="margin-top:20px"><h3 class="chart-title">Top 10 Most Valuable Listings</h3><div id="topListings"></div></div>
+    </div>
+  </div>
+
+  <!-- CONFIRM MODAL -->
+  <div id="confirmModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="modalTitle"></h3>
+      <p id="modalDesc"></p>
+      <div class="modal-btns">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="modalConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore-compat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
