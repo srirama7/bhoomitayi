@@ -64,6 +64,13 @@ document.querySelectorAll(".tab").forEach(t => {
     this.classList.add("active");
     tabIds.forEach(id => document.getElementById(id).classList.add("hidden"));
     document.getElementById("tab-" + this.dataset.tab).classList.remove("hidden");
+    
+    // Redraw charts because hidden canvases have 0 width/height
+    if (allListings.length > 0) {
+      if (this.dataset.tab === "overview") drawOverviewChart();
+      if (this.dataset.tab === "analytics") renderAnalytics();
+      if (this.dataset.tab === "revenue") renderRevenue();
+    }
   });
 });
 
@@ -274,9 +281,9 @@ function drawBarChart(canvasId,labels,values,colors){
   const canvas=document.getElementById(canvasId);if(!canvas)return;
   const ctx=canvas.getContext("2d");
   const dpr=window.devicePixelRatio||1;
-  canvas.width=canvas.offsetWidth*dpr;canvas.height=canvas.offsetHeight*dpr;
+  const W=canvas.offsetWidth||canvas.parentElement.clientWidth||400,H=canvas.offsetHeight||parseInt(canvas.getAttribute("height"))||300;
+  canvas.width=W*dpr;canvas.height=H*dpr;
   ctx.scale(dpr,dpr);
-  const W=canvas.offsetWidth,H=canvas.offsetHeight;
   ctx.clearRect(0,0,W,H);
   if(!values.length||Math.max(...values)===0){ctx.fillStyle="#94a3b8";ctx.font="14px Inter,sans-serif";ctx.textAlign="center";ctx.fillText("No data",W/2,H/2);return}
   const padL=50,padR=20,padT=20,padB=60;
