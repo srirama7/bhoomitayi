@@ -47,7 +47,7 @@ import { toast } from "sonner";
 import type { Listing, Profile } from "@/lib/types/database";
 
 type ListingWithOwner = Listing & {
-  profiles: Pick<Profile, "full_name"> | null;
+  profiles: Pick<Profile, "full_name" | "email"> | null;
 };
 
 type StatusFilter = "all" | "pending" | "active" | "rejected" | "timed_out";
@@ -88,7 +88,7 @@ export default function AdminListingsPage() {
       const listingsData: ListingWithOwner[] = await Promise.all(
         listingsSnap.docs.map(async (listingDoc) => {
           const data = listingDoc.data();
-          let ownerProfile: Pick<Profile, "full_name"> | null = null;
+          let ownerProfile: Pick<Profile, "full_name" | "email"> | null = null;
 
           if (data.user_id) {
             try {
@@ -98,6 +98,7 @@ export default function AdminListingsPage() {
               if (profileSnap.exists()) {
                 ownerProfile = {
                   full_name: profileSnap.data().full_name,
+                  email: profileSnap.data().email,
                 };
               }
             } catch {
@@ -687,7 +688,7 @@ export default function AdminListingsPage() {
                 {actionLoading ? (
                   <Loader2 className="size-4 animate-spin" />
                 ) : (
-                  "Save Timer"
+                  "Set & Approve"
                 )}
               </Button>
             </div>
@@ -699,7 +700,8 @@ export default function AdminListingsPage() {
 }
 
 async function sendListingApprovalEmail(listing: ListingWithOwner) {
-  if (!listing.owner_email) {
+  const ownerEmail = listing.owner_email || listing.profiles?.email;
+  if (!ownerEmail) {
     console.warn("Approval email skipped because owner_email is missing.", {
       listingId: listing.id,
     });
@@ -714,7 +716,7 @@ async function sendListingApprovalEmail(listing: ListingWithOwner) {
     body: JSON.stringify({
       listingId: listing.id,
       listingTitle: listing.title,
-      ownerEmail: listing.owner_email,
+      ownerEmail,
     }),
   });
 

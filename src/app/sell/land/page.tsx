@@ -239,6 +239,7 @@ export default function SellLandPage() {
         address: form.address.trim(),
         pincode: form.pincode.trim(),
         images: imageUrls,
+        owner_email: user.email,
         details,
         status: "active",
         created_at: new Date().toISOString(),

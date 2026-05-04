@@ -9,6 +9,18 @@ type ApprovalEmailRequest = {
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const defaultEmailFrom = "softspring777@gmail.com";
+const defaultAllowedOrigin = "https://admin-app-jade-one.vercel.app";
+const allowedOrigins = new Set([
+  defaultAllowedOrigin,
+  "https://propnest-admin-official.vercel.app",
+]);
+
+export async function OPTIONS(request: Request) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: getCorsHeaders(request),
+  });
+}
 
 export async function POST(request: Request) {
   const smtpUser = process.env.SMTP_USER || defaultEmailFrom;
@@ -16,7 +28,8 @@ export async function POST(request: Request) {
   const emailFrom = process.env.LISTING_APPROVAL_EMAIL_FROM || smtpUser;
 
   if (!smtpUser || !smtpAppPassword) {
-    return NextResponse.json(
+    return json(
+      request,
       {
         error:
           "Email is not configured. Set SMTP_USER and SMTP_APP_PASSWORD in your environment.",
@@ -29,14 +42,15 @@ export async function POST(request: Request) {
   try {
     body = (await request.json()) as ApprovalEmailRequest;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+    return json(request, { error: "Invalid JSON body." }, { status: 400 });
   }
 
   const listingTitle = body.listingTitle?.trim();
   const ownerEmail = body.ownerEmail?.trim();
 
   if (!listingTitle || !ownerEmail || !emailPattern.test(ownerEmail)) {
-    return NextResponse.json(
+    return json(
+      request,
       { error: "A valid listingTitle and ownerEmail are required." },
       { status: 400 }
     );
@@ -79,7 +93,8 @@ export async function POST(request: Request) {
       html,
     });
   } catch (error) {
-    return NextResponse.json(
+    return json(
+      request,
       {
         error: "Failed to send approval email.",
         details: error instanceof Error ? error.message : "Unknown SMTP error",
@@ -88,7 +103,26 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ ok: true });
+  return json(request, { ok: true });
+}
+
+function json(request: Request, body: unknown, init?: ResponseInit) {
+  return NextResponse.json(body, {
+    ...init,
+    headers: getCorsHeaders(request),
+  });
+}
+
+function getCorsHeaders(request: Request) {
+  const origin = request.headers.get("origin") || "";
+  const allowOrigin = allowedOrigins.has(origin) ? origin : defaultAllowedOrigin;
+
+  return {
+    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    Vary: "Origin",
+  };
 }
 
 function escapeHtml(value: string) {

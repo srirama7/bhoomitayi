@@ -9,7 +9,7 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 const auth = firebase.auth();
-const APPROVAL_EMAIL_API_URL = "/api/listings/approval-email";
+const APPROVAL_EMAIL_API_URL = "https://propnest-admin-official.vercel.app/api/listings/approval-email";
 let allListings = [], allProfiles = {}, currentFilter = "all", countdownIntervals = {};
 
 // AUTH - Sign in with Firebase Auth so Firestore rules work
@@ -199,7 +199,7 @@ function buildCard(l){
       <div class="timer-field"><label>Days</label><input type="number" min="0" max="30" id="td-${l.id}" value="0"></div>
       <div class="timer-field"><label>Hours</label><input type="number" min="0" max="23" id="th-${l.id}" value="0"></div>
       <div class="timer-field"><label>Mins</label><input type="number" min="0" max="59" id="tmin-${l.id}" value="0"></div>
-      <button class="btn btn-primary" onclick="setTimer('${l.id}')" style="margin-top:16px">Save Timer</button>
+      <button class="btn btn-primary" onclick="setTimer('${l.id}')" style="margin-top:16px">Set & Approve</button>
       <button class="btn btn-danger" onclick="clearTimer('${l.id}')" style="margin-top:16px" ${l.expires_at?'':'disabled'}>Clear Timer</button>
     </div>
     ${l.expires_at?`<div class="timer-current">Current expiry: ${new Date(l.expires_at).toLocaleString("en-IN")}</div>`:''}
@@ -282,7 +282,9 @@ async function doAction(id,action){
 function closeModal(){document.getElementById("confirmModal").classList.add("hidden")}
 
 async function sendListingApprovalEmail(listing){
-  if(!listing.owner_email){
+  const pr=allProfiles[listing.user_id]||{};
+  const ownerEmail=listing.owner_email||pr.email;
+  if(!ownerEmail){
     console.warn("Approval email skipped because owner_email is missing.",{listingId:listing.id});
     return;
   }
@@ -290,11 +292,15 @@ async function sendListingApprovalEmail(listing){
     const res=await fetch(APPROVAL_EMAIL_API_URL,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({listingId:listing.id,listingTitle:listing.title,ownerEmail:listing.owner_email})
+      body:JSON.stringify({listingId:listing.id,listingTitle:listing.title,ownerEmail})
     });
-    if(!res.ok)console.warn("Approval email failed:",await res.text());
+    if(!res.ok){
+      console.warn("Approval email failed:",await res.text());
+      alert("Listing was updated, but the approval email was not sent.");
+    }
   }catch(e){
     console.warn("Approval email failed:",e);
+    alert("Listing was updated, but the approval email was not sent.");
   }
 }
 
