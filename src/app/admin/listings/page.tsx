@@ -200,6 +200,9 @@ export default function AdminListingsPage() {
           status: newStatus,
           updated_at: new Date().toISOString(),
         });
+        if (dialogAction === "approve") {
+          await sendListingApprovalEmail(selectedListing);
+        }
         toast.success(
           `Listing ${dialogAction === "approve" ? "approved" : "rejected"} successfully`
         );
@@ -241,6 +244,9 @@ export default function AdminListingsPage() {
         status: "active",
         updated_at: new Date().toISOString(),
       });
+      if (selectedListing.status !== "active") {
+        await sendListingApprovalEmail(selectedListing);
+      }
       toast.success("Timing set successfully — listing is now active");
       await fetchListings();
     } catch (error) {
@@ -690,5 +696,32 @@ export default function AdminListingsPage() {
       </Dialog>
     </div>
   );
+}
+
+async function sendListingApprovalEmail(listing: ListingWithOwner) {
+  if (!listing.owner_email) {
+    console.warn("Approval email skipped because owner_email is missing.", {
+      listingId: listing.id,
+    });
+    return;
+  }
+
+  const response = await fetch("/api/listings/approval-email", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      listingId: listing.id,
+      listingTitle: listing.title,
+      ownerEmail: listing.owner_email,
+    }),
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    console.error("Approval email failed:", data);
+    toast.warning("Listing updated, but approval email was not sent.");
+  }
 }
 

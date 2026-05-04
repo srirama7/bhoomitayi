@@ -29,6 +29,7 @@ export interface Listing {
   latitude: number | null;
   longitude: number | null;
   images: string[];
+  owner_email?: string | null;
   status: "pending" | "active" | "rejected" | "sold" | "archived" | "timed_out";
   details: Json;
   expires_at?: string;

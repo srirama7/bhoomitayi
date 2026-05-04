@@ -9,6 +9,7 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 const auth = firebase.auth();
+const APPROVAL_EMAIL_API_URL = "/api/listings/approval-email";
 let allListings = [], allProfiles = {}, currentFilter = "all", countdownIntervals = {};
 
 // AUTH - Sign in with Firebase Auth so Firestore rules work
@@ -242,7 +243,9 @@ async function setTimer(id){
   const y=gi("ty-"+id),mo=gi("tm-"+id),d=gi("td-"+id),h=gi("th-"+id),mi=gi("tmin-"+id);
   const ms=y*365*864e5+mo*30*864e5+d*864e5+h*36e5+mi*6e4;
   if(ms<=0)return alert("Please set a valid duration");
+  const listing=allListings.find(x=>x.id===id);
   try{await db.collection("listings").doc(id).update({expires_at:new Date(Date.now()+ms).toISOString(),status:"active",updated_at:new Date().toISOString()});
+    if(listing&&listing.status!=="active")await sendListingApprovalEmail(listing);
     alert("Timer set! Listing is now active.");refreshData()}catch(e){alert("Error: "+e.message)}
 }
 async function clearTimer(id){
@@ -270,10 +273,30 @@ async function doAction(id,action){
   document.getElementById("modalConfirm").onclick=async()=>{closeModal();
     try{if(action==="delete")await db.collection("listings").doc(id).delete();
       else if(action==="relaunch")await db.collection("listings").doc(id).update({status:"active",expires_at:null,updated_at:new Date().toISOString()});
-      else await db.collection("listings").doc(id).update({status:action==="approve"?"active":"rejected",updated_at:new Date().toISOString()});
+      else {
+        await db.collection("listings").doc(id).update({status:action==="approve"?"active":"rejected",updated_at:new Date().toISOString()});
+        if(action==="approve")await sendListingApprovalEmail(l);
+      }
       refreshData()}catch(e){alert("Error: "+e.message)}};
 }
 function closeModal(){document.getElementById("confirmModal").classList.add("hidden")}
+
+async function sendListingApprovalEmail(listing){
+  if(!listing.owner_email){
+    console.warn("Approval email skipped because owner_email is missing.",{listingId:listing.id});
+    return;
+  }
+  try{
+    const res=await fetch(APPROVAL_EMAIL_API_URL,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({listingId:listing.id,listingTitle:listing.title,ownerEmail:listing.owner_email})
+    });
+    if(!res.ok)console.warn("Approval email failed:",await res.text());
+  }catch(e){
+    console.warn("Approval email failed:",e);
+  }
+}
 
 // ─── BAR CHART DRAWING ───
 const COLORS=["#ec4899","#8b5cf6","#22c55e","#ef4444","#3b82f6","#f59e0b","#06b6d4","#f97316"];
