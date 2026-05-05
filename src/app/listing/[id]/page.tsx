@@ -319,18 +319,30 @@ export default function ListingDetailPage() {
 
             {profile && (
               <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80">
-                <CardContent className="py-4">
-                  <p className="font-semibold text-foreground">{profile.full_name}</p>
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-lg text-foreground mb-1">Posted by</h3>
+                    <div className="flex items-center gap-3 mt-3">
+                      {profile.avatar_url ? (
+                        <img src={profile.avatar_url} alt={profile.full_name} className="w-12 h-12 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xl">
+                          {profile.full_name.charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-foreground">{profile.full_name}</p>
+                        {profile.phone && (
+                          <a href={`tel:${profile.phone}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-0.5 block">{profile.phone}</a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
 
-            {canReceiveInquiries ? (
-              <InquiryForm
-                listingId={listing.id}
-                ownerName={profile?.full_name || "Owner"}
-              />
-            ) : (
+            {!canReceiveInquiries && (
               <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80">
                 <CardContent className="py-4">
                   <p className="font-medium text-foreground">Contact unavailable</p>

@@ -55,14 +55,6 @@ export interface Favorite {
   created_at: string;
 }
 
-export interface Inquiry {
-  id: string;
-  listing_id: string;
-  sender_id: string;
-  message: string;
-  phone: string | null;
-  created_at: string;
-}
 
 export interface Report {
   id: string;
