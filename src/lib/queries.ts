@@ -91,7 +91,7 @@ export async function getListingById(id: string) {
     }
 
     const listing = { id: docSnap.id, ...docSnap.data() } as Listing & {
-      profiles?: { full_name: string; phone: string | null; avatar_url: string | null };
+      profiles?: { full_name: string; phone: string | null; avatar_url: string | null; email?: string | null };
     };
 
     if (listing.user_id) {
@@ -102,6 +102,7 @@ export async function getListingById(id: string) {
           full_name: string;
           phone: string | null;
           avatar_url: string | null;
+          email?: string | null;
         };
       }
     }
