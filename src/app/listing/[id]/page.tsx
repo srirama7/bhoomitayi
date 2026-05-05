@@ -6,7 +6,6 @@ import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { getListingById, getSimilarListings } from "@/lib/queries";
 import { ImageGallery } from "@/components/listings/image-gallery";
-import { InquiryForm } from "@/components/listings/inquiry-form";
 import { FavoriteButton } from "@/components/listings/favorite-button";
 import { ListingCard } from "@/components/listings/listing-card";
 import { Badge } from "@/components/ui/badge";
