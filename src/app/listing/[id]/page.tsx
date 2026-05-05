@@ -368,16 +368,28 @@ export default function ListingDetailPage() {
 
             {ownerProfile && (
               <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80">
-                <CardContent className="py-4">
-                  <p className="font-semibold text-foreground">{ownerProfile.full_name}</p>
+                <CardContent className="p-6 space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-lg text-foreground mb-1">Posted by</h3>
+                    <div className="flex items-center gap-3 mt-3">
+                      {ownerProfile.avatar_url ? (
+                        <img src={ownerProfile.avatar_url} alt={ownerProfile.full_name} className="w-12 h-12 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xl">
+                          {ownerProfile.full_name.charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-semibold text-foreground">{ownerProfile.full_name}</p>
+                        {ownerProfile.phone && (
+                          <a href={`tel:${ownerProfile.phone}`} className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-0.5 block">{ownerProfile.phone}</a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             )}
-
-            <InquiryForm
-              listingId={listing.id}
-              ownerName={ownerProfile?.full_name || "Owner"}
-            />
           </div>
         </div>
 

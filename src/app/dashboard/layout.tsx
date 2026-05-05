@@ -18,7 +18,6 @@ const navItems = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "My Listings", href: "/dashboard/my-listings", icon: List },
   { label: "Favorites", href: "/dashboard/favorites", icon: Heart },
-  { label: "Inquiries", href: "/dashboard/inquiries", icon: MessageSquare },
   { label: "Profile", href: "/dashboard/profile", icon: User },
 ];
 

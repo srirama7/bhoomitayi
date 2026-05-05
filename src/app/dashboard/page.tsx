@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { List, CheckCircle, Clock, MessageSquare } from "lucide-react";
+import { List, CheckCircle, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/firebase/config";
 import {
@@ -17,7 +17,6 @@ interface DashboardStats {
   totalListings: number;
   activeListings: number;
   pendingListings: number;
-  totalInquiries: number;
 }
 
 export default function DashboardPage() {
@@ -26,7 +25,6 @@ export default function DashboardPage() {
     totalListings: 0,
     activeListings: 0,
     pendingListings: 0,
-    totalInquiries: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -51,39 +49,18 @@ export default function DashboardPage() {
         let totalListings = 0;
         let activeListings = 0;
         let pendingListings = 0;
-        const listingIds: string[] = [];
 
         listingsSnap.forEach((doc) => {
           totalListings++;
           const data = doc.data();
           if (data.status === "active") activeListings++;
           if (data.status === "pending") pendingListings++;
-          listingIds.push(doc.id);
         });
-
-        // Fetch inquiry count for user's listings
-        let inquiryCount = 0;
-        if (listingIds.length > 0) {
-          // Firestore 'in' queries support max 30 items per query
-          const chunks: string[][] = [];
-          for (let i = 0; i < listingIds.length; i += 30) {
-            chunks.push(listingIds.slice(i, i + 30));
-          }
-          for (const chunk of chunks) {
-            const inquiriesQuery = query(
-              collection(db, "inquiries"),
-              where("listing_id", "in", chunk)
-            );
-            const inquiriesSnap = await getDocs(inquiriesQuery);
-            inquiryCount += inquiriesSnap.size;
-          }
-        }
 
         setStats({
           totalListings,
           activeListings,
           pendingListings,
-          totalInquiries: inquiryCount,
         });
       } catch {
         // Stats will show 0 values on error
@@ -119,22 +96,14 @@ export default function DashboardPage() {
       bg: "bg-amber-50 dark:bg-amber-950/40",
       gradient: "from-amber-500 to-orange-600",
     },
-    {
-      title: "Total Inquiries",
-      value: stats.totalInquiries,
-      icon: MessageSquare,
-      color: "text-violet-600 dark:text-violet-400",
-      bg: "bg-violet-50 dark:bg-violet-950/40",
-      gradient: "from-violet-500 to-purple-600",
-    },
   ];
 
   if (loading) {
     return (
       <div>
         <h1 className="mb-6 text-2xl font-bold text-foreground">Dashboard Overview</h1>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
             <Skeleton key={i} className="h-32 rounded-2xl" />
           ))}
         </div>
@@ -145,7 +114,7 @@ export default function DashboardPage() {
   return (
     <div>
       <h1 className="mb-6 text-2xl font-bold text-foreground">Dashboard Overview</h1>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
