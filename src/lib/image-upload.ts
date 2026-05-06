@@ -55,6 +55,22 @@ export async function uploadImages(
   return urls;
 }
 
+export async function uploadProfilePicture(
+  file: File,
+  userId: string
+): Promise<string> {
+  const compressed = await compressImage(file);
+  const fileName = `profile.webp`;
+  const filePath = `profiles/${userId}/${fileName}`;
+
+  const storageRef = ref(storage, filePath);
+  await uploadBytes(storageRef, compressed, {
+    contentType: "image/webp",
+  });
+
+  return getDownloadURL(storageRef);
+}
+
 export async function deleteImage(url: string): Promise<void> {
   try {
     const storageRef = ref(storage, url);
