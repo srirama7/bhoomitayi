@@ -8,6 +8,16 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSettingsStore, type SiteSettings } from "@/lib/settings-store";
+import { useAuthStore } from "@/lib/store";
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  limit, 
+  orderBy,
+} from "firebase/firestore";
+import { db } from "@/lib/firebase/config";
 
 const BELLA_AVATAR = "/bella-avatar.jpg";
 
@@ -18,18 +28,21 @@ interface Message {
   timestamp: Date;
 }
 
-// ─── Handwritten AI Engine with i18n ─────────────────────────────
+// ─── Handwritten AI Engine with Firebase Data Control ─────────────────────────────
 
 interface Intent {
   patterns: RegExp[];
-  responseKey: string;
+  responseKey?: string;
+  resolver?: (message: string) => Promise<string>;
   action?: () => void;
 }
 
 function createBellaEngine(
   setTheme: (t: string) => void,
   changeLanguage: (l: string) => void,
-  settings: SiteSettings
+  settings: SiteSettings,
+  user: any | null,
+  t: (key: string) => string
 ) {
   const intents: Intent[] = [
     // ── Settings: Theme ──
@@ -47,6 +60,87 @@ function createBellaEngine(
       patterns: [/system\s*(mode|theme)/i, /auto\s*(mode|theme)/i, /default\s*theme/i],
       responseKey: "bella.system_mode_done",
       action: () => setTheme("system"),
+    },
+    // ── Firebase Data: Global Stats ──
+    {
+      patterns: [/how\s*many.*listings/i, /total.*properties/i, /total.*listings/i, /website.*stats/i],
+      resolver: async () => {
+        try {
+          const q = query(collection(db, "listings"), where("status", "==", "active"));
+          const snapshot = await getDocs(q);
+          const count = snapshot.size;
+          return `There are currently ${count} active listings live on BhoomiTayi! We have properties in Houses, Land, PG, Commercial, and more.`;
+        } catch {
+          return "I'm having a little trouble accessing the database right now, but we have many amazing properties available!";
+        }
+      },
+    },
+    // ── Firebase Data: Latest Listings ──
+    {
+      patterns: [/show.*latest/i, /recent.*listings/i, /new.*properties/i, /what.*new/i],
+      resolver: async () => {
+        try {
+          const q = query(
+            collection(db, "listings"), 
+            where("status", "==", "active"),
+            orderBy("created_at", "desc"),
+            limit(3)
+          );
+          const snap = await getDocs(q);
+          if (snap.empty) return "No new listings found recently.";
+          
+          let resp = "Here are the 3 most recent listings:\n";
+          snap.forEach(doc => {
+            const data = doc.data();
+            resp += `\n🏠 ${data.title} - ₹${data.price.toLocaleString('en-IN')}\n📍 ${data.address}\n`;
+          });
+          return resp + "\nGo to the sections above to see more!";
+        } catch (e) {
+          console.error(e);
+          return "I couldn't fetch the latest listings right now. Please check our home page for the newest updates!";
+        }
+      },
+    },
+    // ── Firebase Data: User's Own Listings ──
+    {
+      patterns: [/my\s*listings/i, /how\s*many\s*do\s*i\s*have/i, /show\s*my\s*posts/i],
+      resolver: async () => {
+        if (!user) return "You need to log in to see your listings! Click the User icon in the top right.";
+        try {
+          const q = query(collection(db, "listings"), where("user_id", "==", user.uid));
+          const snap = await getDocs(q);
+          const count = snap.size;
+          if (count === 0) return "You haven't posted any listings yet. Ready to sell? Click 'Register Service'!";
+          
+          let resp = `You have ${count} listings in your account. Here are your most recent ones:\n`;
+          const recentSnap = query(collection(db, "listings"), where("user_id", "==", user.uid), orderBy("created_at", "desc"), limit(3));
+          const recentDocs = await getDocs(recentSnap);
+          recentDocs.forEach(doc => {
+            const data = doc.data();
+            resp += `\n- ${data.title} (${data.status})`;
+          });
+          return resp + "\n\nYou can manage them all in your Dashboard > My Listings.";
+        } catch {
+          return "I encountered an error fetching your data. Are you logged in correctly?";
+        }
+      },
+    },
+    // ── Firebase Data: Specific Category ──
+    {
+      patterns: [/how\s*many\s*(houses|homes)/i, /show.*houses/i],
+      resolver: async () => {
+        const q = query(collection(db, "listings"), where("category", "==", "house"), where("status", "==", "active"));
+        const snap = await getDocs(q);
+        return `We have ${snap.size} houses currently available for sale or rent. Check the 'Houses' section in the menu to see them!`;
+      }
+    },
+    {
+      patterns: [/how\s*many\s*lands/i, /show.*land/i, /plots\s*available/i],
+      resolver: async () => {
+        const q = query(collection(db, "listings"), where("category", "==", "land"), where("status", "==", "active"));
+        const snap = await getDocs(q);
+        return `There are ${snap.size} land plots/sites available right now. You can find residential and agricultural land in our 'Land' section.`;
+      }
     },
     // ── Settings: Reading Mode ──
     {
@@ -308,21 +402,25 @@ const KNOWLEDGE_RESPONSES: Record<string, string> = {
   _about_bella: "I'm Bella - your AI real estate assistant built right into BhoomiTayi! I've absorbed all of Tommy's knowledge to become even smarter.\n\nI can:\n- Give detailed step-by-step selling guides\n- Analyze market trends and pricing\n- Control ALL website settings via chat\n- Guide you through buying/selling\n- Speak in your language!",
 };
 
-function matchIntent(
+async function matchIntent(
   message: string,
   intents: Intent[],
   t: (key: string) => string
-): { response: string; action?: () => void } {
+): Promise<{ response: string; action?: () => void }> {
   const trimmed = message.trim();
 
   for (const intent of intents) {
     for (const pattern of intent.patterns) {
       if (pattern.test(trimmed)) {
+        if (intent.resolver) {
+          const resolved = await intent.resolver(trimmed);
+          return { response: resolved, action: intent.action };
+        }
         const key = intent.responseKey;
-        if (key.startsWith("_")) {
+        if (key && key.startsWith("_")) {
           return { response: KNOWLEDGE_RESPONSES[key] || t("bella.fallback"), action: intent.action };
         }
-        return { response: t(key), action: intent.action };
+        return { response: key ? t(key) : t("bella.fallback"), action: intent.action };
       }
     }
   }
@@ -351,8 +449,9 @@ export function BellaChat() {
   const inputRef = useRef<HTMLInputElement>(null);
   const { setTheme } = useTheme();
   const settings = useSettingsStore();
+  const { user } = useAuthStore();
 
-  const intents = createBellaEngine(setTheme, (l) => i18n.changeLanguage(l), settings);
+  const intents = createBellaEngine(setTheme, (l) => i18n.changeLanguage(l), settings, user, t);
 
   // Initialize position at bottom-right on mount
   useEffect(() => {
@@ -453,7 +552,7 @@ export function BellaChat() {
     };
   }, [position]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
     const userMsg: Message = {
@@ -469,22 +568,20 @@ export function BellaChat() {
     setIsTyping(true);
     setHasSentMessage(true);
 
-    setTimeout(() => {
-      const { response, action } = matchIntent(userInput, intents, t);
-      if (action) action();
+    const { response, action } = await matchIntent(userInput, intents, t);
+    if (action) action();
 
-      const botMsg: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content: response,
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, botMsg]);
-      setIsTyping(false);
-    }, 400 + Math.random() * 400);
+    const botMsg: Message = {
+      id: (Date.now() + 1).toString(),
+      role: "assistant",
+      content: response,
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, botMsg]);
+    setIsTyping(false);
   };
 
-  const handleQuickCmd = (cmd: string) => {
+  const handleQuickCmd = async (cmd: string) => {
     const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -494,15 +591,15 @@ export function BellaChat() {
     setMessages((prev) => [...prev, userMsg]);
     setIsTyping(true);
     setHasSentMessage(true);
-    setTimeout(() => {
-      const { response, action } = matchIntent(cmd, intents, t);
-      if (action) action();
-      setMessages((prev) => [
-        ...prev,
-        { id: (Date.now() + 1).toString(), role: "assistant", content: response, timestamp: new Date() },
-      ]);
-      setIsTyping(false);
-    }, 400);
+    
+    const { response, action } = await matchIntent(cmd, intents, t);
+    if (action) action();
+    
+    setMessages((prev) => [
+      ...prev,
+      { id: (Date.now() + 1).toString(), role: "assistant", content: response, timestamp: new Date() },
+    ]);
+    setIsTyping(false);
   };
 
   // Use mounted flag to avoid SSR mismatch
