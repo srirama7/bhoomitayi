@@ -217,8 +217,34 @@ function createBellaEngine(
       patterns: [/vehicle/i, /car/i, /bike/i, /scooter/i, /truck/i, /वाहन/i, /ವಾಹನ/i, /వాహన/i, /വാഹന/i, /வாகன/i],
       responseKey: "_vehicles",
     },
+    // ── Tommy's Enhanced Knowledge ──
     {
-      patterns: [/sell/i, /list.*property/i, /register.*service/i, /post.*listing/i],
+      patterns: [/how.*list/i, /create.*listing/i, /post.*property/i, /steps.*sell/i],
+      responseKey: "_list_guide",
+    },
+    {
+      patterns: [/negotiat/i, /bargain/i, /closing.*deal/i, /offer/i],
+      responseKey: "_negotiation",
+    },
+    {
+      patterns: [/market.*analysis/i, /trends/i, /demand/i, /supply/i, /insight/i],
+      responseKey: "_market",
+    },
+    {
+      patterns: [/photography/i, /photo.*tips/i, /camera/i, /take.*pictures/i],
+      responseKey: "_photography",
+    },
+    {
+      patterns: [/timing/i, /when.*sell/i, /best.*time/i, /season/i],
+      responseKey: "_timing",
+    },
+    {
+      patterns: [/description/i, /write.*title/i, /compelling/i, /hook/i],
+      responseKey: "_description_guide",
+    },
+    // ── Original Property Help ──
+    {
+      patterns: [/sell/i, /register.*service/i],
       responseKey: "_sell",
     },
     {
@@ -259,21 +285,27 @@ function createBellaEngine(
 // Static knowledge responses (these are long and stay English but can be extended)
 const KNOWLEDGE_RESPONSES: Record<string, string> = {
   _commands: "I can control all these settings for you! Just say:\n\nTheme: 'dark mode' / 'light mode' / 'system mode'\n\nDisplay: 'reading mode', 'high contrast', 'compact mode', 'reduce animations'\n\nFont: 'font small/medium/large/extra large'\n\nLanguage: 'English/Kannada/Hindi/Telugu/Malayalam/Tamil'\n\nNotifications: 'notification on/off', 'inquiry alert on/off', 'marketing on/off'\n\nOther: 'reset settings'",
-  _greeting: "Hello! I'm Bella, your friendly real estate assistant! I can help you:\n\n- Find properties (houses, land, PG, commercial)\n- Get buying/selling tips\n- Control ALL website settings via chat\n- Tell you about BhoomiTayi\n\nTry saying 'dark mode', 'reading mode', or ask about any property type!",
+  _greeting: "Hello! I'm Bella, your smarter real estate assistant! I've learned everything from Tommy and now I can help you with:\n\n- Full Listing Guides (type 'how to list')\n- Pricing & Negotiation Tips\n- Photography & Description advice\n- Market Trends & Timing\n- Control Website Settings\n- Find properties & more\n\nWhat can I help you with today?",
   _about_bhoomitayi: "BhoomiTayi is India's trusted online marketplace! Here's what we offer:\n\n- Houses: Buy, sell, or rent apartments, villas & independent homes\n- Land: Residential, commercial & agricultural plots\n- PG: Affordable paying guest accommodations\n- Commercial: Office spaces, shops & warehouses\n- Vehicles: Cars, bikes, trucks & more\n- Commodities: Electronics, furniture & miscellaneous\n\nWe serve users across India with verified listings, secure payments, and direct seller connections. Our platform supports 6 languages: English, Kannada, Hindi, Telugu, Malayalam & Tamil.\n\nRegistration is free and listings go live immediately!",
   _houses: "Looking for a house? Here's how:\n\n1. Go to the Houses section from the menu\n2. Browse listings or use search to filter\n3. Click on a listing for full details & photos\n4. Hit 'Send Inquiry' to contact the seller\n\nKey things to check:\n- Location & neighborhood safety\n- Legal documents (Khata, EC, Sale Deed)\n- Water & electricity supply\n- Parking & amenities\n- Compare price per sq.ft with nearby properties",
   _land: "Land investment tips:\n\n1. Browse the Land section\n2. Check plot dimensions & total area\n3. Verify Khata type (A Khata is best)\n4. Visit the site in person\n5. Get EC (Encumbrance Certificate) verified\n\nImportant checks:\n- Clear title deed & ownership chain\n- No encumbrances or legal disputes\n- Proper road access\n- Zoning regulations\n- BBMP/BDA approval status",
   _pg: "PG hunting guide:\n\n1. Check the PG section for listings\n2. Filter by your preferred area & budget\n3. Compare amenities (food, WiFi, laundry)\n4. Visit and check the room condition\n5. Confirm rent, deposit & house rules\n\nPro tips:\n- Visit during meal times to check food quality\n- Ask about guest/visitor policies\n- Check water & power backup",
   _commercial: "Commercial space guide:\n\n1. Browse Commercial section\n2. Check carpet area vs super built-up\n3. Visit during business hours to check foot traffic\n4. Review lease terms carefully\n\nKey factors:\n- Parking availability\n- Power backup & internet\n- Fire safety & emergency exits\n- Proximity to public transport",
   _vehicles: "Vehicle buying guide:\n\n1. Browse the Vehicles section\n2. Check year, KMs driven & number of owners\n3. Verify RC, insurance & pollution certificate\n4. Request a test drive\n5. Negotiate price based on condition",
+  _list_guide: "COMPLETE LISTING GUIDE - Follow these steps exactly:\n\nStep 1: Go to Homepage\n- Click the green 'Register Service' button in the top navbar\n- Or go to Menu > Register Service on mobile\n\nStep 2: Select Category\n- House/Apartment, Land, PG, Commercial, Vehicle, or Commodity\n\nStep 3: Fill Details\n- Title: Catchy & clear (e.g., '3BHK Villa near JP Nagar')\n- Description: Write 100+ words covering all features\n- Price: Set competitive price\n\nStep 4: Upload Photos\n- Click 'Upload Images' and select 6-10 high quality photos\n\nStep 5: Review & Submit\n- Your listing goes live immediately!",
+  _negotiation: "NEGOTIATION PLAYBOOK:\n\n1. Preparation: Know your MINIMUM acceptable price.\n2. Preparation: Highlight 5 unique selling points.\n3. Handling Offers: Never accept the first offer immediately.\n4. Counter: Move in small increments (1-2% at a time).\n5. Closing: Get TOKEN ADVANCE (1-2% of price) immediately in writing.\n\nGolden Rule: Never show desperation. The right buyer will come!",
+  _market: "MARKET ANALYSIS 2026:\n\n- Demand: Tier-1 cities are seeing 8-12% growth.\n- Best appreciation: Land prices are rising fastest at 10-15% YoY.\n- Seasonal Strategy: Oct-Jan (Festival season) is the highest activity period.\n- Track: If you get 3-5 inquiries/week, your pricing is perfect!",
+  _photography: "PHOTOGRAPHY GUIDE:\n\n1. Prepare: Deep clean every room and remove clutter.\n2. Lighting: Best time is 10 AM - 12 PM (bright natural light).\n3. Technique: Hold phone at chest height, keep it level.\n4. Quantity: Upload 8-10 photos. First shot should be the front exterior.",
+  _timing: "BEST TIME TO SELL:\n\n- PEAK (Oct - Jan): Festival season, highest buyer activity.\n- GOOD (Jan - Mar): Financial year-end bonuses and tax planning.\n- SLOW (Jul - Sep): Monsoon season, fewer site visits.\n\nTip: List on Thursday/Friday as people browse most during weekends!",
+  _description_guide: "WRITING THE PERFECT DESCRIPTION:\n\n1. Title: Under 60 chars. Include Type + Size + Location.\n2. Hook: Lead with your BEST feature (e.g., 'East-facing').\n3. Amenities: List parking, water, power backup clearly.\n4. Connectivity: Mention distance to nearest landmark/metro.",
   _sell: "How to sell on BhoomiTayi:\n\n1. Click 'Register Service' in the navbar\n2. Choose your category (House/Land/PG etc.)\n3. Fill in all property details\n4. Upload high-quality photos\n5. Set a competitive price\n6. Add your exact location\n7. Submit - it goes live immediately!",
   _price: "Pricing guidance:\n\n- Browse similar listings in your area to compare\n- Check price per sq.ft for houses & land\n- Factor in registration (5-7%) & stamp duty (1%)\n- For home loans: EMI should be < 40% of income\n- Negotiation margin: sellers usually list 5-10% above",
   _loan: "Home loan guide:\n\n1. Check your CIBIL score (aim for 750+)\n2. Compare rates - SBI, HDFC, ICICI, Axis\n3. Calculate EMI (should be < 40% of income)\n4. Prepare documents: ID, income proof, property papers\n\nCurrent rates: ~8.5-9.5%\nBanks fund 80% of property value\nTax benefit: Section 80C & 24B",
-  _documents: "Essential property documents:\n\nFor Buying:\n- Sale Deed, Title Deed\n- EC - Encumbrance Certificate\n- Khata Certificate & Extract\n- Tax paid receipts\n- Building plan approval\n- Occupancy Certificate\n\nFor Home Loan:\n- Property documents above\n- ID & address proof\n- Income proof (salary slips / ITR)\n- Bank statements (6 months)\n\nAlways get a lawyer to verify!",
-  _help: "I'm Bella, your all-in-one assistant!\n\nProperty Help: houses, land, PG, commercial, vehicles\nBuying & selling tips, price guidance, documents\n\nSettings (just say it!):\n- 'dark/light mode', 'reading mode'\n- 'high contrast', 'compact mode'\n- 'reduce animations'\n- 'font small/medium/large/extra large'\n- Language: 'Kannada/Hindi/Telugu/Tamil/Malayalam'\n- 'notification on/off', 'inquiry alert on/off'\n- 'reset settings'\n\nAbout: 'what is BhoomiTayi'\n\nTry any command right now!",
+  _documents: "Essential property documents:\n\nFor Buying:\n- Sale Deed, Title Deed\n- EC - Encumbrance Certificate\n- Khata Certificate & Extract\n- Tax paid receipts\n- Building plan approval\n- Occupancy Certificate\n\nAlways get a lawyer to verify!",
+  _help: "I'm Bella, your smarter real estate assistant!\n\nSelling Tips: 'listing guide', 'negotiation', 'market trends', 'photography', 'timing'\nProperty Help: houses, land, PG, commercial, vehicles, price guidance, documents\nSettings: 'dark/light mode', 'reading mode', 'font size', 'language', 'notifications'\n\nTry asking 'how to list' or 'what are the market trends'!",
   _thanks: "You're welcome! Happy to help. I'm always here if you need anything!",
   _bye: "Bye! Come back anytime. Happy property hunting!",
-  _about_bella: "I'm Bella - your AI real estate assistant built right into BhoomiTayi! No external AI models - I'm 100% handcrafted.\n\nI can:\n- Help you find & understand properties\n- Control ALL website settings via chat\n- Guide you through buying/selling\n- Tell you everything about BhoomiTayi\n- Speak in your language!",
+  _about_bella: "I'm Bella - your AI real estate assistant built right into BhoomiTayi! I've absorbed all of Tommy's knowledge to become even smarter.\n\nI can:\n- Give detailed step-by-step selling guides\n- Analyze market trends and pricing\n- Control ALL website settings via chat\n- Guide you through buying/selling\n- Speak in your language!",
 };
 
 function matchIntent(
