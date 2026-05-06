@@ -31,6 +31,7 @@ export interface Listing {
   longitude: number | null;
   images: string[];
   owner_email?: string | null;
+  owner_phone?: string | null;
   status: "pending" | "pending_payment" | "active" | "rejected" | "sold" | "archived" | "timed_out";
   payment_status?: "pending" | "approved" | "not_required";
   payment_amount?: number;
