@@ -60,8 +60,8 @@ export async function uploadProfilePicture(
   userId: string
 ): Promise<string> {
   const compressed = await compressImage(file);
-  const fileName = `profile.webp`;
-  const filePath = `profiles/${userId}/${fileName}`;
+  const fileName = `profile-photo.webp`;
+  const filePath = `listings/${userId}/profile/${fileName}`;
 
   const storageRef = ref(storage, filePath);
   await uploadBytes(storageRef, compressed, {
