@@ -5,25 +5,25 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 ## Approval Emails
 
 When an admin approves a listing, the app calls `POST /api/listings/approval-email`
-and sends the user an email through Gmail SMTP from `softspring777@gmail.com`.
+and sends the user an email through Gmail SMTP from `bhoomitayi74@gmail.com`.
 
 Required environment variable:
 
 ```bash
-SMTP_USER=softspring777@gmail.com
+SMTP_USER=bhoomitayi74@gmail.com
 SMTP_APP_PASSWORD=your_google_app_password
 ```
 
 Optional environment variables:
 
 ```bash
-LISTING_APPROVAL_EMAIL_FROM=softspring777@gmail.com
+LISTING_APPROVAL_EMAIL_FROM=bhoomitayi74@gmail.com
 NEXT_PUBLIC_APP_URL=https://your-site-url.com
 ```
 
 To create the Gmail app password:
 
-1. Open the Google Account for `softspring777@gmail.com`.
+1. Open the Google Account for `bhoomitayi74@gmail.com`.
 2. Go to Security.
 3. Turn on 2-Step Verification if it is not already enabled.
 4. Search for App passwords, or open Security > App passwords.

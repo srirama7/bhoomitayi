@@ -8,7 +8,7 @@ type ApprovalEmailRequest = {
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const defaultEmailFrom = "softspring777@gmail.com";
+const defaultEmailFrom = "bhoomitayi74@gmail.com";
 const defaultAllowedOrigin = "https://admin-app-jade-one.vercel.app";
 const allowedOrigins = new Set([
   defaultAllowedOrigin,
