@@ -31,6 +31,7 @@ const baseNavItems = [
 
 const adminNavItems = [
   { label: "Admin Listings", href: "/dashboard/admin/listings", icon: Shield },
+  { label: "Admin Users", href: "/dashboard/admin/users", icon: User },
 ];
 
 export default function DashboardLayout({
