@@ -11,10 +11,13 @@ import {
   Phone,
   Calendar,
   ExternalLink,
-  ChevronRight,
   Search,
   Users,
   Building,
+  Filter,
+  MoreVertical,
+  Shield,
+  Eye,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +32,14 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { db } from "@/lib/firebase/config";
 import {
   collection,
@@ -113,13 +124,18 @@ export default function AdminUsersPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Admin Users</h1>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-32 w-full rounded-2xl" />
-          ))}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-10 w-32" />
         </div>
+        <Card className="border-zinc-200 dark:border-zinc-800">
+          <div className="p-0">
+             {Array.from({ length: 8 }).map((_, i) => (
+               <Skeleton key={i} className="h-16 w-full border-b last:border-0" />
+             ))}
+          </div>
+        </Card>
       </div>
     );
   }
@@ -137,239 +153,257 @@ export default function AdminUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Registered Users Management</h1>
-          <p className="text-muted-foreground text-sm">Monitor and manage all users registered on the platform.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">User Directory</h1>
+          <p className="text-sm text-zinc-500">Manage all registered accounts and monitor user activity.</p>
         </div>
         <div className="flex items-center gap-2">
-           <Badge variant="outline" className="px-3 py-1 font-bold">{users.length} Total Users</Badge>
-           <Badge variant="secondary" className="px-3 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
-             <Users className="size-3 mr-1" /> Verified
-           </Badge>
+          <Button variant="outline" size="sm" className="h-9 border-zinc-200 dark:border-zinc-800">
+            <Filter className="size-4 mr-2" /> Filter
+          </Button>
+          <Badge variant="secondary" className="bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 px-3 py-1 text-xs font-bold">
+            {users.length} Total Users
+          </Badge>
         </div>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search by name, email or phone..."
-          className="pl-9 rounded-xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/50"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      {/* Control Bar */}
+      <div className="flex items-center gap-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+          <Input
+            placeholder="Search users..."
+            className="pl-9 h-10 border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950 focus-visible:ring-zinc-400"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredUsers.length === 0 ? (
-          <Card className="col-span-full py-12 text-center border-dashed border-2">
-            <p className="text-muted-foreground">No users found matching your search.</p>
-          </Card>
-        ) : (
-          filteredUsers.map((u) => (
-            <Card
-              key={u.id}
-              className="group cursor-pointer rounded-2xl border-2 border-zinc-200/80 bg-white transition-all duration-300 hover:border-blue-300 hover:shadow-3d dark:border-zinc-800/80 dark:bg-zinc-900/80"
-              onClick={() => handleUserClick(u)}
-            >
-              <CardContent className="p-5">
-                <div className="flex items-start gap-4">
-                  <div className="relative size-14 shrink-0 overflow-hidden rounded-2xl border-2 border-zinc-100 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-800/50">
-                    {u.avatar_url ? (
-                      <Image
-                        src={u.avatar_url}
-                        alt={u.full_name}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <User className="m-auto size-7 text-zinc-400" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-bold truncate text-zinc-900 dark:text-zinc-100">{u.full_name}</h3>
+      {/* Main Table */}
+      <div className="overflow-hidden bg-white dark:bg-zinc-900 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
+                <th className="px-6 py-4 font-semibold text-zinc-600 dark:text-zinc-400">User</th>
+                <th className="px-6 py-4 font-semibold text-zinc-600 dark:text-zinc-400">Contact</th>
+                <th className="px-6 py-4 font-semibold text-zinc-600 dark:text-zinc-400">Role</th>
+                <th className="px-6 py-4 font-semibold text-zinc-600 dark:text-zinc-400">Joined Date</th>
+                <th className="px-6 py-4 font-semibold text-zinc-600 dark:text-zinc-400 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+              {filteredUsers.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-500">
+                    No users found matching your search criteria.
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((u) => (
+                  <tr 
+                    key={u.id} 
+                    className="hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors cursor-pointer group"
+                    onClick={() => handleUserClick(u)}
+                  >
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="relative size-10 shrink-0 overflow-hidden rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800">
+                          {u.avatar_url ? (
+                            <Image src={u.avatar_url} alt="" fill className="object-cover" />
+                          ) : (
+                            <User className="m-auto size-5 text-zinc-400" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-zinc-900 dark:text-zinc-100 truncate">{u.full_name}</p>
+                          <p className="text-xs text-zinc-400 truncate font-mono">ID: {u.id.substring(0, 8)}...</p>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="space-y-1">
+                        <p className="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-300">
+                          <Mail className="size-3.5 text-zinc-400" /> {u.email || "No Email"}
+                        </p>
+                        <p className="flex items-center gap-1.5 text-zinc-500 text-xs">
+                          <Phone className="size-3.5 text-zinc-400" /> {u.phone || "No Phone"}
+                        </p>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
                       <Badge 
-                        variant={u.role === "admin" ? "default" : "secondary"} 
-                        className={`capitalize text-[9px] h-4 px-1.5 ${u.role === "admin" ? "bg-indigo-600" : ""}`}
+                        variant={u.role === "admin" ? "default" : "secondary"}
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                          u.role === "admin" ? "bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900" : ""
+                        }`}
                       >
-                        {u.role}
+                        {u.role.toUpperCase()}
                       </Badge>
-                    </div>
-                    
-                    <div className="mt-2 space-y-1">
-                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <Mail className="size-3 text-blue-500" />
-                        <span className="truncate">{u.email || "No email"}</span>
+                    </td>
+                    <td className="px-6 py-4 text-zinc-500">
+                      {new Date(u.created_at).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric"
+                      })}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100" onClick={() => handleUserClick(u)}>
+                          <Eye className="size-4" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400">
+                              <MoreVertical className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel>User Management</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleUserClick(u)}>
+                              <Eye className="size-4 mr-2" /> View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                              <Shield className="size-4 mr-2" /> Change Role
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-red-600">
+                              Block User
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
-                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <Phone className="size-3 text-green-500" />
-                        <span>{u.phone || "No phone"}</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="self-center p-2 rounded-full bg-zinc-50 dark:bg-zinc-800/50 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/20 transition-colors">
-                    <ChevronRight className="size-4 text-zinc-400 group-hover:text-blue-500 transition-transform group-hover:translate-x-0.5" />
-                  </div>
-                </div>
-                
-                <div className="mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-between text-[10px]">
-                   <span className="text-muted-foreground">Member since {new Date(u.created_at).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</span>
-                   <span className="font-bold text-blue-600 flex items-center gap-1">
-                     View Listings <ExternalLink className="size-2.5" />
-                   </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <Sheet open={!!selectedUser} onOpenChange={(open) => !open && setSelectedUser(null)}>
-        <SheetContent className="sm:max-w-xl overflow-y-auto border-l-2 border-zinc-200 dark:border-zinc-800">
-          <SheetHeader className="mb-6">
-            <SheetTitle className="text-xl font-bold flex items-center gap-2">
-              <User className="size-5 text-blue-600" />
-              User Profile & Activity
-            </SheetTitle>
-            <SheetDescription>
-              Comprehensive overview of user account and their marketplace activity.
-            </SheetDescription>
-          </SheetHeader>
-
-          {selectedUser && (
-            <div className="space-y-8 pb-12">
-              {/* User Identity Card */}
-              <div className="relative overflow-hidden rounded-3xl border-2 border-zinc-200 bg-white p-6 shadow-3d dark:border-zinc-800 dark:bg-zinc-900">
-                <div className="absolute top-0 right-0 p-4 opacity-5">
-                   <Users className="size-24" />
+        <SheetContent className="sm:max-w-xl p-0 flex flex-col h-full border-l border-zinc-200 dark:border-zinc-800">
+          <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+            <SheetHeader className="text-left">
+              <div className="flex items-center gap-4 mb-4">
+                <div className="relative size-16 overflow-hidden rounded-xl border-2 border-white dark:border-zinc-800 shadow-sm bg-zinc-100 dark:bg-zinc-800">
+                  {selectedUser?.avatar_url ? (
+                    <Image src={selectedUser.avatar_url} alt="" fill className="object-cover" />
+                  ) : (
+                    <User className="m-auto size-8 text-zinc-300" />
+                  )}
                 </div>
-                
-                <div className="relative flex flex-col items-center gap-4 text-center">
-                  <div className="relative size-24 overflow-hidden rounded-2xl border-4 border-zinc-50 bg-zinc-100 shadow-lg dark:border-zinc-800 dark:bg-zinc-800">
-                    {selectedUser.avatar_url ? (
-                      <Image
-                        src={selectedUser.avatar_url}
-                        alt={selectedUser.full_name}
-                        fill
-                        className="object-cover"
-                      />
-                    ) : (
-                      <User className="m-auto size-12 text-zinc-300" />
-                    )}
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-black text-zinc-900 dark:text-zinc-100">{selectedUser.full_name}</h2>
-                    <Badge className="mt-1 bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400 capitalize border-none">
-                      {selectedUser.role} Account
-                    </Badge>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3 w-full mt-4">
-                    <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 flex flex-col items-center gap-1">
-                       <Mail className="size-4 text-blue-500" />
-                       <span className="text-[10px] font-bold text-zinc-400 uppercase">Email</span>
-                       <span className="text-xs font-medium truncate w-full">{selectedUser.email || "N/A"}</span>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-800 flex flex-col items-center gap-1">
-                       <Phone className="size-4 text-green-500" />
-                       <span className="text-[10px] font-bold text-zinc-400 uppercase">Phone</span>
-                       <span className="text-xs font-medium">{selectedUser.phone || "N/A"}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="w-full pt-4 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                    <Calendar className="size-3.5" />
-                    Joined on {new Date(selectedUser.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                <div>
+                  <SheetTitle className="text-xl font-bold">{selectedUser?.full_name}</SheetTitle>
+                  <div className="flex items-center gap-2 mt-1">
+                    <Badge className="text-[10px] bg-zinc-900 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">{selectedUser?.role.toUpperCase()}</Badge>
+                    <span className="text-xs text-zinc-500">ID: {selectedUser?.id}</span>
                   </div>
                 </div>
               </div>
+              <SheetDescription className="text-zinc-500">
+                Created on {selectedUser && new Date(selectedUser.created_at).toLocaleString()}
+              </SheetDescription>
+            </SheetHeader>
+          </div>
 
-              {/* User Listings Section */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b-2 border-zinc-100 dark:border-zinc-800 pb-2">
-                  <h3 className="font-black text-lg flex items-center gap-2">
-                    <Building className="size-5 text-indigo-600" />
-                    Marketplace Listings
-                  </h3>
-                  <Badge variant="outline" className="font-bold bg-zinc-50 dark:bg-zinc-800/50">
-                    {userListings.length} Items
-                  </Badge>
-                </div>
+          <div className="flex-1 overflow-y-auto p-6 space-y-8">
+            {/* Management Quick Stats */}
+            <div className="grid grid-cols-2 gap-4">
+               <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col gap-1 shadow-sm">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Total Listings</span>
+                  <span className="text-2xl font-black text-zinc-900 dark:text-zinc-100">{userListings.length}</span>
+               </div>
+               <div className="p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col gap-1 shadow-sm">
+                  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Active Status</span>
+                  <span className="text-sm font-bold text-green-600 flex items-center gap-1">
+                    <div className="size-2 rounded-full bg-green-500" /> ONLINE
+                  </span>
+               </div>
+            </div>
 
-                {loadingListings ? (
-                  <div className="space-y-4">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <Skeleton key={i} className="h-28 w-full rounded-2xl" />
-                    ))}
-                  </div>
-                ) : userListings.length === 0 ? (
-                  <div className="py-16 text-center border-2 border-dashed rounded-3xl bg-zinc-50/50 dark:bg-zinc-900/20">
-                    <div className="size-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center mx-auto mb-4">
-                       <Building className="size-6 text-zinc-300" />
-                    </div>
-                    <p className="text-muted-foreground font-medium">This user hasn&apos;t posted any listings yet.</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {userListings.map((listing) => (
-                      <Card 
-                        key={listing.id} 
-                        className="overflow-hidden border-2 border-zinc-200/80 bg-white transition-all hover:border-blue-200 hover:shadow-lg dark:border-zinc-800/80 dark:bg-zinc-900/80"
-                      >
-                        <CardContent className="p-0">
-                          <div className="flex gap-4 p-4">
-                            <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 border-zinc-100 shadow-sm dark:border-zinc-800">
-                              {listing.images?.[0] ? (
-                                <Image
-                                  src={listing.images[0]}
-                                  alt={listing.title}
-                                  fill
-                                  className="object-cover"
-                                />
-                              ) : (
-                                <div className="flex h-full w-full items-center justify-center bg-zinc-50 dark:bg-zinc-800 text-[10px] text-zinc-400 font-bold">NO IMAGE</div>
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0 flex flex-col justify-between">
-                              <div>
-                                <div className="flex items-center justify-between gap-2">
-                                  <h4 className="font-bold text-sm truncate text-zinc-900 dark:text-zinc-100">{listing.title}</h4>
-                                  <Badge 
-                                    className={`text-[9px] h-4 px-1.5 capitalize border-none ${
-                                      listing.status === 'active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                                      listing.status === 'timed_out' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                                      'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                                    }`}
-                                  >
-                                    {listing.status}
-                                  </Badge>
-                                </div>
-                                <p className="text-[10px] text-muted-foreground truncate flex items-center gap-1 mt-0.5">
-                                   <Building className="size-2.5" />
-                                   {listing.address}
-                                </p>
-                              </div>
-                              <div className="flex items-center justify-between mt-2">
-                                <p className="text-sm font-black text-blue-600">{formatPrice(listing.price)}</p>
-                                <Button size="sm" variant="ghost" className="h-7 text-[10px] font-bold text-zinc-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20" asChild>
-                                  <Link href={`/listing/${listing.id}`} target="_blank">
-                                    OPEN <ExternalLink className="size-2.5 ml-1" />
-                                  </Link>
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+            {/* Account Details */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-sm text-zinc-400 uppercase tracking-wider">Account Details</h3>
+              <div className="grid gap-3">
+                <DetailRow icon={Mail} label="Email Address" value={selectedUser?.email || "N/A"} />
+                <DetailRow icon={Phone} label="Phone Number" value={selectedUser?.phone || "N/A"} />
+                <DetailRow icon={Calendar} label="Join Date" value={selectedUser ? new Date(selectedUser.created_at).toLocaleDateString() : "N/A"} />
               </div>
             </div>
-          )}
+
+            {/* Marketplace Listings */}
+            <div className="space-y-4">
+              <h3 className="font-bold text-sm text-zinc-400 uppercase tracking-wider flex items-center justify-between">
+                Marketplace Inventory
+                <Badge variant="outline" className="text-[10px]">{userListings.length}</Badge>
+              </h3>
+
+              {loadingListings ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                  ))}
+                </div>
+              ) : userListings.length === 0 ? (
+                <div className="py-12 text-center border-2 border-dashed rounded-xl bg-zinc-50 dark:bg-zinc-900/50">
+                  <Building className="size-8 text-zinc-200 mx-auto mb-2" />
+                  <p className="text-xs text-zinc-500">No listings found for this user.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {userListings.map((listing) => (
+                    <div 
+                      key={listing.id}
+                      className="flex items-center gap-4 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:border-zinc-400 transition-colors"
+                    >
+                      <div className="relative size-12 shrink-0 overflow-hidden rounded-lg border border-zinc-100 dark:border-zinc-800">
+                        {listing.images?.[0] ? (
+                          <Image src={listing.images[0]} alt="" fill className="object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-zinc-50 text-[10px] text-zinc-300">N/A</div>
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate">{listing.title}</p>
+                        <p className="text-[10px] text-zinc-500 font-bold mt-0.5">{formatPrice(listing.price)}</p>
+                      </div>
+                      <Badge className="text-[9px] capitalize">{listing.status}</Badge>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                         <Link href={`/listing/${listing.id}`} target="_blank">
+                            <ExternalLink className="size-3.5" />
+                         </Link>
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <div className="p-6 border-t border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50 flex gap-3">
+            <Button variant="outline" className="flex-1" onClick={() => setSelectedUser(null)}>Close</Button>
+            <Button className="flex-1 bg-zinc-900 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900">Manage Account</Button>
+          </div>
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+function DetailRow({ icon: Icon, label, value }: { icon: any, label: string, value: string }) {
+  return (
+    <div className="flex items-center justify-between p-3 rounded-lg border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30">
+      <div className="flex items-center gap-2">
+        <Icon className="size-4 text-zinc-400" />
+        <span className="text-xs font-medium text-zinc-500">{label}</span>
+      </div>
+      <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">{value}</span>
     </div>
   );
 }
