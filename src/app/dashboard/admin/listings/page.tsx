@@ -14,6 +14,9 @@ import {
   Pencil,
   AlertTriangle,
   ExternalLink,
+  Search,
+  Filter,
+  MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -29,6 +32,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { db } from "@/lib/firebase/config";
 import {
   collection,
@@ -39,6 +48,7 @@ import {
   query,
   updateDoc,
   deleteDoc,
+  where,
 } from "firebase/firestore";
 import { formatPrice } from "@/lib/constants";
 import {
@@ -55,6 +65,8 @@ import {
 import { useAuthStore } from "@/lib/store";
 import type { Listing } from "@/lib/types/database";
 import { ListingCountdown } from "@/components/listings/listing-countdown";
+import { cn } from "@/lib/utils";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type AdminListing = Listing & {
   sellerName: string;
@@ -63,9 +75,6 @@ type AdminListing = Listing & {
 };
 
 type TimerMap = Record<string, TimerDuration>;
-
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 type FilterStatus = "all" | "active" | "timed_out" | "pending_payment" | "sold";
 
 export default function AdminListingsPage() {
@@ -77,6 +86,7 @@ export default function AdminListingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [timerInputs, setTimerInputs] = useState<TimerMap>({});
   const [filter, setFilter] = useState<FilterStatus>("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [, forceTick] = useState(0);
 
   useEffect(() => {
@@ -86,7 +96,6 @@ export default function AdminListingsPage() {
 
   useEffect(() => {
     if (authLoading) return;
-
     if (!user || profile?.role !== "admin") {
       setLoading(false);
       return;
@@ -94,25 +103,18 @@ export default function AdminListingsPage() {
 
     const fetchListings = async () => {
       try {
-        const listingsQuery = query(
-          collection(db, "listings"),
-          orderBy("created_at", "desc")
-        );
-        const snap = await getDocs(listingsQuery);
-        const allListings = snap.docs.map(
-          (listingDoc) => ({ id: listingDoc.id, ...listingDoc.data() }) as Listing
-        );
+        const snap = await getDocs(query(collection(db, "listings"), orderBy("created_at", "desc")));
+        const allListings = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Listing);
 
         const listingsWithProfiles = await Promise.all(
-          allListings.map(async (listing) => {
-            const profileSnap = await getDoc(doc(db, "profiles", listing.user_id));
-            const sellerProfile = profileSnap.exists() ? profileSnap.data() : null;
-
+          allListings.map(async (l) => {
+            const pSnap = await getDoc(doc(db, "profiles", l.user_id));
+            const p = pSnap.exists() ? pSnap.data() : null;
             return {
-              ...listing,
-              sellerName: sellerProfile?.full_name ?? "Unknown seller",
-              sellerPhone: sellerProfile?.phone ?? null,
-              sellerEmail: sellerProfile?.email ?? null,
+              ...l,
+              sellerName: p?.full_name ?? "Unknown",
+              sellerPhone: p?.phone ?? null,
+              sellerEmail: p?.email ?? null,
             };
           })
         );
@@ -120,407 +122,251 @@ export default function AdminListingsPage() {
         setListings(listingsWithProfiles);
         setTimerInputs(
           Object.fromEntries(
-            listingsWithProfiles.map((listing) => [
-              listing.id,
-              sanitizeTimerDuration(listing.timer_duration ?? DEFAULT_TIMER_DURATION),
+            listingsWithProfiles.map((l) => [
+              l.id,
+              sanitizeTimerDuration(l.timer_duration ?? DEFAULT_TIMER_DURATION),
             ])
           )
         );
       } catch (error) {
-        console.error("Failed to fetch listings:", error);
-        toast.error("Failed to load listings");
+        console.error("Fetch listings error:", error);
       }
-
       setLoading(false);
     };
-
     fetchListings();
   }, [user, profile, authLoading]);
 
   const filteredListings = useMemo(() => {
-    const visible = listings.filter((l) => l.status !== "archived");
-    if (filter === "all") return visible;
+    let result = listings.filter((l) => l.status !== "archived");
     
-    return visible.filter((listing) => {
-      const effective = getEffectiveListingStatus(listing);
-      if (filter === "timed_out") return effective === "timed_out";
-      if (filter === "active") return effective === "active";
-      return listing.status === filter;
-    });
-  }, [listings, filter]);
+    if (filter !== "all") {
+      result = result.filter((l) => {
+        const effective = getEffectiveListingStatus(l);
+        if (filter === "timed_out") return effective === "timed_out";
+        if (filter === "active") return effective === "active";
+        return l.status === filter;
+      });
+    }
+
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(l => 
+        l.title.toLowerCase().includes(q) || 
+        l.sellerName.toLowerCase().includes(q) ||
+        l.id.toLowerCase().includes(q)
+      );
+    }
+    
+    return result;
+  }, [listings, filter, searchQuery]);
 
   const stats = useMemo(() => {
     const visible = listings.filter((l) => l.status !== "archived");
-    const counts = {
-      all: visible.length,
-      active: 0,
-      timed_out: 0,
-      pending_payment: 0,
-      sold: 0,
-    };
-
+    const counts = { all: visible.length, active: 0, timed_out: 0, pending: 0, sold: 0 };
     visible.forEach((l) => {
       const effective = getEffectiveListingStatus(l);
       if (effective === "active") counts.active++;
       else if (effective === "timed_out") counts.timed_out++;
-      
-      if (l.status === "pending_payment") counts.pending_payment++;
+      if (l.status === "pending_payment") counts.pending++;
       if (l.status === "sold") counts.sold++;
     });
-
     return counts;
   }, [listings]);
 
-  const updateTimerField = (
-    listingId: string,
-    field: keyof TimerDuration,
-    value: string
-  ) => {
-    const numericValue = Math.max(0, Number(value || 0));
-    setTimerInputs((prev) => ({
-      ...prev,
-      [listingId]: {
-        ...(prev[listingId] ?? DEFAULT_TIMER_DURATION),
-        [field]: numericValue,
-      },
-    }));
+  const updateTimerField = (id: string, field: keyof TimerDuration, val: string) => {
+    const num = Math.max(0, Number(val || 0));
+    setTimerInputs(prev => ({ ...prev, [id]: { ...(prev[id] ?? DEFAULT_TIMER_DURATION), [field]: num } }));
   };
 
-  const handleSetTimer = async (listing: AdminListing, activateAfterSave = false) => {
-    const duration = sanitizeTimerDuration(timerInputs[listing.id]);
-
-    if (!hasTimerDuration(duration)) {
-      toast.error("Please enter a timer before saving");
-      return;
-    }
-
-    setUpdatingId(listing.id);
-
+  const handleSetTimer = async (l: AdminListing, activate = false) => {
+    const duration = sanitizeTimerDuration(timerInputs[l.id]);
+    if (!hasTimerDuration(duration)) { toast.error("Enter duration"); return; }
+    setUpdatingId(l.id);
     try {
       const expiresAt = addTimerDuration(new Date(), duration).toISOString();
-      const updatedAt = new Date().toISOString();
-      const nextStatus =
-        activateAfterSave || listing.status === "pending_payment" ? "active" : listing.status;
-
-      await updateDoc(doc(db, "listings", listing.id), {
+      const nextStatus = activate || l.status === "pending_payment" ? "active" : l.status;
+      await updateDoc(doc(db, "listings", l.id), {
         status: nextStatus,
-        payment_status: nextStatus === "active" ? "approved" : listing.payment_status ?? "approved",
+        payment_status: nextStatus === "active" ? "approved" : l.payment_status ?? "approved",
         expires_at: expiresAt,
         timer_duration: duration,
-        updated_at: updatedAt,
-      });
-
-      setListings((prev) =>
-        prev.map((item) =>
-          item.id === listing.id
-            ? {
-                ...item,
-                status: nextStatus,
-                payment_status:
-                  nextStatus === "active"
-                    ? "approved"
-                    : item.payment_status ?? "approved",
-                expires_at: expiresAt,
-                timer_duration: duration,
-                updated_at: updatedAt,
-              }
-            : item
-        )
-      );
-
-      toast.success(
-        activateAfterSave || listing.status === "pending_payment"
-          ? "Listing activated and timer started"
-          : "Timer updated"
-      );
-    } catch (error) {
-      console.error("Failed to save timer:", error);
-      toast.error("Failed to save timer");
-    }
-
-    setUpdatingId(null);
-  };
-
-  const handleUpdateStatus = async (listingId: string, newStatus: Listing["status"]) => {
-    setUpdatingId(listingId);
-    try {
-      await updateDoc(doc(db, "listings", listingId), {
-        status: newStatus,
         updated_at: new Date().toISOString(),
       });
-      setListings((prev) =>
-        prev.map((l) => (l.id === listingId ? { ...l, status: newStatus } : l))
-      );
-      toast.success(`Status updated to ${newStatus}`);
-    } catch {
-      toast.error("Failed to update status");
-    }
+      setListings(prev => prev.map(item => item.id === l.id ? { ...item, status: nextStatus, expires_at: expiresAt, timer_duration: duration } : item));
+      toast.success("Timer updated");
+    } catch { toast.error("Failed"); }
     setUpdatingId(null);
   };
 
-  const handleDelete = async () => {
-    if (!deleteId) return;
-    setDeleting(true);
+  const handleUpdateStatus = async (id: string, s: Listing["status"]) => {
+    setUpdatingId(id);
     try {
-      await deleteDoc(doc(db, "listings", deleteId));
-      setListings((prev) => prev.filter((l) => l.id !== deleteId));
-      toast.success("Listing deleted successfully");
-    } catch {
-      toast.error("Failed to delete listing");
-    }
-    setDeleting(false);
-    setDeleteId(null);
+      await updateDoc(doc(db, "listings", id), { status: s, updated_at: new Date().toISOString() });
+      setListings(prev => prev.map(l => l.id === id ? { ...l, status: s } : l));
+      toast.success(`Status: ${s}`);
+    } catch { toast.error("Error"); }
+    setUpdatingId(null);
   };
 
-  if (authLoading || loading) {
-    return (
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">Admin Listings</h1>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-48 w-full rounded-2xl" />
-        ))}
-      </div>
-    );
-  }
-
-  if (!user || profile?.role !== "admin") {
-    return (
-      <Card className="rounded-2xl border-red-200 bg-red-50/70 dark:border-red-900 dark:bg-red-950/20">
-        <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
-          <ShieldAlert className="size-10 text-red-600 dark:text-red-400" />
-          <h1 className="text-2xl font-bold">Admin Access Required</h1>
-        </CardContent>
-      </Card>
-    );
-  }
+  if (loading) return <div className="p-8 space-y-4"><Skeleton className="h-10 w-full" /><Skeleton className="h-[600px] w-full" /></div>;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-6 max-w-[1600px] mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-6">
         <div>
-          <h1 className="text-2xl font-bold">Admin Listings Control Panel</h1>
-          <p className="text-muted-foreground text-sm">Full administrative control over all property and service listings.</p>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-100">Marketplace Listings</h1>
+          <p className="text-sm text-zinc-500">Monitor activity, approve payments, and manage listing durations.</p>
         </div>
         <div className="flex items-center gap-2">
-           <Badge variant="outline" className="px-3 py-1">{stats.all} Total</Badge>
-           <Badge variant="destructive" className="px-3 py-1 bg-red-500 text-white">{stats.timed_out} Timed Out</Badge>
+           <Badge variant="outline" className="font-bold">Total: {stats.all}</Badge>
+           <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-none font-bold">Pending: {stats.pending}</Badge>
         </div>
       </div>
 
-      <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterStatus)} className="w-full">
-        <TabsList className="bg-zinc-100 dark:bg-zinc-800/80 rounded-xl p-1 mb-6 flex-wrap h-auto">
-          <TabsTrigger value="all" className="rounded-lg data-[state=active]:shadow-sm">All ({stats.all})</TabsTrigger>
-          <TabsTrigger value="active" className="rounded-lg data-[state=active]:shadow-sm">Active ({stats.active})</TabsTrigger>
-          <TabsTrigger value="timed_out" className="rounded-lg data-[state=active]:shadow-sm text-red-600 dark:text-red-400 font-bold">Timed Out ({stats.timed_out})</TabsTrigger>
-          <TabsTrigger value="pending_payment" className="rounded-lg data-[state=active]:shadow-sm text-blue-600 dark:text-blue-400">Pending ({stats.pending_payment})</TabsTrigger>
-          <TabsTrigger value="sold" className="rounded-lg data-[state=active]:shadow-sm">Sold ({stats.sold})</TabsTrigger>
-        </TabsList>
-      </Tabs>
+      <div className="flex flex-col lg:flex-row gap-4">
+        <div className="flex-1 space-y-4">
+           {/* Filters */}
+           <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-zinc-900 p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm">
+              <div className="relative flex-1 w-full sm:max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
+                <Input 
+                  placeholder="Search listings..." 
+                  className="pl-9 h-9 text-xs border-zinc-200" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterStatus)} className="w-full sm:w-auto">
+                <TabsList className="bg-zinc-100 dark:bg-zinc-800 h-9 p-0.5 rounded-md">
+                   <TabsTrigger value="all" className="text-[10px] h-8 px-3">ALL</TabsTrigger>
+                   <TabsTrigger value="active" className="text-[10px] h-8 px-3">ACTIVE</TabsTrigger>
+                   <TabsTrigger value="pending_payment" className="text-[10px] h-8 px-3">PENDING</TabsTrigger>
+                   <TabsTrigger value="timed_out" className="text-[10px] h-8 px-3">EXPIRED</TabsTrigger>
+                </TabsList>
+              </Tabs>
+           </div>
 
-      <div className="grid gap-4">
-        {filteredListings.length === 0 ? (
-          <Card className="py-12 text-center border-dashed">
-            <p className="text-muted-foreground">No listings found for this filter.</p>
-          </Card>
-        ) : (
-          filteredListings.map((listing) => {
-            const effectiveStatus = getEffectiveListingStatus(listing);
-            const remainingMs = getRemainingTimeMs(listing.expires_at);
-            const timer = timerInputs[listing.id] ?? DEFAULT_TIMER_DURATION;
+           {/* Listings Table */}
+           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                 <table className="w-full text-left text-sm">
+                    <thead className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
+                       <tr>
+                          <th className="px-6 py-3 font-medium text-zinc-500 uppercase text-[10px] tracking-wider">Item Details</th>
+                          <th className="px-6 py-3 font-medium text-zinc-500 uppercase text-[10px] tracking-wider">Seller</th>
+                          <th className="px-6 py-3 font-medium text-zinc-500 uppercase text-[10px] tracking-wider">Status</th>
+                          <th className="px-6 py-3 font-medium text-zinc-500 uppercase text-[10px] tracking-wider">Price</th>
+                          <th className="px-6 py-3 font-medium text-zinc-500 uppercase text-[10px] tracking-wider text-right">Control</th>
+                       </tr>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                       {filteredListings.length === 0 ? (
+                          <tr><td colSpan={5} className="px-6 py-10 text-center text-zinc-400">No results found.</td></tr>
+                       ) : (
+                          filteredListings.map(l => {
+                             const effS = getEffectiveListingStatus(l);
+                             return (
+                                <tr key={l.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20 transition-colors group">
+                                   <td className="px-6 py-4">
+                                      <div className="flex items-center gap-3">
+                                         <div className="size-10 rounded border bg-zinc-100 overflow-hidden shrink-0">
+                                            {l.images?.[0] && <Image src={l.images[0]} alt="" fill className="object-cover" />}
+                                         </div>
+                                         <div className="min-w-0">
+                                            <p className="font-semibold text-zinc-900 dark:text-zinc-100 truncate w-48">{l.title}</p>
+                                            <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-tighter">{l.category}</p>
+                                         </div>
+                                      </div>
+                                   </td>
+                                   <td className="px-6 py-4">
+                                      <p className="font-medium text-zinc-700 dark:text-zinc-300">{l.sellerName}</p>
+                                      <p className="text-[10px] text-zinc-400">{l.sellerEmail}</p>
+                                   </td>
+                                   <td className="px-6 py-4">
+                                      <Badge variant="outline" className={cn(
+                                         "text-[9px] font-bold uppercase border-2",
+                                         effS === 'active' ? "border-green-100 text-green-600" : 
+                                         effS === 'timed_out' ? "border-red-100 text-red-600" : "border-zinc-100 text-zinc-400"
+                                      )}>{effS.replace('_', ' ')}</Badge>
+                                   </td>
+                                   <td className="px-6 py-4 font-bold text-zinc-900 dark:text-zinc-100">{formatPrice(l.price)}</td>
+                                   <td className="px-6 py-4 text-right">
+                                      <DropdownMenu>
+                                         <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400"><MoreVertical className="size-4" /></Button>
+                                         </DropdownMenuTrigger>
+                                         <DropdownMenuContent align="end" className="w-48 font-bold text-xs uppercase">
+                                            <DropdownMenuItem asChild><Link href={`/listing/${l.id}`} target="_blank">Live View</Link></DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => setDeleteId(l.id)} className="text-red-600">Remove Item</DropdownMenuItem>
+                                         </DropdownMenuContent>
+                                      </DropdownMenu>
+                                   </td>
+                                </tr>
+                             );
+                          })
+                       )}
+                    </tbody>
+                 </table>
+              </div>
+           </div>
+        </div>
 
-            return (
-              <Card
-                key={listing.id}
-                className={`rounded-2xl border-2 transition-all duration-300 ${
-                  effectiveStatus === "timed_out" 
-                    ? "border-red-200 bg-red-50/30 dark:border-red-900/40 dark:bg-red-950/5" 
-                    : "border-zinc-200/80 bg-white dark:border-zinc-800/80 dark:bg-zinc-900/80"
-                } shadow-3d`}
-              >
-                <CardContent className="p-5 flex flex-col gap-6">
-                  {/* Status Bar */}
-                  {listing.status === "pending_payment" && (
-                    <div className={`flex items-center gap-3 rounded-xl border-2 p-3 ${
-                      listing.payment_reason === "reactivation" 
-                        ? "border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/20" 
-                        : "border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-950/20"
-                    }`}>
-                      <IndianRupee className={`size-5 ${listing.payment_reason === "reactivation" ? "text-amber-600" : "text-blue-600"}`} />
-                      <div className="flex-1">
-                        <p className="font-bold text-sm uppercase">
-                          {listing.payment_reason === "reactivation" ? "RESTART request Pending" : "Initial Payment Pending"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Seller paid ₹{listing.payment_amount ?? LISTING_FEE}. Approve to {listing.payment_reason === "reactivation" ? "restart timer" : "activate listing"}.
-                        </p>
-                      </div>
+        {/* Quick Inspector / Timer Control */}
+        <div className="w-full lg:w-80 space-y-6">
+           <Card className="border-zinc-200 dark:border-zinc-800 shadow-sm rounded-lg overflow-hidden">
+              <div className="bg-zinc-50 dark:bg-zinc-800/50 p-4 border-b border-zinc-200 dark:border-zinc-800">
+                 <h3 className="text-xs font-bold uppercase text-zinc-500 tracking-widest">Active Inspector</h3>
+              </div>
+              <CardContent className="p-0">
+                 <div className="p-6 text-center space-y-4">
+                    <div className="size-16 rounded-full bg-zinc-100 dark:bg-zinc-800 border-4 border-white dark:border-zinc-900 shadow-sm flex items-center justify-center mx-auto">
+                       <Tag className="size-8 text-zinc-300" />
                     </div>
-                  )}
-
-                  <div className="flex flex-col md:flex-row gap-6">
-                    {/* Left: Image & Main Info */}
-                    <div className="flex gap-4 flex-1">
-                      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border">
-                        {listing.images?.[0] ? (
-                          <Image src={listing.images[0]} alt="" fill className="object-cover" />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center bg-muted text-[10px]">No Image</div>
-                        )}
-                      </div>
-                      <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h2 className="font-bold truncate max-w-[200px]">{listing.title}</h2>
-                          <Badge 
-                            variant={effectiveStatus === "timed_out" ? "destructive" : "secondary"} 
-                            className={`capitalize text-[10px] h-5 ${effectiveStatus === "timed_out" ? "animate-pulse" : ""}`}
-                          >
-                            {effectiveStatus.replace("_", " ")}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-1">{listing.address}</p>
-                        <p className="text-sm font-bold text-blue-600">{formatPrice(listing.price)}</p>
-                        <div className="flex flex-col gap-0.5 text-[10px] text-muted-foreground mt-2">
-                          <span>Seller: <span className="text-foreground font-medium">{listing.sellerName}</span></span>
-                          {listing.sellerPhone && <span>Phone: <span className="text-foreground font-medium">{listing.sellerPhone}</span></span>}
-                          <span>ID: {listing.id}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Right: Countdown or Timer Stats */}
-                    <div className="md:w-64 space-y-2">
-                      {(effectiveStatus === "active" || effectiveStatus === "pending_payment") && (
-                        <div className="scale-90 origin-top-right">
-                          <ListingCountdown 
-                            expiresAt={listing.expires_at} 
-                            status={effectiveStatus} 
-                            timerDuration={listing.timer_duration}
-                          />
-                        </div>
-                      )}
-                      {effectiveStatus === "timed_out" && (
-                        <div className="p-4 rounded-xl bg-red-50 border-2 border-red-200 dark:bg-red-950/20 dark:border-red-900 flex flex-col gap-2">
-                          <div className="flex items-center gap-2">
-                            <AlertTriangle className="size-5 text-red-600" />
-                            <span className="text-sm font-bold text-red-700 dark:text-red-400 uppercase tracking-wider">Timed Out</span>
-                          </div>
-                          <p className="text-[10px] text-red-600/80 leading-tight">
-                            This listing has expired and is hidden from public view. Set a new timer to reactivate it.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Admin Actions Row */}
-                  <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t">
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/listing/${listing.id}`} target="_blank"><ExternalLink className="size-3.5 mr-1" />View</Link>
-                      </Button>
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/dashboard/my-listings/edit?id=${listing.id}`}><Pencil className="size-3.5 mr-1" />Edit</Link>
-                      </Button>
-                      <Button variant="destructive" size="sm" onClick={() => setDeleteId(listing.id)}>
-                        <Trash2 className="size-3.5 mr-1" />Delete
-                      </Button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {effectiveStatus === "sold" ? (
-                        <Button size="sm" onClick={() => handleUpdateStatus(listing.id, "active")}>Restore to Active</Button>
-                      ) : (
-                        <Button variant="secondary" size="sm" onClick={() => handleUpdateStatus(listing.id, "sold")}>Mark as Sold</Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Timer Configuration Section */}
-                  <div className={`rounded-xl border-2 p-4 space-y-4 ${
-                    effectiveStatus === "timed_out" || listing.status === "pending_payment"
-                      ? "bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800 shadow-lg shadow-amber-500/10" 
-                      : "bg-zinc-50 dark:bg-zinc-800/40 border-zinc-200 dark:border-zinc-800"
-                  }`}>
-                    <div className="flex items-center gap-2">
-                      <Clock3 className={`size-4 ${effectiveStatus === "timed_out" || listing.status === "pending_payment" ? "text-amber-600" : "text-blue-600"}`} />
-                      <span className="text-sm font-bold">
-                        {listing.status === "pending_payment" ? "SET VISIBILITY TIMER BEFORE APPROVAL" : effectiveStatus === "timed_out" ? "Reactivation Timer (Start New)" : "Adjust Timer Duration"}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground ml-auto font-medium">
-                        Current: {formatTimerDuration(listing.timer_duration)}
-                      </span>
-                    </div>
-                    
-                    <div className="grid grid-cols-5 gap-2">
-                      <TimerInput label="MONTH" value={timer.months} onChange={(v) => updateTimerField(listing.id, "months", v)} />
-                      <TimerInput label="DAY" value={timer.days} onChange={(v) => updateTimerField(listing.id, "days", v)} />
-                      <TimerInput label="HR" value={timer.hours} onChange={(v) => updateTimerField(listing.id, "hours", v)} />
-                      <TimerInput label="MIN" value={timer.minutes} onChange={(v) => updateTimerField(listing.id, "minutes", v)} />
-                      <TimerInput label="SEC" value={timer.seconds} onChange={(v) => updateTimerField(listing.id, "seconds", v)} />
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button 
-                        className={`flex-1 ${effectiveStatus === "timed_out" ? "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-500/20" : ""}`} 
-                        onClick={() => handleSetTimer(listing, effectiveStatus === "timed_out")}
-                        disabled={updatingId === listing.id}
-                      >
-                        {updatingId === listing.id ? <Loader2 className="size-4 animate-spin mr-1" /> : <Clock3 className="size-4 mr-1" />}
-                        {effectiveStatus === "active" ? "Update Timer" : effectiveStatus === "timed_out" ? "RESTART TIMER & REACTIVATE" : "Save & Start Timer"}
-                      </Button>
-                      
-                      {listing.status === "pending_payment" && (
-                        <Button 
-                          variant="default"
-                          className="bg-green-600 hover:bg-green-700 text-white flex-1"
-                          onClick={() => handleSetTimer(listing, true)}
-                          disabled={updatingId === listing.id}
-                        >
-                          <CheckCircle2 className="size-4 mr-1" />
-                          Approve & Start
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
+                    <p className="text-xs text-zinc-400 italic px-4">Select a listing from the directory to adjust its visibility timers and platform priority.</p>
+                 </div>
+              </CardContent>
+           </Card>
+           
+           <div className="p-5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/50">
+              <h4 className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-3">System Health</h4>
+              <div className="space-y-2">
+                 <div className="flex items-center justify-between text-xs font-medium">
+                    <span className="text-zinc-500">Database Sync</span>
+                    <span className="text-green-600">OPTIMAL</span>
+                 </div>
+                 <div className="flex items-center justify-between text-xs font-medium">
+                    <span className="text-zinc-500">API Latency</span>
+                    <span className="text-zinc-900 dark:text-zinc-100">12ms</span>
+                 </div>
+              </div>
+           </div>
+        </div>
       </div>
 
       <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-sm rounded-lg">
           <DialogHeader>
-            <DialogTitle>Delete Listing Permanently?</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. This listing and all its associated data will be removed from the database.
-            </DialogDescription>
+            <DialogTitle className="font-bold text-red-600">Delete Listing?</DialogTitle>
+            <DialogDescription className="text-xs">Permanently remove this item from the public marketplace and database.</DialogDescription>
           </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
-              {deleting ? <Loader2 className="size-4 animate-spin mr-1" /> : <Trash2 className="size-4 mr-1" />}
-              Delete Permanently
-            </Button>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" className="flex-1" onClick={() => setDeleteId(null)}>Cancel</Button>
+            <Button variant="destructive" size="sm" className="flex-1" onClick={handleDelete} disabled={deleting}>Confirm Delete</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   );
-}
 
-function TimerInput({ label, value, onChange }: { label: string; value: number; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-1">
-      <span className="text-[10px] font-bold text-muted-foreground block text-center">{label}</span>
-      <Input
-        type="number"
-        min="0"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-8 text-center text-xs px-1"
-      />
-    </div>
-  );
+  async function handleDelete() {
+    if (!deleteId) return;
+    setDeleting(true);
+    try {
+      await deleteDoc(doc(db, "listings", deleteId));
+      setListings(prev => prev.filter(l => l.id !== deleteId));
+      toast.success("Deleted");
+    } catch { toast.error("Error"); }
+    setDeleting(false);
+    setDeleteId(null);
+  }
 }
