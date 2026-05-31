@@ -81,8 +81,16 @@ function AnimatedSection({ children, className = "" }: { children: React.ReactNo
 
 export default function HomePage() {
   const { t } = useTranslation();
+  const { profile, loading: authLoading } = useAuthStore();
+  const router = useRouter();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading && profile?.role === "admin") {
+      router.push("/dashboard/admin");
+    }
+  }, [profile, authLoading, router]);
 
   useEffect(() => {
     getFeaturedListings().then(setListings).finally(() => setLoadingListings(false));
