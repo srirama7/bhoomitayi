@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { motion, useInView } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SearchBar } from "@/components/home/search-bar";
@@ -27,6 +28,7 @@ import { TiltCard } from "@/components/home/tilt-card";
 import { AnimatedCounter } from "@/components/home/animated-counter";
 import { CATEGORIES } from "@/lib/constants";
 import { getFeaturedListings } from "@/lib/queries";
+import { useAuthStore } from "@/lib/store";
 import { ListingCard } from "@/components/listings/listing-card";
 import type { Listing } from "@/lib/types/database";
 
