@@ -14,7 +14,17 @@ const allowedOrigins = new Set([
   defaultAllowedOrigin,
   "https://bhoomitayi.ayushreeherbals.com",
   "https://propnest-admin-official.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:3001",
 ]);
+
+// Add custom origins from env
+if (process.env.ALLOWED_ORIGINS) {
+  process.env.ALLOWED_ORIGINS.split(",").forEach((o) => {
+    const trimmed = o.trim();
+    if (trimmed) allowedOrigins.add(trimmed);
+  });
+}
 
 export async function OPTIONS(request: Request) {
   return new NextResponse(null, {
@@ -78,13 +88,29 @@ export async function POST(request: Request) {
     </div>
   `;
 
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
+  const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+  const smtpPort = parseInt(process.env.SMTP_PORT || "465", 10);
+  const smtpSecure = process.env.SMTP_SECURE !== "false";
+
+  const transporterOptions: any = {
+    host: smtpHost,
+    port: smtpPort,
+    secure: smtpSecure,
     auth: {
       user: smtpUser,
       pass: smtpAppPassword,
     },
-  });
+  };
+
+  // Use Gmail service helper if it's Gmail and no custom host is defined
+  if (!process.env.SMTP_HOST && (smtpUser.endsWith("@gmail.com") || emailFrom.endsWith("@gmail.com"))) {
+    transporterOptions.service = "gmail";
+    delete transporterOptions.host;
+    delete transporterOptions.port;
+    delete transporterOptions.secure;
+  }
+
+  const transporter = nodemailer.createTransport(transporterOptions);
 
   try {
     await transporter.sendMail({

@@ -154,6 +154,7 @@ export default function HomePage() {
             </div>
 
             <motion.div
+              id="hero-search-area"
               initial={{ opacity: 0, y: 30, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.6, ease: "easeOut" }}
@@ -237,7 +238,7 @@ export default function HomePage() {
       </section>
 
       {/* Featured Listings Section */}
-      <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 bg-zinc-50/50 dark:bg-zinc-950/20 rounded-3xl mb-12">
+      <section id="featured-listings" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 bg-zinc-50/50 dark:bg-zinc-950/20 rounded-3xl mb-12">
         <AnimatedSection>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12 px-4">
             <div className="space-y-2">

@@ -12,6 +12,8 @@ export function Footer() {
     { label: t("nav.land"), href: "/land" },
     { label: t("nav.pg"), href: "/pg" },
     { label: t("nav.commercial"), href: "/commercial" },
+    { label: t("nav.vehicles"), href: "/vehicles" },
+    { label: t("nav.commodities"), href: "/commodities" },
   ];
 
   const accountLinks = [

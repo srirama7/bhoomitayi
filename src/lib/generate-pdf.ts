@@ -19,15 +19,18 @@ function formatDateForLocale(dateStr: string, lang: string): string {
       ml: "ml-IN",
       ta: "ta-IN",
     };
-    return date.toLocaleDateString(localeMap[lang] || "en-IN", {
+    const locale = localeMap[lang] || "en-IN";
+    // Use getFullYear() separately to avoid locale-formatted year (e.g. "2,026" in en-IN)
+    const dayMonth = date.toLocaleDateString(locale, {
       day: "numeric",
       month: "long",
-      year: "numeric",
     });
+    return `${dayMonth} ${date.getFullYear()}`;
   } catch {
     return dateStr;
   }
 }
+
 
 function formatPrice(price: number): string {
   if (price >= 10000000) return `₹${(price / 10000000).toFixed(2)} Cr`;
@@ -200,11 +203,14 @@ export async function generateListingPDF(listing: Listing, lang: string = "en") 
       commodity_type: form.commodity_type || "Commodity Type",
     };
 
+    const yearFields = new Set(["year_built", "year"]);
     for (const [key, label] of Object.entries(detailFieldMap)) {
       if (details[key] !== undefined && details[key] !== null && details[key] !== "") {
         let val = details[key];
         if (typeof val === "boolean") val = val ? "Yes" : "No";
-        if (typeof val === "number") val = val.toLocaleString("en-IN");
+        if (typeof val === "number") {
+          val = yearFields.has(key) ? String(val) : val.toLocaleString("en-IN");
+        }
         tableData.push([label, String(val)]);
       }
     }

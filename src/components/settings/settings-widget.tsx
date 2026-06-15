@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Settings2,
+  Settings,
   X,
   Sun,
   Moon,
@@ -71,9 +71,10 @@ export function SettingsWidget() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-6 left-6 z-50"
+            className="fixed top-24 left-6 z-50"
           >
             <Button
+              id="settings-widget"
               onClick={() => setOpen(true)}
               className="size-12 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 dark:from-zinc-600 dark:to-zinc-800 hover:from-zinc-800 hover:to-zinc-950 shadow-xl shadow-black/20 hover:shadow-black/40 transition-all duration-300"
             >
@@ -81,7 +82,7 @@ export function SettingsWidget() {
                 animate={{ rotate: open ? 0 : 360 }}
                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
               >
-                <Settings2 className="size-5 text-white" />
+                <Settings className="size-5 text-white" />
               </motion.div>
             </Button>
           </motion.div>
@@ -96,13 +97,13 @@ export function SettingsWidget() {
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: -20, scale: 0.95 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-6 left-6 z-50 w-[320px] max-w-[calc(100vw-48px)] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden flex flex-col"
-            style={{ height: "520px", maxHeight: "calc(100vh - 100px)" }}
+            className="fixed top-24 left-6 z-50 w-[320px] max-w-[calc(100vw-48px)] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden flex flex-col"
+            style={{ height: "520px", maxHeight: "calc(100vh - 120px)" }}
           >
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-zinc-700 to-zinc-900 text-white">
               <div className="flex items-center gap-2">
-                <Settings2 className="size-5" />
+                <Settings className="size-5" />
                 <h3 className="font-bold text-sm">Quick Settings</h3>
               </div>
               <Button

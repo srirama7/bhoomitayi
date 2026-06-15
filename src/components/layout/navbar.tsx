@@ -182,7 +182,7 @@ export function Navbar() {
         </Link>
 
         {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-0.5 md:flex">
+        <nav id="nav-categories" className="hidden items-center gap-0.5 md:flex">
           {CATEGORIES.map((cat) => (
             <Link key={cat.value} href={cat.href}>
               <Button
@@ -196,6 +196,7 @@ export function Navbar() {
             </Link>
           ))}
           <Button
+            id="nav-register-service"
             size="sm"
             className="gap-1.5 rounded-xl bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transition-all duration-200 font-semibold"
             onClick={() => {
@@ -213,8 +214,12 @@ export function Navbar() {
 
         {/* Desktop Right Side */}
         <div className="hidden items-center gap-2 md:flex">
-          <LanguageSelector variant="desktop" />
-          <ThemeToggle />
+          <div id="language-selector-desktop">
+            <LanguageSelector variant="desktop" />
+          </div>
+          <div id="theme-toggle-desktop">
+            <ThemeToggle />
+          </div>
 
           {user && profile ? (
             <DropdownMenu>
@@ -270,13 +275,13 @@ export function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <div className="flex items-center gap-2">
-              <Link href="/auth/login">
+            <div id="nav-auth-buttons" className="flex items-center gap-2">
+              <Link href="/auth/login" id="nav-login">
                 <Button variant="ghost" size="sm" className="rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800">
                   {t("nav.login")}
                 </Button>
               </Link>
-              <Link href="/auth/signup">
+              <Link href="/auth/signup" id="nav-signup">
                 <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                   <Button
                     size="sm"

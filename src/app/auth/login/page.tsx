@@ -46,6 +46,11 @@ function LoginForm() {
 
     setIsLoading(true);
 
+    if (!auth) {
+      toast.error("Authentication service not available.");
+      return;
+    }
+
     try {
       await signInWithEmailAndPassword(auth, email.trim(), password);
 
@@ -69,6 +74,11 @@ function LoginForm() {
   }
 
   async function handleGoogleLogin() {
+    if (!auth) {
+      toast.error("Authentication service not available.");
+      return;
+    }
+
     setIsGoogleLoading(true);
 
     try {
@@ -90,16 +100,18 @@ function LoginForm() {
       // Auto-create profile if it doesn't exist (handles first-time Google sign-in)
       // This is in its own try/catch so a Firestore failure doesn't block sign-in
       try {
-        const profileRef = doc(db, "profiles", user.uid);
-        const profileSnap = await getDoc(profileRef);
-        if (!profileSnap.exists()) {
-          await setDoc(profileRef, {
-            id: user.uid,
-            full_name: user.displayName || "",
-            role: "user",
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+        if (db) {
+          const profileRef = doc(db, "profiles", user.uid);
+          const profileSnap = await getDoc(profileRef);
+          if (!profileSnap.exists()) {
+            await setDoc(profileRef, {
+              id: user.uid,
+              full_name: user.displayName || "",
+              role: "user",
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            });
+          }
         }
       } catch (profileError) {
         console.error("Failed to create/check profile:", profileError);

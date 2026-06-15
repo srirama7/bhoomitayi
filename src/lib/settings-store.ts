@@ -13,6 +13,7 @@ export interface SiteSettings {
   emailNotifications: boolean;
   inquiryAlerts: boolean;
   marketingEmails: boolean;
+  hasSeenOnboarding: boolean;
 
   // Actions
   setFontSize: (size: SiteSettings["fontSize"]) => void;
@@ -23,6 +24,7 @@ export interface SiteSettings {
   setEmailNotifications: (on: boolean) => void;
   setInquiryAlerts: (on: boolean) => void;
   setMarketingEmails: (on: boolean) => void;
+  setHasSeenOnboarding: (on: boolean) => void;
   resetAll: () => void;
 }
 
@@ -35,6 +37,7 @@ const defaults = {
   emailNotifications: true,
   inquiryAlerts: true,
   marketingEmails: false,
+  hasSeenOnboarding: false,
 };
 
 export const useSettingsStore = create<SiteSettings>()(
@@ -49,6 +52,7 @@ export const useSettingsStore = create<SiteSettings>()(
       setEmailNotifications: (emailNotifications) => set({ emailNotifications }),
       setInquiryAlerts: (inquiryAlerts) => set({ inquiryAlerts }),
       setMarketingEmails: (marketingEmails) => set({ marketingEmails }),
+      setHasSeenOnboarding: (hasSeenOnboarding) => set({ hasSeenOnboarding }),
       resetAll: () => set(defaults),
     }),
     { name: "bhoomitayi-settings" }

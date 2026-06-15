@@ -383,7 +383,7 @@ export default function ListingDetailPage() {
                         </div>
                         <div>
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Posted On</p>
-                          <p className="text-sm font-semibold text-foreground">{new Date(listing.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                          <p className="text-sm font-semibold text-foreground">{(() => { const d = new Date(listing.created_at); return `${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })} ${d.getFullYear()}`; })()}</p>
                         </div>
                       </div>
                     </div>

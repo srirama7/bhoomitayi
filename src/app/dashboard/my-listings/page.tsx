@@ -182,7 +182,7 @@ export default function MyListingsPage() {
     }
   };
 
-  const handleReactivatePayment = async () => {
+  const handleReactivatePayment = async (plan?: any) => {
     if (!reactivatingListing) return;
 
     setReactivating(true);
@@ -193,7 +193,9 @@ export default function MyListingsPage() {
       await updateDoc(doc(db, "listings", reactivatingListing.id), {
         status: "pending_payment",
         payment_status: "pending",
-        payment_amount: LISTING_FEE,
+        payment_amount: plan?.price || LISTING_FEE,
+        booster_plan: plan?.name || "Basic",
+        plan_days: plan?.days || 30,
         payment_reason: "reactivation",
         last_payment_submitted_at: submittedAt,
         reactivation_count: nextReactivationCount,
@@ -208,7 +210,9 @@ export default function MyListingsPage() {
                 ...listing,
                 status: "pending_payment",
                 payment_status: "pending",
-                payment_amount: LISTING_FEE,
+                payment_amount: plan?.price || LISTING_FEE,
+                booster_plan: plan?.name || "Basic",
+                plan_days: plan?.days || 30,
                 payment_reason: "reactivation",
                 last_payment_submitted_at: submittedAt,
                 reactivation_count: nextReactivationCount,
@@ -302,11 +306,10 @@ export default function MyListingsPage() {
                     <p className="text-lg font-bold">{formatPrice(listing.price)}</p>
                     <p className="text-xs text-muted-foreground">
                       {t("listing.created")}{" "}
-                      {new Date(listing.created_at).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                    {(() => {
+                      const date = new Date(listing.created_at);
+                      return `${date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} ${date.getFullYear()}`;
+                    })()}
                     </p>
                     <ListingCountdown
                       expiresAt={listing.expires_at}

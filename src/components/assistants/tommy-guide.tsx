@@ -327,6 +327,7 @@ export function TommyGuide() {
     <div id="tommy-guide-root">
       {/* Draggable Tommy Circle - always visible */}
       <div
+        id="tommy-guide-button"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

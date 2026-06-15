@@ -65,6 +65,7 @@ function createBellaEngine(
     {
       patterns: [/how\s*many.*listings/i, /total.*properties/i, /total.*listings/i, /website.*stats/i],
       resolver: async () => {
+        if (!db) return "I'm sorry, I can't access the database right now because it hasn't been configured.";
         try {
           const q = query(collection(db, "listings"), where("status", "==", "active"));
           const snapshot = await getDocs(q);
@@ -79,6 +80,7 @@ function createBellaEngine(
     {
       patterns: [/show.*latest/i, /recent.*listings/i, /new.*properties/i, /what.*new/i],
       resolver: async () => {
+        if (!db) return "Database access is currently unavailable.";
         try {
           const q = query(
             collection(db, "listings"), 
@@ -105,6 +107,7 @@ function createBellaEngine(
     {
       patterns: [/my\s*listings/i, /how\s*many\s*do\s*i\s*have/i, /show\s*my\s*posts/i],
       resolver: async () => {
+        if (!db) return "Database access is currently unavailable.";
         if (!user) return "You need to log in to see your listings! Click the User icon in the top right.";
         try {
           const q = query(collection(db, "listings"), where("user_id", "==", user.uid));
@@ -129,6 +132,7 @@ function createBellaEngine(
     {
       patterns: [/how\s*many\s*(houses|homes)/i, /show.*houses/i],
       resolver: async () => {
+        if (!db) return "Database access is currently unavailable.";
         const q = query(collection(db, "listings"), where("category", "==", "house"), where("status", "==", "active"));
         const snap = await getDocs(q);
         return `We have ${snap.size} houses currently available for sale or rent. Check the 'Houses' section in the menu to see them!`;
@@ -137,6 +141,7 @@ function createBellaEngine(
     {
       patterns: [/how\s*many\s*lands/i, /show.*land/i, /plots\s*available/i],
       resolver: async () => {
+        if (!db) return "Database access is currently unavailable.";
         const q = query(collection(db, "listings"), where("category", "==", "land"), where("status", "==", "active"));
         const snap = await getDocs(q);
         return `There are ${snap.size} land plots/sites available right now. You can find residential and agricultural land in our 'Land' section.`;
@@ -613,6 +618,7 @@ export function BellaChat() {
       {/* Draggable Floating Button - always rendered, hidden via display */}
       <div
         ref={bellaRef}
+        id="bella-chat-button"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

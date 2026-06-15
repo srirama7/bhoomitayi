@@ -32,6 +32,11 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
 
+    if (!auth) {
+      toast.error("Authentication service not available.");
+      return;
+    }
+
     try {
       await sendPasswordResetEmail(auth, email.trim());
 

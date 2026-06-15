@@ -22,11 +22,11 @@ export function sanitizeTimerDuration(
   duration?: Partial<TimerDuration> | null
 ): TimerDuration {
   return {
-    months: Math.max(0, Number(duration?.months ?? 0)),
-    days: Math.max(0, Number(duration?.days ?? 0)),
-    hours: Math.max(0, Number(duration?.hours ?? 0)),
-    minutes: Math.max(0, Number(duration?.minutes ?? 0)),
-    seconds: Math.max(0, Number(duration?.seconds ?? 0)),
+    months: Math.max(0, Math.floor(Number(duration?.months ?? 0) || 0)),
+    days: Math.max(0, Math.floor(Number(duration?.days ?? 0) || 0)),
+    hours: Math.max(0, Math.floor(Number(duration?.hours ?? 0) || 0)),
+    minutes: Math.max(0, Math.floor(Number(duration?.minutes ?? 0) || 0)),
+    seconds: Math.max(0, Math.floor(Number(duration?.seconds ?? 0) || 0)),
   };
 }
 
@@ -73,9 +73,53 @@ export function isListingPubliclyVisible(listing: Listing) {
   return getEffectiveListingStatus(listing) === "active";
 }
 
-export function getRemainingTimeMs(expiresAt?: string | null) {
+/**
+ * Returns the number of milliseconds remaining until the listing expires.
+ * Returns null if no expiry is set.
+ * Returns 0 (never negative) if the listing has already expired.
+ * Handles: ISO string, Firestore Timestamp object (seconds/nanoseconds),
+ * and Firestore Timestamp objects with toMillis() or toDate() methods.
+ */
+export function getRemainingTimeMs(
+  expiresAt?:
+    | string
+    | {
+        seconds: number;
+        nanoseconds?: number;
+        toMillis?: () => number;
+        toDate?: () => Date;
+      }
+    | null
+): number | null {
   if (!expiresAt) return null;
-  return Math.max(0, new Date(expiresAt).getTime() - Date.now());
+
+  let expireTime: number;
+
+  if (typeof expiresAt === "object") {
+    // Firestore Timestamp with toMillis()
+    if (typeof (expiresAt as any).toMillis === "function") {
+      expireTime = (expiresAt as any).toMillis();
+    }
+    // Firestore Timestamp with toDate()
+    else if (typeof (expiresAt as any).toDate === "function") {
+      expireTime = (expiresAt as any).toDate().getTime();
+    }
+    // Plain object { seconds, nanoseconds }
+    else if ("seconds" in expiresAt) {
+      const nanoseconds = (expiresAt as any).nanoseconds ?? 0;
+      expireTime =
+        expiresAt.seconds * 1000 + Math.floor(nanoseconds / 1_000_000);
+    } else {
+      return null;
+    }
+  } else {
+    expireTime = new Date(expiresAt).getTime();
+  }
+
+  if (isNaN(expireTime) || !isFinite(expireTime)) return null;
+
+  // Always clamp to 0 — never return negative milliseconds
+  return Math.max(0, expireTime - Date.now());
 }
 
 export function formatRemainingDuration(ms: number) {
@@ -100,11 +144,21 @@ export function formatRemainingDuration(ms: number) {
 export function formatTimerDuration(duration?: Partial<TimerDuration> | null) {
   const sanitized = sanitizeTimerDuration(duration);
   const parts = [
-    sanitized.months > 0 ? `${sanitized.months} month${sanitized.months === 1 ? "" : "s"}` : null,
-    sanitized.days > 0 ? `${sanitized.days} day${sanitized.days === 1 ? "" : "s"}` : null,
-    sanitized.hours > 0 ? `${sanitized.hours} hr${sanitized.hours === 1 ? "" : "s"}` : null,
-    sanitized.minutes > 0 ? `${sanitized.minutes} min${sanitized.minutes === 1 ? "" : "s"}` : null,
-    sanitized.seconds > 0 ? `${sanitized.seconds} sec${sanitized.seconds === 1 ? "" : "s"}` : null,
+    sanitized.months > 0
+      ? `${sanitized.months} month${sanitized.months === 1 ? "" : "s"}`
+      : null,
+    sanitized.days > 0
+      ? `${sanitized.days} day${sanitized.days === 1 ? "" : "s"}`
+      : null,
+    sanitized.hours > 0
+      ? `${sanitized.hours} hr${sanitized.hours === 1 ? "" : "s"}`
+      : null,
+    sanitized.minutes > 0
+      ? `${sanitized.minutes} min${sanitized.minutes === 1 ? "" : "s"}`
+      : null,
+    sanitized.seconds > 0
+      ? `${sanitized.seconds} sec${sanitized.seconds === 1 ? "" : "s"}`
+      : null,
   ].filter(Boolean);
 
   return parts.length > 0 ? parts.join(" / ") : "No timer set";

@@ -262,14 +262,16 @@ export default function SellCommercialPage() {
     }
   }
 
-  async function handlePaymentConfirmed() {
+  async function handlePaymentConfirmed(plan?: any) {
     if (!pendingListingData) return;
 
     setSubmitting(true);
     try {
       await addDoc(collection(db, "listings"), {
         ...pendingListingData,
-        payment_amount: LISTING_FEE,
+        payment_amount: plan?.price || LISTING_FEE,
+        booster_plan: plan?.name || "Basic",
+        plan_days: plan?.days || 30,
         payment_status: "pending",
         payment_reason: "initial_listing",
         reactivation_count: 0,

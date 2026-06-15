@@ -8,6 +8,7 @@ import { BellaChat } from "@/components/assistants/bella-chat";
 import { TommyGuide } from "@/components/assistants/tommy-guide";
 import { SettingsWidget } from "@/components/settings/settings-widget";
 import { SettingsApplier } from "@/components/settings/settings-applier";
+import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -15,7 +16,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const host = window.location.hostname;
-    if (host.includes("admin") || host.includes("localhost")) {
+    if (host.includes("admin")) {
       setIsAdminDomain(true);
     }
   }, []);
@@ -41,6 +42,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       <BellaChat />
       <TommyGuide />
       <SettingsWidget />
+      <OnboardingTour />
     </div>
   );
 }

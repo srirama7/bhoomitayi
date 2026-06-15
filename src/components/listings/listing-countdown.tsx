@@ -12,7 +12,7 @@ import {
 } from "@/lib/listing-timer";
 
 interface ListingCountdownProps {
-  expiresAt?: string | null;
+  expiresAt?: string | { seconds: number; nanoseconds?: number } | null;
   status: string;
   onReactivate?: () => void;
   reactivating?: boolean;
@@ -200,7 +200,7 @@ export function ListingCountdown({
             : "text-blue-600 dark:text-blue-400"
         }`}
       >
-        {String(timeLeft.months).padStart(2, "0")} : {String(timeLeft.days).padStart(2, "0")} : {String(timeLeft.hours).padStart(2, "0")} : {String(timeLeft.minutes).padStart(2, "0")} : {String(timeLeft.seconds).padStart(2, "0")}
+        {String(Math.max(0, timeLeft.months)).padStart(2, "0")} : {String(Math.max(0, timeLeft.days)).padStart(2, "0")} : {String(Math.max(0, timeLeft.hours)).padStart(2, "0")} : {String(Math.max(0, timeLeft.minutes)).padStart(2, "0")} : {String(Math.max(0, timeLeft.seconds)).padStart(2, "0")}
       </p>
     </div>
   );
@@ -224,7 +224,7 @@ function CountdownUnit({
             : "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200"
         }`}
       >
-        {String(value).padStart(2, "0")}
+        {String(Math.max(0, value)).padStart(2, "0")}
       </div>
       <span
         className={`mt-1 text-[10px] font-medium sm:text-xs ${

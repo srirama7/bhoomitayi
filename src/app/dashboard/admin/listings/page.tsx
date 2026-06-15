@@ -122,10 +122,13 @@ export default function AdminListingsPage() {
         setListings(listingsWithProfiles);
         setTimerInputs(
           Object.fromEntries(
-            listingsWithProfiles.map((l) => [
-              l.id,
-              sanitizeTimerDuration(l.timer_duration ?? DEFAULT_TIMER_DURATION),
-            ])
+            listingsWithProfiles.map((l: any) => {
+              let duration = sanitizeTimerDuration(l.timer_duration ?? DEFAULT_TIMER_DURATION);
+              if (!hasTimerDuration(duration) && l.plan_days) {
+                duration = sanitizeTimerDuration({ days: l.plan_days });
+              }
+              return [l.id, duration];
+            })
           )
         );
       } catch (error) {
@@ -272,11 +275,13 @@ export default function AdminListingsPage() {
                                          <div className="size-10 rounded border bg-zinc-100 overflow-hidden shrink-0">
                                             {l.images?.[0] && <Image src={l.images[0]} alt="" fill className="object-cover" />}
                                          </div>
-                                         <div className="min-w-0">
-                                            <p className="font-semibold text-zinc-900 dark:text-zinc-100 truncate w-48">{l.title}</p>
-                                            <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-tighter">{l.category}</p>
-                                         </div>
-                                      </div>
+                                          <div className="min-w-0">
+                                             <p className="font-semibold text-zinc-900 dark:text-zinc-100 truncate w-48">{l.title}</p>
+                                             <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-tighter">
+                                               {l.category} • {((l as any).booster_plan) ? `${(l as any).booster_plan} (${(l as any).plan_days}D) • ₹${(l as any).payment_amount}` : "Standard Plan"}
+                                             </p>
+                                          </div>
+                                       </div>
                                    </td>
                                    <td className="px-6 py-4">
                                       <p className="font-medium text-zinc-700 dark:text-zinc-300">{l.sellerName}</p>

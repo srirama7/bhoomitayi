@@ -10,10 +10,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setProfile, setLoading } = useAuthStore();
 
   useEffect(() => {
+    if (!auth) {
+      console.error("Firebase Auth is not initialized. Check your environment variables.");
+      setLoading(false);
+      return;
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
 
-      if (user) {
+      if (user && db) {
         const profileRef = doc(db, "profiles", user.uid);
         const profileSnap = await getDoc(profileRef);
         if (profileSnap.exists()) {

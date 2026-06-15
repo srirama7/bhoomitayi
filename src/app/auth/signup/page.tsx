@@ -75,21 +75,29 @@ function SignupForm() {
 
     setIsLoading(true);
 
+    if (!auth || !db) {
+      toast.error("Database services are currently unavailable. Please try again later.");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const user = userCredential.user;
 
       // Create profile document in Firestore
       try {
-        await setDoc(doc(db, "profiles", user.uid), {
-          id: user.uid,
-          full_name: fullName.trim(),
-          phone: phone.trim(),
-          avatar_url: null,
-          role: "user",
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
+        if (db) {
+          await setDoc(doc(db, "profiles", user.uid), {
+            id: user.uid,
+            full_name: fullName.trim(),
+            phone: phone.trim(),
+            avatar_url: null,
+            role: "user",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          });
+        }
       } catch (profileError) {
         console.error("Failed to create profile:", profileError);
       }
