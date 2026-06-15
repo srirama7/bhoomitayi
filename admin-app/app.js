@@ -475,10 +475,10 @@ function renderUsers() {
   const stats = document.getElementById("userStats");
   if(stats) {
     const admins = Object.values(allProfiles).filter(u => u.role === 'admin').length;
-    stats.innerHTML = \`
-      <div class="stat-card active"><div class="stat-label">Total Users</div><div class="stat-value">\${Object.keys(allProfiles).length}</div></div>
-      <div class="stat-card"><div class="stat-label">Admins</div><div class="stat-value">\${admins}</div></div>
-    \`;
+    stats.innerHTML = `
+      <div class="stat-card active"><div class="stat-label">Total Users</div><div class="stat-value">${Object.keys(allProfiles).length}</div></div>
+      <div class="stat-card"><div class="stat-label">Admins</div><div class="stat-value">${admins}</div></div>
+    `;
   }
 }
 
@@ -490,19 +490,19 @@ function renderFavorites() {
   c.innerHTML = allFavorites.map(f => {
     const p = allProfiles[f.user_id] || {};
     const l = allListings.find(x => x.id === f.listing_id) || {title: "Unknown Listing (Deleted)"};
-    return \`
+    return `
     <div class="listing-card">
       <div class="listing-top">
         <div class="listing-info">
-          <div class="listing-name">❤️ \${p.full_name || 'Unknown User'} favorited \${l.title}</div>
-          <div class="listing-meta">User ID: \${f.user_id} · Listing ID: \${f.listing_id}</div>
+          <div class="listing-name">❤️ ${p.full_name || 'Unknown User'} favorited ${l.title}</div>
+          <div class="listing-meta">User ID: ${f.user_id} · Listing ID: ${f.listing_id}</div>
         </div>
         <div class="listing-right">
-          <div class="listing-date">\${formatDate(f.created_at)}</div>
+          <div class="listing-date">${formatDate(f.created_at)}</div>
         </div>
       </div>
     </div>
-  \`}).join("");
+  `}).join("");
 }
 
 function renderReports() {
@@ -513,17 +513,17 @@ function renderReports() {
   c.innerHTML = allReports.map(r => {
     const p = allProfiles[r.reporter_id] || {};
     const l = allListings.find(x => x.id === r.listing_id) || {title: "Unknown Listing (Deleted)"};
-    return \`
+    return `
     <div class="listing-card" style="border-left: 4px solid #ef4444">
       <div class="listing-top">
         <div class="listing-info">
-          <div class="listing-name">⚠️ Report on \${l.title}</div>
-          <div class="listing-meta">Reported by \${p.full_name || 'Unknown User'} · Reason: \${r.reason}</div>
+          <div class="listing-name">⚠️ Report on ${l.title}</div>
+          <div class="listing-meta">Reported by ${p.full_name || 'Unknown User'} · Reason: ${r.reason}</div>
         </div>
         <div class="listing-right">
-          <div class="listing-date">\${formatDate(r.created_at)}</div>
+          <div class="listing-date">${formatDate(r.created_at)}</div>
         </div>
       </div>
     </div>
-  \`}).join("");
+  `}).join("");
 }
