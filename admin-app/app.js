@@ -19,29 +19,7 @@ document.getElementById("loginBtn").onclick = async () => {
   if (u === "admin" && p === "admin") {
     try {
       // Sign in with Firebase Auth using the admin account
-      try {
-        await auth.signInWithEmailAndPassword("admin@admin.com", "admin123");
-      } catch(signInError) {
-        if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential' || signInError.message.includes('user')) {
-          console.log("Admin user not found, attempting to create one...");
-          try {
-            const uc = await auth.createUserWithEmailAndPassword("admin@admin.com", "admin123");
-            await db.collection("profiles").doc(uc.user.uid).set({
-              full_name: "Admin",
-              email: "admin@admin.com",
-              role: "admin",
-              phone: "",
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-            console.log("Admin user created successfully!");
-          } catch(createError) {
-             throw new Error("Could not create admin account. Make sure Email/Password sign-in is enabled in Firebase Console! " + createError.message);
-          }
-        } else {
-          throw signInError;
-        }
-      }
+      await auth.signInWithEmailAndPassword("admin@admin.com", "admin123");
       sessionStorage.setItem("adminAuth", "true");
       showDashboard();
     } catch (e) {
@@ -49,7 +27,7 @@ document.getElementById("loginBtn").onclick = async () => {
       const err = document.getElementById("loginError");
       err.textContent = "Auth failed: " + e.message;
       err.style.display = "block";
-      setTimeout(() => err.style.display = "none", 10000);
+      setTimeout(() => err.style.display = "none", 5000);
     }
   } else {
     const e = document.getElementById("loginError");
