@@ -14,6 +14,7 @@ import {
   Search,
   ChevronDown,
   Menu,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +34,8 @@ const adminNavItems = [
   { label: "Dashboard", href: "/dashboard/admin", icon: LayoutDashboard },
   { label: "User Management", href: "/dashboard/admin/users", icon: Users },
   { label: "Listings Control", href: "/dashboard/admin/listings", icon: Building },
-  { label: "Reports", href: "/dashboard/admin/reports", icon: Shield },
+  { label: "Favorites", href: "/dashboard/admin/favorites", icon: Shield },
+  { label: "Reports", href: "/dashboard/admin/reports", icon: AlertCircle },
   { label: "System Settings", href: "/dashboard/admin/settings", icon: Settings },
 ];
 

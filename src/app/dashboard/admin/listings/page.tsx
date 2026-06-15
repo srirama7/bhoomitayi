@@ -17,6 +17,10 @@ import {
   Search,
   Filter,
   MoreVertical,
+  Timer,
+  X,
+  XCircle,
+  RotateCcw
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -88,6 +92,7 @@ export default function AdminListingsPage() {
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [, forceTick] = useState(0);
+  const [selectedListing, setSelectedListing] = useState<AdminListing | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => forceTick((prev) => prev + 1), 1000);
@@ -269,7 +274,14 @@ export default function AdminListingsPage() {
                           filteredListings.map(l => {
                              const effS = getEffectiveListingStatus(l);
                              return (
-                                <tr key={l.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20 transition-colors group">
+                                <tr 
+                                  key={l.id} 
+                                  className={cn(
+                                    "hover:bg-zinc-50/50 dark:hover:bg-zinc-800/50 transition-colors cursor-pointer",
+                                    selectedListing?.id === l.id && "bg-blue-50/50 dark:bg-blue-900/20"
+                                  )}
+                                  onClick={() => setSelectedListing(l)}
+                                >
                                    <td className="px-6 py-4">
                                       <div className="flex items-center gap-3">
                                          <div className="size-10 rounded border bg-zinc-100 overflow-hidden shrink-0">
@@ -323,12 +335,98 @@ export default function AdminListingsPage() {
                  <h3 className="text-xs font-bold uppercase text-zinc-500 tracking-widest">Active Inspector</h3>
               </div>
               <CardContent className="p-0">
-                 <div className="p-6 text-center space-y-4">
-                    <div className="size-16 rounded-full bg-zinc-100 dark:bg-zinc-800 border-4 border-white dark:border-zinc-900 shadow-sm flex items-center justify-center mx-auto">
-                       <Tag className="size-8 text-zinc-300" />
-                    </div>
-                    <p className="text-xs text-zinc-400 italic px-4">Select a listing from the directory to adjust its visibility timers and platform priority.</p>
-                 </div>
+                 {!selectedListing ? (
+                     <div className="p-6 text-center space-y-4">
+                        <div className="size-16 rounded-full bg-zinc-100 dark:bg-zinc-800 border-4 border-white dark:border-zinc-900 shadow-sm flex items-center justify-center mx-auto">
+                           <Tag className="size-8 text-zinc-300" />
+                        </div>
+                        <p className="text-xs text-zinc-400 italic px-4">Select a listing from the directory to adjust its visibility timers and platform priority.</p>
+                     </div>
+                  ) : (
+                     <div className="p-4 space-y-4">
+                        <div>
+                           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{selectedListing.title}</p>
+                           <p className="text-xs text-zinc-500 capitalize">{selectedListing.category} • {formatPrice(selectedListing.price)}</p>
+                        </div>
+                        
+                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md border border-blue-100 dark:border-blue-900/30">
+                           <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Selected Plan</p>
+                           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                              {(selectedListing as any).booster_plan || "Standard Plan"}
+                           </p>
+                           {(selectedListing as any).booster_plan && (
+                              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                                 Duration: {(selectedListing as any).plan_days} Days <br/>
+                                 Paid: ₹{(selectedListing as any).payment_amount}
+                              </p>
+                           )}
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Quick Actions</p>
+                           
+                           {selectedListing.status === "pending_payment" || selectedListing.status === "rejected" ? (
+                              <Button 
+                                 size="sm" 
+                                 className="w-full bg-green-600 hover:bg-green-700 text-white"
+                                 onClick={() => handleUpdateStatus(selectedListing.id, "active")}
+                                 disabled={updatingId === selectedListing.id}
+                              >
+                                 <CheckCircle2 className="size-4 mr-2" /> Approve & Make Active
+                              </Button>
+                           ) : selectedListing.status === "active" ? (
+                              <Button 
+                                 size="sm" 
+                                 variant="outline"
+                                 className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                                 onClick={() => handleUpdateStatus(selectedListing.id, "rejected")}
+                                 disabled={updatingId === selectedListing.id}
+                              >
+                                 <XCircle className="size-4 mr-2" /> Reject / Deactivate
+                              </Button>
+                           ) : selectedListing.status === "timed_out" ? (
+                              <Button 
+                                 size="sm" 
+                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                 onClick={() => handleUpdateStatus(selectedListing.id, "active")}
+                                 disabled={updatingId === selectedListing.id}
+                              >
+                                 <RotateCcw className="size-4 mr-2" /> Relaunch
+                              </Button>
+                           ) : null}
+                        </div>
+
+                        <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Timer Extension</p>
+                           <div className="flex gap-2">
+                              <select 
+                                 className="flex-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300"
+                                 value={timerInputs[selectedListing.id]?.days || 0}
+                                 onChange={(e) => setTimerInputs(prev => ({ ...prev, [selectedListing.id]: { days: parseInt(e.target.value) / (1000 * 60 * 60 * 24), months: 0, hours: 0, minutes: 0, seconds: 0 } }))}
+                              >
+                                 <option value={0}>Select days...</option>
+                                 <option value={1000 * 60 * 60 * 24 * 30}>30 Days (Basic)</option>
+                                 <option value={1000 * 60 * 60 * 24 * 100}>100 Days (Plus)</option>
+                                 <option value={1000 * 60 * 60 * 24 * 180}>180 Days (Pro)</option>
+                                 <option value={1000 * 60 * 60 * 24 * 365}>365 Days (Ultra Pro)</option>
+                              </select>
+                              <Button 
+                                 size="sm" 
+                                 onClick={() => handleSetTimer(selectedListing)}
+                                 disabled={!timerInputs[selectedListing.id]?.days || updatingId === selectedListing.id}
+                              >
+                                 Set
+                              </Button>
+                           </div>
+                        </div>
+
+                        <Link href={`/listing/${selectedListing.id}`} target="_blank" className="block mt-4">
+                           <Button variant="secondary" size="sm" className="w-full">
+                              <ExternalLink className="size-4 mr-2" /> View Public Page
+                           </Button>
+                        </Link>
+                     </div>
+                  )}
               </CardContent>
            </Card>
            
