@@ -58,7 +58,7 @@ auth.onAuthStateChanged(user => {
 });
 
 // TABS
-const tabIds = ["tab-overview", "tab-listings", "tab-analytics", "tab-revenue"];
+const tabIds = ["tab-overview", "tab-listings", "tab-users", "tab-favorites", "tab-reports", "tab-analytics", "tab-revenue"];
 document.querySelectorAll(".tab").forEach(t => {
   t.addEventListener("click", function () {
     document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
@@ -72,8 +72,15 @@ document.querySelectorAll(".tab").forEach(t => {
       if (this.dataset.tab === "analytics") renderAnalytics();
       if (this.dataset.tab === "revenue") renderRevenue();
     }
+    
+    if (this.dataset.tab === "users") renderUsers();
+    if (this.dataset.tab === "favorites") renderFavorites();
+    if (this.dataset.tab === "reports") renderReports();
   });
 });
+
+let allFavorites = [];
+let allReports = [];
 
 // DATA
 async function refreshData() {
@@ -85,12 +92,18 @@ async function refreshData() {
     });
   }
   try {
-    const [listSnap, profSnap] = await Promise.all([
+    const [listSnap, profSnap, favSnap, repSnap] = await Promise.all([
       db.collection("listings").orderBy("created_at", "desc").get(),
-      db.collection("profiles").get()
+      db.collection("profiles").get(),
+      db.collection("favorites").get(),
+      db.collection("reports").get()
     ]);
     allProfiles = {};
-    profSnap.forEach(d => allProfiles[d.id] = d.data());
+    profSnap.forEach(d => allProfiles[d.id] = {id: d.id, ...d.data()});
+    allFavorites = [];
+    favSnap.forEach(d => allFavorites.push({id: d.id, ...d.data()}));
+    allReports = [];
+    repSnap.forEach(d => allReports.push({id: d.id, ...d.data()}));
     allListings = [];
     for (const d of listSnap.docs) {
       const data = { id: d.id, ...d.data() };
@@ -107,7 +120,7 @@ async function refreshData() {
   }catch(e){console.error("Error:",e)}
 }
 
-function updateAll(){updateStats();renderListings();renderAnalytics();renderRevenue();drawOverviewChart()}
+function updateAll(){updateStats();renderListings();renderUsers();renderFavorites();renderReports();renderAnalytics();renderRevenue();drawOverviewChart()}
 
 function updateStats(){
   const t=allListings.length,p=allListings.filter(l=>l.status==="pending").length;
@@ -426,3 +439,91 @@ function formatDate(d){if(!d)return"-";return new Date(d).toLocaleDateString("en
 
 // Redraw charts on resize
 window.addEventListener("resize",()=>{if(allListings.length){drawOverviewChart();renderAnalytics();renderRevenue()}});
+
+// NEW SECTIONS: USERS, FAVORITES, REPORTS
+
+// Search Users
+document.getElementById("searchUserInput")?.addEventListener("input", () => renderUsers());
+
+function renderUsers() {
+  const c = document.getElementById("usersContainer");
+  if(!c) return;
+  let list = Object.values(allProfiles);
+  const q = document.getElementById("searchUserInput")?.value.toLowerCase().trim();
+  if (q) {
+    list = list.filter(u => {
+      return [u.full_name, u.email, u.phone, u.role].some(v => (v||"").toLowerCase().includes(q));
+    });
+  }
+  
+  if(!list.length) { c.innerHTML = '<div class="empty-state"><p>No users found</p></div>'; return; }
+  
+  c.innerHTML = list.map(u => `
+    <div class="listing-card">
+      <div class="listing-top">
+        <div class="listing-info">
+          <div class="listing-name">${u.full_name} <span class="badge badge-${u.role==='admin'?'active':'pending'}">${u.role}</span></div>
+          <div class="listing-meta">${u.email || 'No email'} · ${u.phone || 'No phone'}</div>
+        </div>
+        <div class="listing-right">
+          <div class="listing-date">Joined: ${formatDate(u.created_at)}</div>
+        </div>
+      </div>
+    </div>
+  `).join("");
+  
+  const stats = document.getElementById("userStats");
+  if(stats) {
+    const admins = Object.values(allProfiles).filter(u => u.role === 'admin').length;
+    stats.innerHTML = \`
+      <div class="stat-card active"><div class="stat-label">Total Users</div><div class="stat-value">\${Object.keys(allProfiles).length}</div></div>
+      <div class="stat-card"><div class="stat-label">Admins</div><div class="stat-value">\${admins}</div></div>
+    \`;
+  }
+}
+
+function renderFavorites() {
+  const c = document.getElementById("favoritesContainer");
+  if(!c) return;
+  if(!allFavorites.length) { c.innerHTML = '<div class="empty-state"><p>No favorites found</p></div>'; return; }
+  
+  c.innerHTML = allFavorites.map(f => {
+    const p = allProfiles[f.user_id] || {};
+    const l = allListings.find(x => x.id === f.listing_id) || {title: "Unknown Listing (Deleted)"};
+    return \`
+    <div class="listing-card">
+      <div class="listing-top">
+        <div class="listing-info">
+          <div class="listing-name">❤️ \${p.full_name || 'Unknown User'} favorited \${l.title}</div>
+          <div class="listing-meta">User ID: \${f.user_id} · Listing ID: \${f.listing_id}</div>
+        </div>
+        <div class="listing-right">
+          <div class="listing-date">\${formatDate(f.created_at)}</div>
+        </div>
+      </div>
+    </div>
+  \`}).join("");
+}
+
+function renderReports() {
+  const c = document.getElementById("reportsContainer");
+  if(!c) return;
+  if(!allReports.length) { c.innerHTML = '<div class="empty-state"><p>No reports found</p></div>'; return; }
+  
+  c.innerHTML = allReports.map(r => {
+    const p = allProfiles[r.reporter_id] || {};
+    const l = allListings.find(x => x.id === r.listing_id) || {title: "Unknown Listing (Deleted)"};
+    return \`
+    <div class="listing-card" style="border-left: 4px solid #ef4444">
+      <div class="listing-top">
+        <div class="listing-info">
+          <div class="listing-name">⚠️ Report on \${l.title}</div>
+          <div class="listing-meta">Reported by \${p.full_name || 'Unknown User'} · Reason: \${r.reason}</div>
+        </div>
+        <div class="listing-right">
+          <div class="listing-date">\${formatDate(r.created_at)}</div>
+        </div>
+      </div>
+    </div>
+  \`}).join("");
+}
