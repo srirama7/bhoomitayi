@@ -12,45 +12,16 @@ const auth = firebase.auth();
 const APPROVAL_EMAIL_API_URL = "https://propnest-admin-official.vercel.app/api/listings/approval-email";
 let allListings = [], allProfiles = {}, currentFilter = "all", countdownIntervals = {};
 
-// AUTH - Sign in with Firebase Auth so Firestore rules work
+// // AUTH
 document.getElementById("loginBtn").onclick = async () => {
   const u = document.getElementById("username").value.trim();
   const p = document.getElementById("password").value.trim();
   if (u === "admin" && p === "admin") {
-    try {
-      // Sign in with Firebase Auth using the admin account
-      try {
-        await auth.signInWithEmailAndPassword("admin@admin.com", "admin123");
-      } catch(signInError) {
-        if (signInError.code === 'auth/user-not-found' || signInError.code === 'auth/invalid-credential' || (signInError.message || "").includes('user')) {
-          console.log("Admin user not found, attempting to create one...");
-          try {
-            const uc = await auth.createUserWithEmailAndPassword("admin@admin.com", "admin123");
-            await db.collection("profiles").doc(uc.user.uid).set({
-              full_name: "Admin",
-              email: "admin@admin.com",
-              role: "admin",
-              phone: "",
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
-            console.log("Admin user created successfully!");
-          } catch(createError) {
-             throw new Error("Could not create admin account. Make sure Email/Password sign-in is enabled in Firebase Console! " + createError.message);
-          }
-        } else {
-          throw signInError;
-        }
-      }
-      sessionStorage.setItem("adminAuth", "true");
-      showDashboard();
-    } catch (e) {
-      console.error("Firebase Auth error:", e);
-      const err = document.getElementById("loginError");
-      err.textContent = "Auth failed: " + e.message;
-      err.style.display = "block";
-      setTimeout(() => err.style.display = "none", 5000);
-    }
+    // Try to sign in anonymously just to see if we can get some auth context, but ignore if it fails
+    try { await auth.signInAnonymously(); } catch(e) { console.warn("Anonymous auth failed or not enabled", e); }
+    
+    sessionStorage.setItem("adminAuth", "true");
+    showDashboard();
   } else {
     const e = document.getElementById("loginError");
     e.textContent = "Invalid credentials";
@@ -72,12 +43,10 @@ function showDashboard() {
   refreshData();
 }
 
-// Auto-login if session exists and Firebase auth state persists
-auth.onAuthStateChanged(user => {
-  if (user && sessionStorage.getItem("adminAuth") === "true") {
-    showDashboard();
-  }
-});
+// Auto-login if session exists
+if (sessionStorage.getItem("adminAuth") === "true") {
+  showDashboard();
+}
 
 // TABS
 const tabIds = ["tab-overview", "tab-listings", "tab-users", "tab-favorites", "tab-reports", "tab-analytics", "tab-revenue"];
@@ -114,18 +83,22 @@ async function refreshData() {
     });
   }
   try {
-    const [listSnap, profSnap, favSnap, repSnap] = await Promise.all([
+    const [listSnap, profSnap] = await Promise.all([
       db.collection("listings").orderBy("created_at", "desc").get(),
-      db.collection("profiles").get(),
-      db.collection("favorites").get(),
-      db.collection("reports").get()
+      db.collection("profiles").get()
     ]);
+    
+    // Fetch these safely, as they require auth in Firestore rules
+    let favSnap, repSnap;
+    try { favSnap = await db.collection("favorites").get(); } catch(e) { console.warn("Could not read favorites - check rules/auth"); }
+    try { repSnap = await db.collection("reports").get(); } catch(e) { console.warn("Could not read reports - check rules/auth"); }
+
     allProfiles = {};
     profSnap.forEach(d => allProfiles[d.id] = {id: d.id, ...d.data()});
     allFavorites = [];
-    favSnap.forEach(d => allFavorites.push({id: d.id, ...d.data()}));
+    if (favSnap) favSnap.forEach(d => allFavorites.push({id: d.id, ...d.data()}));
     allReports = [];
-    repSnap.forEach(d => allReports.push({id: d.id, ...d.data()}));
+    if (repSnap) repSnap.forEach(d => allReports.push({id: d.id, ...d.data()}));
     allListings = [];
     for (const d of listSnap.docs) {
       const data = { id: d.id, ...d.data() };
