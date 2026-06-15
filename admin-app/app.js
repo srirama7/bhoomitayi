@@ -160,6 +160,7 @@ function buildCard(l){
   let detailItems=`
     <div class="detail-item"><div class="detail-label">Category</div><div class="detail-value">${l.category||'-'}</div></div>
     <div class="detail-item"><div class="detail-label">Transaction</div><div class="detail-value">${l.transaction_type||'-'}</div></div>
+    <div class="detail-item"><div class="detail-label">Booster Plan</div><div class="detail-value">${l.booster_plan ? `${l.booster_plan} (${l.plan_days} Days)` : 'Basic'}</div></div>
     <div class="detail-item"><div class="detail-label">Price</div><div class="detail-value">${formatPrice(l.price)}</div></div>
     <div class="detail-item"><div class="detail-label">Address</div><div class="detail-value">${l.address||'-'}</div></div>
     <div class="detail-item"><div class="detail-label">Pincode</div><div class="detail-value">${l.pincode||'-'}</div></div>
@@ -196,7 +197,7 @@ function buildCard(l){
     <div class="timer-inputs">
       <div class="timer-field"><label>Years</label><input type="number" min="0" id="ty-${l.id}" value="0"></div>
       <div class="timer-field"><label>Months</label><input type="number" min="0" max="11" id="tm-${l.id}" value="0"></div>
-      <div class="timer-field"><label>Days</label><input type="number" min="0" max="30" id="td-${l.id}" value="0"></div>
+      <div class="timer-field"><label>Days</label><input type="number" min="0" max="30" id="td-${l.id}" value="${l.plan_days || 0}"></div>
       <div class="timer-field"><label>Hours</label><input type="number" min="0" max="23" id="th-${l.id}" value="0"></div>
       <div class="timer-field"><label>Mins</label><input type="number" min="0" max="59" id="tmin-${l.id}" value="0"></div>
       <button class="btn btn-primary" onclick="setTimer('${l.id}')" style="margin-top:16px">Set & Approve</button>
