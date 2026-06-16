@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, GoogleAuthProvider } from "firebase/auth";
-import { doc, setDoc, getDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -107,10 +107,21 @@ function LoginForm() {
             await setDoc(profileRef, {
               id: user.uid,
               full_name: user.displayName || "",
+              email: user.email || "",
+              avatar_url: user.photoURL || null,
               role: "user",
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString(),
             });
+          } else {
+            // Sync email and photo if they were missing (useful for existing profiles)
+            const data = profileSnap.data();
+            if (!data.email && user.email) {
+              await updateDoc(profileRef, { 
+                email: user.email,
+                avatar_url: data.avatar_url || user.photoURL || null
+              });
+            }
           }
         }
       } catch (profileError) {

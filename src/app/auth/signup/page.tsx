@@ -91,6 +91,7 @@ function SignupForm() {
           await setDoc(doc(db, "profiles", user.uid), {
             id: user.uid,
             full_name: fullName.trim(),
+            email: user.email || email.trim(),
             phone: phone.trim(),
             avatar_url: null,
             role: "user",
