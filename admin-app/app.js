@@ -453,19 +453,34 @@ function renderUsers() {
   
   if(!list.length) { c.innerHTML = '<div class="empty-state"><p>No users found</p></div>'; return; }
   
-  c.innerHTML = list.map(u => `
+  c.innerHTML = list.map(u => {
+    const standardKeys = ['id', 'full_name', 'email', 'phone', 'role', 'created_at', 'password'];
+    let extraDetails = '';
+    for(let k in u) {
+      if(!standardKeys.includes(k) && typeof u[k] !== 'object') {
+        extraDetails += `<div class="detail-item" style="font-size: 11px;"><div class="detail-label" style="text-transform:capitalize;">${k.replace(/_/g, ' ')}</div><div class="detail-value">${u[k]}</div></div>`;
+      }
+    }
+    return `
     <div class="listing-card">
       <div class="listing-top">
         <div class="listing-info">
-          <div class="listing-name">${u.full_name} <span class="badge badge-${u.role==='admin'?'active':'pending'}">${u.role}</span></div>
+          <div class="listing-name">${u.full_name || 'No Name'} <span class="badge badge-${u.role==='admin'?'active':'pending'}">${u.role || 'user'}</span></div>
           <div class="listing-meta">${u.email || 'No email'} · ${u.phone || 'No phone'}</div>
         </div>
         <div class="listing-right">
           <div class="listing-date">Joined: ${formatDate(u.created_at)}</div>
         </div>
       </div>
+      <div class="listing-details show" style="padding-top: 10px; margin-top: 10px; border-top: 1px solid #f1f5f9;">
+        ${extraDetails ? `<div class="detail-grid" style="margin-bottom: 12px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">${extraDetails}</div>` : ''}
+        <div class="action-btns">
+          ${u.role !== 'admin' ? `<button class="btn btn-primary" onclick="changeUserRole('${u.id}', 'admin')">Make Admin</button>` : `<button class="btn" onclick="changeUserRole('${u.id}', 'user')">Remove Admin</button>`}
+          <button class="btn btn-danger" onclick="deleteUserProfile('${u.id}')">Delete Profile</button>
+        </div>
+      </div>
     </div>
-  `).join("");
+  `}).join("");
   
   const stats = document.getElementById("userStats");
   if(stats) {
@@ -496,6 +511,11 @@ function renderFavorites() {
           <div class="listing-date">${formatDate(f.created_at)}</div>
         </div>
       </div>
+      <div class="listing-details show" style="padding-top: 10px; margin-top: 10px; border-top: 1px solid #f1f5f9;">
+        <div class="action-btns">
+          <button class="btn btn-danger" onclick="deleteFavorite('${f.id}')">Delete Favorite</button>
+        </div>
+      </div>
     </div>
   `}).join("");
 }
@@ -519,6 +539,49 @@ function renderReports() {
           <div class="listing-date">${formatDate(r.created_at)}</div>
         </div>
       </div>
+      <div class="listing-details show" style="padding-top: 10px; margin-top: 10px; border-top: 1px solid #f1f5f9;">
+        <div class="action-btns">
+          <button class="btn" style="color:#d97706;border-color:#fcd34d" onclick="dismissReport('${r.id}')">Dismiss Report</button>
+          <button class="btn btn-danger" onclick="doAction('${l.id}','delete')">Delete Listing</button>
+        </div>
+      </div>
     </div>
   `}).join("");
+}
+
+// FULL CONTROL ACTIONS
+async function changeUserRole(id, role) {
+  if(!confirm(`Change role to ${role}?`)) return;
+  try {
+    await db.collection("profiles").doc(id).update({ role });
+    alert("Role updated.");
+    refreshData();
+  } catch(e) { alert("Error: " + e.message); }
+}
+
+async function deleteUserProfile(id) {
+  if(!confirm("Delete user profile? (Auth must be deleted in Firebase Console)")) return;
+  try {
+    await db.collection("profiles").doc(id).delete();
+    alert("Profile deleted.");
+    refreshData();
+  } catch(e) { alert("Error: " + e.message); }
+}
+
+async function deleteFavorite(id) {
+  if(!confirm("Delete this favorite?")) return;
+  try {
+    await db.collection("favorites").doc(id).delete();
+    alert("Favorite deleted.");
+    refreshData();
+  } catch(e) { alert("Error: " + e.message); }
+}
+
+async function dismissReport(id) {
+  if(!confirm("Dismiss this report?")) return;
+  try {
+    await db.collection("reports").doc(id).delete();
+    alert("Report dismissed.");
+    refreshData();
+  } catch(e) { alert("Error: " + e.message); }
 }
