@@ -172,8 +172,9 @@ function buildCard(l){
     <div class="detail-item"><div class="detail-label">Price</div><div class="detail-value">${formatPrice(l.price)}</div></div>
     <div class="detail-item"><div class="detail-label">Address</div><div class="detail-value">${l.address||'-'}</div></div>
     <div class="detail-item"><div class="detail-label">Pincode</div><div class="detail-value">${l.pincode||'-'}</div></div>
-    <div class="detail-item"><div class="detail-label">Owner</div><div class="detail-value">${pr.full_name||'Unknown'}</div></div>
-    <div class="detail-item"><div class="detail-label">Phone</div><div class="detail-value">${pr.phone||'-'}</div></div>
+    <div class="detail-item"><div class="detail-label">Owner</div><div class="detail-value">${l.owner_name || pr.full_name || 'Unknown'}</div></div>
+    <div class="detail-item"><div class="detail-label">Phone</div><div class="detail-value">${l.owner_phone || pr.phone || '-'}</div></div>
+    <div class="detail-item"><div class="detail-label">Email</div><div class="detail-value">${l.owner_email || pr.email || '-'}</div></div>
     <div class="detail-item"><div class="detail-label">Created</div><div class="detail-value">${l.created_at?new Date(l.created_at).toLocaleString("en-IN"):'-'}</div></div>`;
 
   // Category-specific details
@@ -202,6 +203,9 @@ function buildCard(l){
 
   const timerSection=`<div class="timer-section">
     <div class="timer-title">⏱ Set Listing Timer (YY / MM / DD / HH / Min)</div>
+    <div style="font-size: 13px; color: #4b5563; margin-bottom: 12px; padding: 8px; background: #f8fafc; border-radius: 6px; border: 1px solid #e2e8f0;">
+      <strong>User requested:</strong> ${l.booster_plan || 'Basic'} Plan (${l.plan_days || 0} Days)
+    </div>
     <div class="timer-inputs">
       <div class="timer-field"><label>Years</label><input type="number" min="0" id="ty-${l.id}" value="0"></div>
       <div class="timer-field"><label>Months</label><input type="number" min="0" max="11" id="tm-${l.id}" value="0"></div>
@@ -223,7 +227,7 @@ function buildCard(l){
   return `<div class="listing-card" id="card-${l.id}">
     <div class="listing-top" onclick="toggleExpand('${l.id}')">
       ${img}<div class="listing-info"><div class="listing-name">${l.title} ${badge} ${timer}</div>
-      <div class="listing-meta">${l.category} · ${pr.full_name||'Unknown'} · ${pr.phone||''}</div></div>
+      <div class="listing-meta">${l.category} · ${l.owner_name || pr.full_name || 'Unknown'} · ${l.owner_phone || pr.phone || 'No Phone'} · ${l.owner_email || pr.email || 'No Email'}</div></div>
       <div class="listing-right"><div class="listing-price">${formatPrice(l.price)}</div><div class="listing-date">${formatDate(l.created_at)}</div></div>
       <span class="listing-expand" id="exp-${l.id}">▼</span>
     </div>
@@ -454,19 +458,28 @@ function renderUsers() {
   if(!list.length) { c.innerHTML = '<div class="empty-state"><p>No users found</p></div>'; return; }
   
   c.innerHTML = list.map(u => {
-    const standardKeys = ['id', 'full_name', 'email', 'phone', 'role', 'created_at', 'password'];
+    const standardKeys = ['id', 'full_name', 'email', 'phone', 'role', 'created_at', 'password', 'avatar_url', 'photo_url'];
     let extraDetails = '';
     for(let k in u) {
       if(!standardKeys.includes(k) && typeof u[k] !== 'object') {
-        extraDetails += `<div class="detail-item" style="font-size: 11px;"><div class="detail-label" style="text-transform:capitalize;">${k.replace(/_/g, ' ')}</div><div class="detail-value">${u[k]}</div></div>`;
+        let val = u[k];
+        if(typeof val === 'string' && val.startsWith('http')) {
+          val = `<a href="${val}" target="_blank">View Link</a>`;
+        }
+        extraDetails += `<div class="detail-item" style="font-size: 11px;"><div class="detail-label" style="text-transform:capitalize;">${k.replace(/_/g, ' ')}</div><div class="detail-value">${val}</div></div>`;
       }
     }
+    
+    const photoUrl = u.avatar_url || u.photo_url || '';
+    const imgHtml = photoUrl ? `<img src="${photoUrl}" style="width:32px; height:32px; border-radius:50%; object-fit:cover; margin-right:12px; border: 1px solid #e2e8f0;" onerror="this.style.display='none'" />` : '';
+    
     return `
     <div class="listing-card">
       <div class="listing-top">
+        ${imgHtml}
         <div class="listing-info">
           <div class="listing-name">${u.full_name || 'No Name'} <span class="badge badge-${u.role==='admin'?'active':'pending'}">${u.role || 'user'}</span></div>
-          <div class="listing-meta">${u.email || 'No email'} · ${u.phone || 'No phone'}</div>
+          <div class="listing-meta">${u.email ? '📧 ' + u.email : 'No email'} · ${u.phone ? '📱 ' + u.phone : 'No phone'}</div>
         </div>
         <div class="listing-right">
           <div class="listing-date">Joined: ${formatDate(u.created_at)}</div>
@@ -474,6 +487,7 @@ function renderUsers() {
       </div>
       <div class="listing-details show" style="padding-top: 10px; margin-top: 10px; border-top: 1px solid #f1f5f9;">
         ${extraDetails ? `<div class="detail-grid" style="margin-bottom: 12px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px;">${extraDetails}</div>` : ''}
+
         <div class="action-btns">
           ${u.role !== 'admin' ? `<button class="btn btn-primary" onclick="changeUserRole('${u.id}', 'admin')">Make Admin</button>` : `<button class="btn" onclick="changeUserRole('${u.id}', 'user')">Remove Admin</button>`}
           <button class="btn btn-danger" onclick="deleteUserProfile('${u.id}')">Delete Profile</button>
