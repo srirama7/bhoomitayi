@@ -9,7 +9,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "real-estate-b66dd.firebasestorage.app",
+        hostname: "real-estate-4a9f1.firebasestorage.app",
       },
       {
         protocol: "https",

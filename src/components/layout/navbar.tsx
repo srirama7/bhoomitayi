@@ -21,7 +21,6 @@ import {
   Sun,
   Moon,
   Plus,
-  Smartphone,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTheme } from "next-themes";
@@ -222,12 +221,6 @@ export function Navbar() {
 
         {/* Desktop Right Side */}
         <div className="hidden items-center gap-2 md:flex">
-          <Link href="/download-app">
-            <Button variant="ghost" size="sm" className="gap-1.5 rounded-xl font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30">
-              <Smartphone className="size-4" />
-              Get App
-            </Button>
-          </Link>
           <div id="language-selector-desktop">
             <LanguageSelector variant="desktop" />
           </div>
@@ -366,23 +359,6 @@ export function Navbar() {
                     </Button>
                   </Link>
                 ))}
-                
-                <p className="mt-4 mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Downloads
-                </p>
-                <Link
-                  href="/download-app"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start gap-2 rounded-xl text-blue-600 dark:text-blue-400 font-bold hover:bg-blue-50 dark:hover:bg-blue-950/40"
-                  >
-                    <Smartphone className="size-4" />
-                    Get App
-                  </Button>
-                </Link>
-
                 <p className="mt-4 mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                   {t("nav.for_providers")}
                 </p>
