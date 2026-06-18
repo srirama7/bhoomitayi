@@ -13,6 +13,7 @@ function PGContent() {
   const searchParams = useSearchParams();
   const page = parseInt(searchParams.get("page") || "1", 10);
   const sort = searchParams.get("sort") || undefined;
+  const searchQuery = searchParams.get("q") || undefined;
   const minPrice = searchParams.get("minPrice") ? Number(searchParams.get("minPrice")) : undefined;
   const maxPrice = searchParams.get("maxPrice") ? Number(searchParams.get("maxPrice")) : undefined;
 
@@ -29,6 +30,7 @@ function PGContent() {
       maxPrice,
       sort,
       page,
+      search: searchQuery,
     }).then(({ data, count }) => {
       setListings(data);
       setCount(count);
@@ -38,7 +40,7 @@ function PGContent() {
     }).finally(() => {
       setLoading(false);
     });
-  }, [page, sort, minPrice, maxPrice]);
+  }, [page, sort, minPrice, maxPrice, searchQuery]);
 
   return (
     <div className="min-h-screen bg-background">

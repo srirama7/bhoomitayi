@@ -36,6 +36,7 @@ import Link from "next/link";
 import type { Listing } from "@/lib/types/database";
 import { ReportButton } from "@/components/listings/report-button";
 import { ShareButton } from "@/components/listings/share-button";
+import { ListingTools } from "@/components/listings/listing-tools";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/lib/store";
 import { toast } from "sonner";
@@ -83,6 +84,17 @@ export default function ListingDetailPage() {
 
         const sim = await getSimilarListings({ category: data.category, id: data.id });
         setSimilar(sim);
+
+        try {
+          const recentKey = "bhoomitayi_recently_viewed";
+          let recent = JSON.parse(localStorage.getItem(recentKey) || "[]");
+          recent = recent.filter((item: any) => item.id !== data.id);
+          recent.unshift({ id: data.id, title: data.title, price: data.price, category: data.category, image: data.images?.[0] || "" });
+          if (recent.length > 5) recent.pop();
+          localStorage.setItem(recentKey, JSON.stringify(recent));
+        } catch (e) {
+          console.error("Local storage error:", e);
+        }
       }
       setLoading(false);
     }
@@ -259,9 +271,21 @@ export default function ListingDetailPage() {
               </div>
             </div>
 
+            <ListingTools 
+              listingPrice={listing.price} 
+              description={listing.description || ""} 
+              area={Number(details.area_sqft) || undefined}
+              category={listing.category}
+            />
+
             {/* Description */}
             <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 shadow-3d">
-              <h2 className="text-xl font-semibold mb-3 text-foreground">Description</h2>
+              <h2 className="text-xl font-semibold mb-3 text-foreground flex justify-between items-center">
+                Description
+                <span className="text-xs font-normal bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-full text-muted-foreground">
+                  {Math.max(1, Math.ceil((listing.description?.split(/\s+/).length || 1) / 200))} min read
+                </span>
+              </h2>
               <p className="text-muted-foreground whitespace-pre-line leading-relaxed">{listing.description}</p>
             </div>
 

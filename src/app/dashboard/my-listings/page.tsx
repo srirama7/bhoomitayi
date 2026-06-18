@@ -10,11 +10,13 @@ import {
   FileDown,
   ChevronDown,
   Loader2,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
@@ -61,6 +63,7 @@ export default function MyListingsPage() {
   const { user, loading: authLoading } = useAuthStore();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
@@ -150,6 +153,16 @@ export default function MyListingsPage() {
       })),
     [listings]
   );
+
+  const filteredListings = useMemo(() => {
+    if (!searchQuery.trim()) return derivedListings;
+    const q = searchQuery.toLowerCase();
+    return derivedListings.filter((l) =>
+      l.title.toLowerCase().includes(q) ||
+      l.category.toLowerCase().includes(q) ||
+      statusConfig[l.status]?.label.toLowerCase().includes(q)
+    );
+  }, [derivedListings, searchQuery]);
 
   const handleDelete = async () => {
     if (!deleteId) return;
@@ -251,9 +264,20 @@ export default function MyListingsPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-bold">{t("listing.my_listings")}</h1>
+      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <h1 className="text-2xl font-bold">{t("listing.my_listings")}</h1>
+        <div className="relative w-full sm:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search listings by title or status..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9 bg-white dark:bg-zinc-900 rounded-xl"
+          />
+        </div>
+      </div>
 
-      {derivedListings.length === 0 ? (
+      {filteredListings.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Tag className="mb-4 size-12 text-muted-foreground" />
@@ -267,7 +291,7 @@ export default function MyListingsPage() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {derivedListings.map((listing) => {
+          {filteredListings.map((listing) => {
             const status = statusConfig[listing.status];
             const remainingMs = getRemainingTimeMs(listing.expires_at);
 
@@ -346,49 +370,22 @@ export default function MyListingsPage() {
                       </Button>
                     )}
 
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="gap-1 border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/40"
-                          disabled={generatingPdf === listing.id}
-                        >
-                          {generatingPdf === listing.id ? (
-                            <Loader2 className="size-4 animate-spin" />
-                          ) : (
-                            <FileDown className="size-4" />
-                          )}
-                          {generatingPdf === listing.id
-                            ? t("listing.generating_pdf")
-                            : t("listing.download_pdf")}
-                          <ChevronDown className="size-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-52 rounded-xl">
-                        <DropdownMenuItem
-                          onClick={() => handleDownloadPdf(listing, i18n.language)}
-                          className="mx-1 rounded-lg"
-                        >
-                          <FileDown className="mr-2 size-4" />
-                          {t("listing.download_current_lang")}
-                        </DropdownMenuItem>
-                        {SUPPORTED_LANGUAGES.map((lang) => (
-                          <DropdownMenuItem
-                            key={lang.code}
-                            onClick={() => handleDownloadPdf(listing, lang.code)}
-                            className="mx-1 rounded-lg"
-                          >
-                            {lang.nativeLabel}
-                            {lang.code !== "en" && (
-                              <span className="ml-auto text-xs text-muted-foreground">
-                                {lang.label}
-                              </span>
-                            )}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1 border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/40"
+                      disabled={generatingPdf === listing.id}
+                      onClick={() => handleDownloadPdf(listing, "en")}
+                    >
+                      {generatingPdf === listing.id ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <FileDown className="size-4" />
+                      )}
+                      {generatingPdf === listing.id
+                        ? t("listing.generating_pdf")
+                        : "Download Invoice"}
+                    </Button>
 
                     <Button
                       variant="destructive"

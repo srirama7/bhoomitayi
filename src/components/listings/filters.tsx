@@ -5,6 +5,7 @@ import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Search } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -43,6 +44,7 @@ export function Filters({ category }: FiltersProps) {
   const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
 
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
   const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
   const [minArea, setMinArea] = useState(searchParams.get("minArea") || "");
@@ -67,6 +69,7 @@ export function Filters({ category }: FiltersProps) {
       else params.delete(key);
     };
 
+    setOrDelete("q", searchQuery);
     setOrDelete("minPrice", minPrice);
     setOrDelete("maxPrice", maxPrice);
     setOrDelete("minArea", minArea);
@@ -86,13 +89,14 @@ export function Filters({ category }: FiltersProps) {
 
     router.push(`?${params.toString()}`);
     setOpen(false);
-  }, [router, searchParams, minPrice, maxPrice, minArea, maxArea, bedrooms, furnishing, landType, facing, gender, occupancy, commercialType, vehicleType, fuelType, commodityType, condition]);
+  }, [router, searchParams, searchQuery, minPrice, maxPrice, minArea, maxArea, bedrooms, furnishing, landType, facing, gender, occupancy, commercialType, vehicleType, fuelType, commodityType, condition]);
 
   const clearFilters = useCallback(() => {
     const params = new URLSearchParams();
     const txn = searchParams.get("txn");
     if (txn) params.set("txn", txn);
     router.push(`?${params.toString()}`);
+    setSearchQuery("");
     setMinPrice(""); setMaxPrice("");
     setMinArea(""); setMaxArea(""); setBedrooms(""); setFurnishing("");
     setLandType(""); setFacing(""); setGender(""); setOccupancy("");

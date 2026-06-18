@@ -66,9 +66,18 @@ export async function getListings(params: ListingsQueryParams) {
     const q = query(listingsRef, ...baseConstraints, ...filterConstraints, sortConstraint);
     const snapshot = await getDocs(q);
 
-    const allListings = snapshot.docs
+    let allListings = snapshot.docs
       .map((d) => ({ id: d.id, ...d.data() }) as Listing)
       .filter(isListingPubliclyVisible);
+
+    if (params.search) {
+      const qLower = params.search.toLowerCase();
+      allListings = allListings.filter(l => 
+        l.title.toLowerCase().includes(qLower) || 
+        (l.address && l.address.toLowerCase().includes(qLower)) ||
+        (l.description && l.description.toLowerCase().includes(qLower))
+      );
+    }
 
     const count = allListings.length;
     const startIndex = (page - 1) * pageSize;

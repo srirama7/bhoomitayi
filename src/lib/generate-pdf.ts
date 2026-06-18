@@ -2,26 +2,21 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { Listing } from "@/lib/types/database";
 
-// Translation data loaded dynamically
-async function getTranslations(lang: string) {
-  const translations = await import(`../../public/locales/${lang}/common.json`);
-  return translations.default || translations;
+// Always load English translations to avoid any unicode/font rendering bugs
+async function getTranslations() {
+  try {
+    const translations = await import(`../../public/locales/en/common.json`);
+    return translations.default || translations;
+  } catch (err) {
+    console.error("Failed to load translations:", err);
+    return { form: {} };
+  }
 }
 
-function formatDateForLocale(dateStr: string, lang: string): string {
+function formatDateForLocale(dateStr: string): string {
   try {
     const date = new Date(dateStr);
-    const localeMap: Record<string, string> = {
-      en: "en-IN",
-      kn: "kn-IN",
-      hi: "hi-IN",
-      te: "te-IN",
-      ml: "ml-IN",
-      ta: "ta-IN",
-    };
-    const locale = localeMap[lang] || "en-IN";
-    // Use getFullYear() separately to avoid locale-formatted year (e.g. "2,026" in en-IN)
-    const dayMonth = date.toLocaleDateString(locale, {
+    const dayMonth = date.toLocaleDateString("en-IN", {
       day: "numeric",
       month: "long",
     });
@@ -31,228 +26,179 @@ function formatDateForLocale(dateStr: string, lang: string): string {
   }
 }
 
-
 function formatPrice(price: number): string {
-  if (price >= 10000000) return `₹${(price / 10000000).toFixed(2)} Cr`;
-  if (price >= 100000) return `₹${(price / 100000).toFixed(2)} L`;
-  if (price >= 1000) return `₹${(price / 1000).toFixed(1)}K`;
-  return `₹${price.toLocaleString("en-IN")}`;
+  if (!price) return "FREE";
+  if (price >= 10000000) return `INR ${(price / 10000000).toFixed(2)} Cr`;
+  if (price >= 100000) return `INR ${(price / 100000).toFixed(2)} L`;
+  if (price >= 1000) return `INR ${(price / 1000).toFixed(1)}K`;
+  return `INR ${price.toLocaleString("en-IN")}`;
 }
 
-export async function generateListingPDF(listing: Listing, lang: string = "en") {
-  const t = await getTranslations(lang);
-  const pdf = t.pdf;
-  const form = t.form;
+export async function generateListingPDF(listing: Listing, _lang: string = "en") {
+  try {
+    const t = await getTranslations();
+    const form = t.form || {};
 
-  const doc = new jsPDF("p", "mm", "a4");
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 20;
-  const contentWidth = pageWidth - margin * 2;
+    const doc = new jsPDF("p", "mm", "a4");
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
 
-  // ── Page 1: Cover / Confirmation ──
+    const refId = `BT-${listing.id.substring(0, 8).toUpperCase()}`;
 
-  // Header band
-  doc.setFillColor(37, 99, 235); // blue-600
-  doc.rect(0, 0, pageWidth, 45, "F");
-
-  // Logo text
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
-  doc.setFont("helvetica", "bold");
-  doc.text("BhoomiTayi", margin, 22);
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text("bhoomitayi.com", margin, 32);
-
-  // Reference ID on top right
-  const refId = `BT-${listing.id.substring(0, 8).toUpperCase()}`;
-  doc.setFontSize(10);
-  doc.text(refId, pageWidth - margin, 22, { align: "right" });
-
-  // Title
-  doc.setTextColor(30, 30, 30);
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text(pdf.title || "LISTING SUBMISSION CONFIRMATION", pageWidth / 2, 65, { align: "center" });
-
-  // Horizontal line
-  doc.setDrawColor(37, 99, 235);
-  doc.setLineWidth(0.8);
-  doc.line(margin, 72, pageWidth - margin, 72);
-
-  // Info table
-  let y = 85;
-  const labelX = margin;
-  const valueX = margin + 55;
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-
-  const infoRows = [
-    [pdf.ref_number || "Reference Number", refId],
-    [pdf.applicant_name || "Applicant Name", (listing as unknown as Record<string, unknown>).owner_name as string || "N/A"],
-    [pdf.business_service || "Business / Service", listing.title],
-    [pdf.category || "Category", listing.category.charAt(0).toUpperCase() + listing.category.slice(1)],
-    [pdf.submission_date || "Submission Date", formatDateForLocale(listing.created_at, lang)],
-    [pdf.status || "Status", listing.status.toUpperCase()],
-  ];
-
-  for (const [label, value] of infoRows) {
+    // ── Header Section ──
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(80, 80, 80);
-    doc.text(`${label}:`, labelX, y);
+    doc.setFontSize(28);
+    doc.setTextColor(37, 99, 235); // Blue brand color
+    doc.text("BHOOMITAYI", margin, 30);
+    
     doc.setFont("helvetica", "normal");
-    doc.setTextColor(30, 30, 30);
-    doc.text(String(value || "N/A"), valueX, y);
-    y += 10;
-  }
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text("123 Tech Park, Bengaluru, Karnataka 560001", margin, 38);
+    doc.text("support@bhoomitayi.com | www.bhoomitayi.com", margin, 44);
 
-  // Status badge
-  y += 5;
-  if (listing.status === "active") {
-    doc.setFillColor(220, 252, 231);
-    doc.roundedRect(margin, y - 5, contentWidth, 14, 3, 3, "F");
-    doc.setTextColor(22, 101, 52);
-    doc.setFontSize(11);
-    doc.setFont("helvetica", "bold");
-    doc.text("APPROVED", pageWidth / 2, y + 3, { align: "center" });
-  }
-
-  // Confirmation text
-  y += 25;
-  doc.setTextColor(80, 80, 80);
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "italic");
-  const confirmText = pdf.confirmation_text || "This document confirms that the above listing has been duly submitted on the portal.";
-  const splitText = doc.splitTextToSize(confirmText, contentWidth);
-  doc.text(splitText, pageWidth / 2, y, { align: "center" });
-
-  // Footer for page 1
-  y = doc.internal.pageSize.getHeight() - 20;
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y - 5, pageWidth - margin, y - 5);
-  doc.setFontSize(8);
-  doc.setTextColor(140, 140, 140);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${pdf.page || "Page"} 1 | ${refId} | ${pdf.generated_on || "Generated on"}: ${new Date().toLocaleDateString()}`, pageWidth / 2, y, { align: "center" });
-  doc.text("BhoomiTayi | bhoomitayi.com", pageWidth / 2, y + 5, { align: "center" });
-
-  // ── Page 2: Full Application Data ──
-  doc.addPage();
-
-  // Header
-  doc.setFillColor(37, 99, 235);
-  doc.rect(0, 0, pageWidth, 20, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(12);
-  doc.setFont("helvetica", "bold");
-  doc.text(pdf.application_details || "APPLICATION DETAILS", pageWidth / 2, 13, { align: "center" });
-
-  // Listing details table
-  const tableData: string[][] = [];
-
-  tableData.push([form.title || "Title", listing.title]);
-  tableData.push([form.description || "Description", listing.description?.substring(0, 200) || "N/A"]);
-  tableData.push([form.price || "Price", formatPrice(listing.price)]);
-  tableData.push([form.address || "Address", listing.address]);
-  tableData.push([form.pincode || "Pincode", listing.pincode]);
-  tableData.push([pdf.category || "Category", listing.category]);
-  tableData.push([form.transaction_type || "Transaction Type", listing.transaction_type]);
-
-  // Contact details
-  const listingAny = listing as unknown as Record<string, unknown>;
-  if (listingAny.owner_name) tableData.push([form.owner_name || "Owner Name", String(listingAny.owner_name)]);
-  if (listingAny.owner_phone) tableData.push([form.owner_phone || "Phone", String(listingAny.owner_phone)]);
-  if (listingAny.owner_email) tableData.push([form.owner_email || "Email", String(listingAny.owner_email)]);
-
-  // Property-specific details
-  const details = listing.details as Record<string, unknown> | null;
-  if (details) {
-    const detailFieldMap: Record<string, string> = {
-      bedrooms: form.bedrooms || "Bedrooms",
-      bathrooms: form.bathrooms || "Bathrooms",
-      area_sqft: form.area_sqft || "Area (sq.ft)",
-      furnishing: form.furnishing || "Furnishing",
-      floors: form.floors || "Floors",
-      parking: form.parking || "Parking",
-      year_built: form.year_built || "Year Built",
-      land_type: form.land_type || "Land Type",
-      facing: form.facing || "Facing",
-      road_width_ft: form.road_width || "Road Width (ft)",
-      boundary_wall: form.boundary_wall || "Boundary Wall",
-      is_corner_plot: form.corner_plot || "Corner Plot",
-      legal_clearance: form.legal_clearance || "Legal Clearance",
-      rent_per_month: form.rent_per_month || "Rent per Month",
-      security_deposit: form.security_deposit || "Security Deposit",
-      gender_preference: form.gender_preference || "Gender Preference",
-      occupancy_type: form.occupancy_type || "Occupancy Type",
-      meals_included: form.meals_included || "Meals Included",
-      wifi: form.wifi || "WiFi",
-      ac: form.ac || "AC",
-      commercial_type: form.commercial_type || "Commercial Type",
-      vehicle_type: form.vehicle_type || "Vehicle Type",
-      brand: form.brand || "Brand",
-      model: form.model || "Model",
-      year: form.year || "Year",
-      fuel_type: form.fuel_type || "Fuel Type",
-      transmission: form.transmission || "Transmission",
-      km_driven: form.km_driven || "KM Driven",
-      condition: form.condition || "Condition",
-      commodity_type: form.commodity_type || "Commodity Type",
-    };
-
-    const yearFields = new Set(["year_built", "year"]);
-    for (const [key, label] of Object.entries(detailFieldMap)) {
-      if (details[key] !== undefined && details[key] !== null && details[key] !== "") {
-        let val = details[key];
-        if (typeof val === "boolean") val = val ? "Yes" : "No";
-        if (typeof val === "number") {
-          val = yearFields.has(key) ? String(val) : val.toLocaleString("en-IN");
-        }
-        tableData.push([label, String(val)]);
-      }
+    // QR Code Generation
+    try {
+      const QRCode = await import("qrcode");
+      const listingUrl = `https://bhoomitayi.com/listing/${listing.id}`;
+      const qrDataUrl = await QRCode.toDataURL(listingUrl, { margin: 0 });
+      doc.addImage(qrDataUrl, "PNG", pageWidth - margin - 30, 20, 30, 30);
+    } catch (qrErr) {
+      console.error("QR Code generation skipped:", qrErr);
     }
+
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.5);
+    doc.line(margin, 55, pageWidth - margin, 55);
+
+    // ── Invoice / Bill Header ──
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(30, 30, 30);
+    doc.text("INVOICE", pageWidth - margin, 70, { align: "right" });
+
+    // Bill To details
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("BILL TO:", margin, 70);
+    
+    const listingAny = listing as unknown as Record<string, unknown>;
+    const ownerName = String(listingAny.owner_name || "Valued Customer");
+    const ownerPhone = String(listingAny.owner_phone || "N/A");
+    const ownerEmail = String(listingAny.owner_email || "N/A");
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(60, 60, 60);
+    doc.text(ownerName, margin, 76);
+    doc.text(`Phone: ${ownerPhone}`, margin, 82);
+    doc.text(`Email: ${ownerEmail}`, margin, 88);
+
+    // Meta Details
+    const metaX = pageWidth - margin - 60;
+    doc.setTextColor(120, 120, 120);
+    doc.text("Invoice No:", metaX, 76);
+    doc.text("Date:", metaX, 82);
+    doc.text("Status:", metaX, 88);
+
+    doc.setTextColor(40, 40, 40);
+    doc.setFont("helvetica", "bold");
+    doc.text(refId, pageWidth - margin, 76, { align: "right" });
+    doc.text(formatDateForLocale(listing.created_at), pageWidth - margin, 82, { align: "right" });
+    
+    // Status text color
+    const isApproved = listing.status === "active";
+    if (isApproved) doc.setTextColor(22, 101, 52); // Green
+    else doc.setTextColor(220, 38, 38); // Red
+    doc.text((listing.status || "ACTIVE").toUpperCase(), pageWidth - margin, 88, { align: "right" });
+
+    // ── Line Items Table ──
+    const tableData: string[][] = [];
+    tableData.push(["Service Description", "Premium Listing Registration"]);
+    tableData.push(["Property Title", listing.title || "N/A"]);
+    tableData.push(["Category", (listing.category || "").toUpperCase()]);
+    tableData.push(["Location", listing.address || "N/A"]);
+    if (listing.pincode) tableData.push(["Pincode", listing.pincode]);
+    
+    const details = listing.details as Record<string, unknown> | null;
+    if (details) {
+      if (details.area_sqft) tableData.push(["Total Area", `${details.area_sqft} sq.ft`]);
+      if (details.bedrooms) tableData.push(["Bedrooms", String(details.bedrooms)]);
+      if (details.furnishing) tableData.push(["Furnishing", String(details.furnishing)]);
+      if (details.brand) tableData.push(["Brand", String(details.brand)]);
+      if (details.model) tableData.push(["Model", String(details.model)]);
+      if (details.year) tableData.push(["Year Built/Make", String(details.year || details.year_built)]);
+    }
+
+    autoTable(doc, {
+      startY: 105,
+      head: [["DESCRIPTION", "DETAILS"]],
+      body: tableData,
+      theme: "grid",
+      headStyles: {
+        fillColor: [37, 99, 235],
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 11,
+        cellPadding: 8,
+      },
+      styles: {
+        font: "helvetica",
+        fontSize: 10,
+        cellPadding: 7,
+        textColor: [50, 50, 50],
+      },
+      alternateRowStyles: {
+        fillColor: [248, 250, 252],
+      },
+      columnStyles: {
+        0: { fontStyle: "bold", cellWidth: 80, textColor: [30, 30, 30] },
+        1: { cellWidth: "auto" },
+      },
+      margin: { left: margin, right: margin },
+    });
+
+    // ── Total Section ──
+    // @ts-ignore - jspdf-autotable extends jsPDF with lastAutoTable
+    const finalY = doc.lastAutoTable.finalY + 15;
+    
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(pageWidth - margin - 85, finalY - 5, 85, 30, 3, 3, "F");
+
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(80, 80, 80);
+    doc.text("TOTAL DUE:", pageWidth - margin - 80, finalY + 6);
+    
+    doc.setFontSize(18);
+    doc.setTextColor(37, 99, 235);
+    doc.text(formatPrice(listing.price), pageWidth - margin - 5, finalY + 17, { align: "right" });
+
+    // ── Footer ──
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text("Thank you for your business!", pageWidth / 2, pageHeight - 35, { align: "center" });
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.text("This is a computer generated invoice and does not require a signature.", pageWidth / 2, pageHeight - 29, { align: "center" });
+    
+    doc.setDrawColor(220, 220, 220);
+    doc.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+    doc.text(`Generated on ${new Date().toLocaleDateString("en-IN")}`, pageWidth / 2, pageHeight - 14, { align: "center" });
+
+    // Trigger Download
+    const filename = `${refId}_Invoice.pdf`;
+    doc.save(filename);
+
+  } catch (error) {
+    console.error("Critical error in generateListingPDF:", error);
+    // Absolute fallback
+    try {
+      const doc = new jsPDF();
+      doc.text("Error generating PDF invoice.", 10, 10);
+      doc.save(`error_${Date.now()}.pdf`);
+    } catch (e) {}
   }
-
-  autoTable(doc, {
-    startY: 30,
-    head: [[pdf.field || "Field", pdf.value || "Value"]],
-    body: tableData,
-    theme: "grid",
-    headStyles: {
-      fillColor: [37, 99, 235],
-      textColor: [255, 255, 255],
-      fontStyle: "bold",
-      fontSize: 10,
-    },
-    bodyStyles: {
-      fontSize: 9,
-      textColor: [50, 50, 50],
-    },
-    alternateRowStyles: {
-      fillColor: [245, 247, 250],
-    },
-    columnStyles: {
-      0: { fontStyle: "bold", cellWidth: 55 },
-      1: { cellWidth: "auto" },
-    },
-    margin: { left: margin, right: margin },
-  });
-
-  // Footer for page 2
-  const pageHeight = doc.internal.pageSize.getHeight();
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.line(margin, pageHeight - 25, pageWidth - margin, pageHeight - 25);
-  doc.setFontSize(8);
-  doc.setTextColor(140, 140, 140);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${pdf.page || "Page"} 2 | ${refId} | ${pdf.generated_on || "Generated on"}: ${new Date().toLocaleDateString()}`, pageWidth / 2, pageHeight - 18, { align: "center" });
-  doc.text("BhoomiTayi | bhoomitayi.com", pageWidth / 2, pageHeight - 13, { align: "center" });
-
-  // Download
-  const filename = `${refId}_submission_${lang}.pdf`;
-  doc.save(filename);
 }

@@ -30,6 +30,7 @@ import { CATEGORIES } from "@/lib/constants";
 import { getFeaturedListings } from "@/lib/queries";
 import { useAuthStore } from "@/lib/store";
 import { ListingCard } from "@/components/listings/listing-card";
+import { RecentlyViewed } from "@/components/listings/recently-viewed";
 import type { Listing } from "@/lib/types/database";
 
 const CATEGORY_ICONS = [Home, Mountain, Bed, Building2, Car, Package];
@@ -172,6 +173,8 @@ export default function HomePage() {
         </div>
       </section>
 
+      <RecentlyViewed />
+
       {/* Category Cards Section */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
         <AnimatedSection>
@@ -238,7 +241,7 @@ export default function HomePage() {
       </section>
 
       {/* Featured Listings Section */}
-      <section id="featured-listings" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 bg-zinc-50/50 dark:bg-zinc-950/20 rounded-3xl mb-12">
+      <section id="featured-listings" className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 bg-zinc-50/50 dark:bg-zinc-950/20 rounded-3xl mb-12 mt-12">
         <AnimatedSection>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12 px-4">
             <div className="space-y-2">

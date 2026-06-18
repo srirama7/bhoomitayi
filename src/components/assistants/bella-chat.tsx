@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { X, Send, User, LogOut } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,8 @@ function createBellaEngine(
   changeLanguage: (l: string) => void,
   settings: SiteSettings,
   user: any | null,
-  t: (key: string) => string
+  t: (key: string) => string,
+  router: any
 ) {
   const intents: Intent[] = [
     // ── Settings: Theme ──
@@ -60,6 +62,71 @@ function createBellaEngine(
       patterns: [/system\s*(mode|theme)/i, /auto\s*(mode|theme)/i, /default\s*theme/i],
       responseKey: "bella.system_mode_done",
       action: () => setTheme("system"),
+    },
+    // ── Settings: Website Control ──
+    {
+      patterns: [/open.*settings/i, /show.*settings/i, /go.*settings/i],
+      resolver: async () => {
+        settings.setSettingsOpen(true);
+        return "I've opened the Quick Settings menu for you!";
+      }
+    },
+    {
+      patterns: [/close.*settings/i, /hide.*settings/i],
+      resolver: async () => {
+        settings.setSettingsOpen(false);
+        return "I've closed the settings menu.";
+      }
+    },
+    {
+      patterns: [/compact\s*mode\s*on/i, /enable.*compact/i],
+      resolver: async () => {
+        settings.setCompactMode(true);
+        return "Compact mode enabled! The layout is now tighter.";
+      }
+    },
+    {
+      patterns: [/compact\s*mode\s*off/i, /disable.*compact/i],
+      resolver: async () => {
+        settings.setCompactMode(false);
+        return "Compact mode disabled! The layout is back to normal.";
+      }
+    },
+    {
+      patterns: [/high\s*contrast\s*on/i, /enable.*contrast/i],
+      resolver: async () => {
+        settings.setHighContrast(true);
+        return "High contrast mode enabled! Text is now more readable.";
+      }
+    },
+    {
+      patterns: [/high\s*contrast\s*off/i, /disable.*contrast/i],
+      resolver: async () => {
+        settings.setHighContrast(false);
+        return "High contrast mode disabled.";
+      }
+    },
+    // ── Navigation Control ──
+    {
+      patterns: [/go.*home/i, /open.*home/i, /take.*home/i],
+      resolver: async () => {
+        router.push("/");
+        return "Taking you to the homepage!";
+      }
+    },
+    {
+      patterns: [/go.*dashboard/i, /open.*dashboard/i, /my\s*profile/i],
+      resolver: async () => {
+        router.push("/dashboard");
+        return "Opening your dashboard...";
+      }
+    },
+    {
+      patterns: [/go.*sell/i, /open.*sell/i, /i\s*want\s*to\s*sell/i, /register.*service/i],
+      resolver: async () => {
+        router.push("/sell");
+        return "Opening the Register Service page. Let's list your property!";
+      }
     },
     // ── Firebase Data: Global Stats ──
     {
@@ -280,6 +347,167 @@ function createBellaEngine(
       responseKey: "bella.reset_done",
       action: () => { settings.resetAll(); setTheme("system"); },
     },
+    // ── Settings: Smart Tools (Calculators) ──
+    {
+      patterns: [/open.*emi/i, /emi.*calc/i, /loan.*calc/i, /calculate.*emi/i, /mortgage.*calc/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("emi"); 
+        return "I've opened the EMI Calculator for you! You can use it to calculate your monthly loan payments."; 
+      }
+    },
+    {
+      patterns: [/open.*roi/i, /yield.*calc/i, /roi.*calc/i, /return.*calc/i, /calculate.*roi/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("roi"); 
+        return "I've opened the ROI / Rental Yield Calculator for you. Let's see your investment returns!"; 
+      }
+    },
+    {
+      patterns: [/open.*stamp/i, /stamp.*duty/i, /registration.*calc/i, /calculate.*stamp/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("stamp"); 
+        return "I've opened the Stamp Duty & Registration Calculator for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*afford/i, /affordability/i, /how.*much.*can.*i.*afford/i, /budget.*calc/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("afford"); 
+        return "I've opened the Affordability Calculator! Put in your income to see how much home you can afford."; 
+      }
+    },
+    {
+      patterns: [/open.*area/i, /area.*convert/i, /land.*convert/i, /unit.*convert/i, /sqft.*to/i, /acres.*to/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("area"); 
+        return "I've opened the Land Area Converter for you. You can convert between SqFt, Acres, Guntas, Cents, and Hectares!"; 
+      }
+    },
+    {
+      patterns: [/open.*scientific/i, /math.*calc/i, /scientific/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("scientific"); 
+        return "I've opened the Scientific Calculator for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*currency/i, /money.*convert/i, /exchange.*rate/i, /currency/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("currency"); 
+        return "I've opened the Currency Converter! Note that these are estimated rates."; 
+      }
+    },
+    {
+      patterns: [/open.*measure/i, /length/i, /distance/i, /how.*long/i, /meters.*to/i, /km.*to/i, /miles.*to/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("measure"); 
+        return "I've opened the Length & Measurements Converter for you."; 
+      }
+    },
+    {
+      patterns: [/open.*volume/i, /liters/i, /gallons/i, /liquid/i, /capacity/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("volume"); 
+        return "I've opened the Volume Converter for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*weight/i, /mass/i, /kg.*to/i, /lbs.*to/i, /pounds/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("weight"); 
+        return "I've opened the Weight Converter for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*temp/i, /celsius/i, /fahrenheit/i, /hot/i, /cold/i, /weather.*calc/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("temp"); 
+        return "I've opened the Temperature Converter for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*speed/i, /velocity/i, /mph.*to/i, /kmh.*to/i, /how.*fast/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("speed"); 
+        return "I've opened the Speed Converter for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*time/i, /duration/i, /hours.*to/i, /minutes.*to/i, /seconds/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("time"); 
+        return "I've opened the Time Converter for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*sip/i, /investment.*calc/i, /mutual.*fund/i, /sip.*calc/i, /return.*on.*investment/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("sip"); 
+        return "I've opened the SIP Investment Calculator for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*tax/i, /income.*tax/i, /deduction/i, /tax.*calc/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("tax"); 
+        return "I've opened the Income Tax Calculator for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*retire/i, /retirement/i, /corpus/i, /pension/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("retirement"); 
+        return "I've opened the Retirement Planner for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*margin/i, /profit/i, /margin.*calc/i, /gross.*margin/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("margin"); 
+        return "I've opened the Profit Margin Calculator for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*discount/i, /sale.*price/i, /discount.*calc/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("discount"); 
+        return "I've opened the Discount Calculator for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*gst/i, /sales.*tax/i, /gst.*calc/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("gst"); 
+        return "I've opened the GST / Sales Tax Calculator for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*break.*even/i, /breakeven/i, /break-even/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("breakeven"); 
+        return "I've opened the Break-even Calculator for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*age/i, /how.*old/i, /age.*calc/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("age"); 
+        return "I've opened the Age Calculator for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*date.*diff/i, /date.*duration/i, /how.*many.*days/i, /date.*calc/i],
+      resolver: async () => { 
+        settings.setActiveCalculator("datediff"); 
+        return "I've opened the Date Difference / Duration Calculator for you!"; 
+      }
+    },
+    {
+      patterns: [/open.*calculator/i, /show.*calculator/i, /all.*calculator/i, /smart.*tools/i, /business.*calc/i, /date.*calc/i],
+      resolver: async () => { 
+        return "We have many calculators! Which one would you like?\n\nReal Estate & Finance:\n- EMI Calculator\n- ROI Calculator\n- Stamp Duty\n- Affordability\n- Land Area\n- SIP Investment\n- Income Tax\n- Retirement\n\nBusiness:\n- Profit Margin\n- Discount\n- GST / Sales Tax\n- Break-even\n\nDate & Time:\n- Age Calculator\n- Date Difference\n\nGeneral:\n- Scientific\n- Currency\n- Length\n- Volume\n- Weight\n- Temp\n- Speed\n- Time\n\nJust tell me which one!"; 
+      }
+    },
     // ── Settings: What can you control ──
     {
       patterns: [/what.*can.*control/i, /what.*settings/i, /what.*can.*change/i, /settings.*commands/i, /commands/i],
@@ -383,8 +611,8 @@ function createBellaEngine(
 
 // Static knowledge responses (these are long and stay English but can be extended)
 const KNOWLEDGE_RESPONSES: Record<string, string> = {
-  _commands: "I can control all these settings for you! Just say:\n\nTheme: 'dark mode' / 'light mode' / 'system mode'\n\nDisplay: 'reading mode', 'high contrast', 'compact mode', 'reduce animations'\n\nFont: 'font small/medium/large/extra large'\n\nLanguage: 'English/Kannada/Hindi/Telugu/Malayalam/Tamil'\n\nNotifications: 'notification on/off', 'inquiry alert on/off', 'marketing on/off'\n\nOther: 'reset settings'",
-  _greeting: "Hello! I'm Bella, your smarter real estate assistant! I've learned everything from Tommy and now I can help you with:\n\n- Full Listing Guides (type 'how to list')\n- Pricing & Negotiation Tips\n- Photography & Description advice\n- Market Trends & Timing\n- Control Website Settings\n- Find properties & more\n\nWhat can I help you with today?",
+  _commands: "I can control all these settings for you! Just say:\n\nSmart Tools: 'open emi calc', 'open roi calc', 'stamp duty', 'affordability', 'area converter', 'sip calc', 'tax calc', 'retirement calc'\n\nBusiness: 'profit margin', 'discount calc', 'gst calc', 'break even'\n\nDate/Time: 'age calc', 'date difference'\n\nGeneral Calcs: 'scientific', 'currency converter', 'volume', 'measurements', 'weight', 'temperature', 'speed', 'time'\n\nTheme: 'dark mode' / 'light mode' / 'system mode'\n\nDisplay: 'reading mode', 'high contrast', 'compact mode', 'reduce animations'\n\nFont: 'font small/medium/large/extra large'\n\nLanguage: 'English/Kannada/Hindi/Telugu/Malayalam/Tamil'\n\nNotifications: 'notification on/off'\n\nOther: 'reset settings'",
+  _greeting: "Hello! I'm Bella, your smarter real estate assistant! I've learned everything from Tommy and now I can help you with:\n\n- Full Listing Guides (type 'how to list')\n- Smart Tools & Calculators (EMI, SIP, Tax, Scientific, Currency, Margin, GST, Age, etc)\n- Pricing & Negotiation Tips\n- Photography & Description advice\n- Market Trends & Timing\n- Control Website Settings\n- Find properties & more\n\nWhat can I help you with today?",
   _about_bhoomitayi: "BhoomiTayi is India's trusted online marketplace! Here's what we offer:\n\n- Houses: Buy, sell, or rent apartments, villas & independent homes\n- Land: Residential, commercial & agricultural plots\n- PG: Affordable paying guest accommodations\n- Commercial: Office spaces, shops & warehouses\n- Vehicles: Cars, bikes, trucks & more\n- Commodities: Electronics, furniture & miscellaneous\n\nWe serve users across India with verified listings, secure payments, and direct seller connections. Our platform supports 6 languages: English, Kannada, Hindi, Telugu, Malayalam & Tamil.\n\nRegistration is free and listings go live immediately!",
   _houses: "Looking for a house? Here's how:\n\n1. Go to the Houses section from the menu\n2. Browse listings or use search to filter\n3. Click on a listing for full details & photos\n4. Hit 'Send Inquiry' to contact the seller\n\nKey things to check:\n- Location & neighborhood safety\n- Legal documents (Khata, EC, Sale Deed)\n- Water & electricity supply\n- Parking & amenities\n- Compare price per sq.ft with nearby properties",
   _land: "Land investment tips:\n\n1. Browse the Land section\n2. Check plot dimensions & total area\n3. Verify Khata type (A Khata is best)\n4. Visit the site in person\n5. Get EC (Encumbrance Certificate) verified\n\nImportant checks:\n- Clear title deed & ownership chain\n- No encumbrances or legal disputes\n- Proper road access\n- Zoning regulations\n- BBMP/BDA approval status",
@@ -456,7 +684,8 @@ export function BellaChat() {
   const settings = useSettingsStore();
   const { user } = useAuthStore();
 
-  const intents = createBellaEngine(setTheme, (l) => i18n.changeLanguage(l), settings, user, t);
+  const router = useRouter();
+  const intents = createBellaEngine(setTheme, (l) => i18n.changeLanguage(l), settings, user, t, router);
 
   // Initialize position at bottom-right on mount
   useEffect(() => {
