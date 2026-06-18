@@ -263,8 +263,12 @@ export default function MyListingsPage() {
   }
 
   return (
-    <div>
-      <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="relative min-h-[80vh] w-full">
+      {/* Decorative ambient background */}
+      <div className="absolute top-[-10%] right-[-5%] w-[400px] h-[400px] bg-blue-500/10 dark:bg-blue-400/10 rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] left-[-5%] w-[300px] h-[300px] bg-purple-500/10 dark:bg-purple-400/10 rounded-full blur-[100px] pointer-events-none" />
+      
+      <div className="relative z-10 mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <h1 className="text-2xl font-bold">{t("listing.my_listings")}</h1>
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -278,19 +282,25 @@ export default function MyListingsPage() {
       </div>
 
       {filteredListings.length === 0 ? (
-        <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Tag className="mb-4 size-12 text-muted-foreground" />
-            <p className="text-lg font-medium text-muted-foreground">
+        <Card className="border-0 bg-white/40 dark:bg-zinc-900/40 backdrop-blur-3xl shadow-2xl overflow-hidden rounded-[2.5rem] relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-blue-500/5 to-transparent pointer-events-none" />
+          <CardContent className="flex flex-col items-center justify-center py-20 relative z-10 text-center px-4">
+            <div className="size-24 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center mb-6 shadow-inner ring-1 ring-blue-100 dark:ring-blue-800">
+              <Tag className="size-10 text-blue-500 dark:text-blue-400" />
+            </div>
+            <h3 className="text-2xl font-bold text-foreground mb-2">
               {t("listing.no_listings")}
-            </p>
-            <p className="text-sm text-muted-foreground">
+            </h3>
+            <p className="text-lg text-muted-foreground max-w-md">
               {t("listing.no_listings_desc")}
             </p>
+            <Button asChild className="mt-8 rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl px-8 py-6 text-md font-bold">
+              <Link href="/sell">Create Your First Listing</Link>
+            </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredListings.map((listing) => {
             const status = statusConfig[listing.status];
             const remainingMs = getRemainingTimeMs(listing.expires_at);
@@ -298,102 +308,107 @@ export default function MyListingsPage() {
             return (
               <Card
                 key={listing.id}
-                className="rounded-2xl border-zinc-200/80 bg-white shadow-3d transition-all duration-300 hover:-translate-y-0.5 dark:border-zinc-800/80 dark:bg-zinc-900/80"
+                className="group flex flex-col rounded-[2rem] border-0 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
               >
-                <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center">
-                  <div className="relative h-24 w-full shrink-0 overflow-hidden rounded-md sm:w-32">
-                    {listing.images && listing.images.length > 0 ? (
-                      <Image
-                        src={listing.images[0]}
-                        alt={listing.title}
-                        fill
-                        className="object-cover"
-                        sizes="128px"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-muted text-xs text-muted-foreground">
-                        No Image
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-1 flex-col gap-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="font-semibold">{listing.title}</h3>
-                      <Badge variant="outline" className={status.className}>
-                        {status.label}
-                      </Badge>
+                <div className="relative h-48 w-full shrink-0 overflow-hidden">
+                  {listing.images && listing.images.length > 0 ? (
+                    <Image
+                      src={listing.images[0]}
+                      alt={listing.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-muted/50 text-xs text-muted-foreground font-medium">
+                      No Image Available
                     </div>
-                    <p className="text-sm capitalize text-muted-foreground">
+                  )}
+                  <div className="absolute top-3 right-3">
+                    <Badge variant="outline" className={`${status.className} border-0 shadow-md backdrop-blur-md font-bold px-3 py-1`}>
+                      {status.label}
+                    </Badge>
+                  </div>
+                </div>
+
+                <CardContent className="flex flex-1 flex-col p-6">
+                  <div className="flex-1 space-y-3">
+                    <p className="text-[11px] font-bold tracking-widest uppercase text-blue-600 dark:text-blue-400">
                       {listing.category} &middot; {listing.transaction_type}
                     </p>
-                    <p className="text-lg font-bold">{formatPrice(listing.price)}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {t("listing.created")}{" "}
-                    {(() => {
-                      const date = new Date(listing.created_at);
-                      return `${date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} ${date.getFullYear()}`;
-                    })()}
+                    <h3 className="font-bold text-xl line-clamp-1 text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                      {listing.title}
+                    </h3>
+                    <p className="text-2xl font-extrabold text-foreground tracking-tight">
+                      {formatPrice(listing.price)}
                     </p>
-                    <ListingCountdown
-                      expiresAt={listing.expires_at}
-                      status={listing.status}
-                      onReactivate={() => setReactivatingListing(listing)}
-                      reactivating={reactivating}
-                      showRestartButton={listing.status === "timed_out"}
-                      timerDuration={listing.timer_duration}
-                    />
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
+                      <Calendar className="size-3.5" />
+                      {t("listing.created")}{" "}
+                      {(() => {
+                        const date = new Date(listing.created_at);
+                        return `${date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} ${date.getFullYear()}`;
+                      })()}
+                    </p>
+
+                    <div className="pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                      <ListingCountdown
+                        expiresAt={listing.expires_at}
+                        status={listing.status}
+                        onReactivate={() => setReactivatingListing(listing)}
+                        reactivating={reactivating}
+                        showRestartButton={listing.status === "timed_out"}
+                        timerDuration={listing.timer_duration}
+                      />
+                    </div>
                     {listing.status === "pending_payment" &&
                       listing.payment_reason === "reactivation" && (
-                        <p className="text-xs font-medium text-amber-700 dark:text-amber-400">
-                          Restart payment of ₹{LISTING_FEE} submitted. Waiting for admin approval to restart the timer.
+                        <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/50 p-2 rounded-lg">
+                          Restart payment of ₹{LISTING_FEE} submitted. Waiting for admin approval.
                         </p>
                       )}
                   </div>
 
-                  <div className="flex shrink-0 flex-wrap gap-2">
-                    <Button variant="outline" size="sm" asChild>
+                  <div className="grid grid-cols-2 gap-2 mt-6">
+                    <Button variant="outline" className="w-full rounded-xl font-semibold hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/30" asChild>
                       <Link href={`/dashboard/my-listings/edit?id=${listing.id}`}>
-                        <Pencil className="size-4" />
-                        {t("listing.edit")}
+                        <Pencil className="size-4 mr-2" />
+                        Edit
                       </Link>
                     </Button>
 
-                    {listing.status === "active" && (
+                    {listing.status === "active" ? (
                       <Button
                         variant="outline"
-                        size="sm"
+                        className="w-full rounded-xl font-semibold hover:bg-emerald-50 hover:text-emerald-600 dark:hover:bg-emerald-900/30"
                         onClick={() => handleMarkAsSold(listing.id)}
                       >
-                        <Tag className="size-4" />
-                        {t("listing.mark_as_sold")}
+                        <Tag className="size-4 mr-2" />
+                        Sold
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        className="w-full rounded-xl font-semibold border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/40"
+                        disabled={generatingPdf === listing.id}
+                        onClick={() => handleDownloadPdf(listing, "en")}
+                      >
+                        {generatingPdf === listing.id ? (
+                          <Loader2 className="size-4 animate-spin mr-2" />
+                        ) : (
+                          <FileDown className="size-4 mr-2" />
+                        )}
+                        Invoice
                       </Button>
                     )}
 
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1 border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-950/40"
-                      disabled={generatingPdf === listing.id}
-                      onClick={() => handleDownloadPdf(listing, "en")}
-                    >
-                      {generatingPdf === listing.id ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <FileDown className="size-4" />
-                      )}
-                      {generatingPdf === listing.id
-                        ? t("listing.generating_pdf")
-                        : "Download Invoice"}
-                    </Button>
-
-                    <Button
                       variant="destructive"
-                      size="sm"
+                      className="col-span-2 rounded-xl font-semibold mt-1"
                       onClick={() => setDeleteId(listing.id)}
                     >
-                      <Trash2 className="size-4" />
-                      {t("listing.delete")}
+                      <Trash2 className="size-4 mr-2" />
+                      Delete Listing
                     </Button>
                   </div>
                 </CardContent>

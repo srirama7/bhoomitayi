@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import {
   Home,
   Mountain,
@@ -497,7 +498,7 @@ function SellPageContent() {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
-          <div className="size-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+          <div className="size-8 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
           <p className="text-muted-foreground">Loading...</p>
         </div>
       </main>
@@ -508,7 +509,7 @@ function SellPageContent() {
     return (
       <main className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-center px-4">
-          <div className="size-8 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+          <div className="size-8 border-2 border-orange-600 border-t-transparent rounded-full animate-spin" />
           <p className="text-muted-foreground">Please log in to register your service</p>
           <p className="text-sm text-muted-foreground">Redirecting to login page...</p>
         </div>
@@ -521,25 +522,30 @@ function SellPageContent() {
     : "Price (INR)";
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-gradient-to-br from-orange-50/80 via-white to-pink-50/80 dark:from-zinc-950 dark:via-zinc-900/90 dark:to-zinc-950 relative overflow-hidden">
+      {/* Ambient background blur elements */}
+      <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-orange-400/10 dark:bg-orange-500/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+      <div className="absolute bottom-0 left-0 w-[30vw] h-[30vw] bg-pink-400/10 dark:bg-pink-500/10 rounded-full blur-[100px] pointer-events-none mix-blend-screen" />
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] dark:opacity-[0.05] pointer-events-none" />
+
       {/* Page Hero */}
-      <div className="relative overflow-hidden border-b border-zinc-200/80 dark:border-zinc-800/80 bg-gradient-to-br from-green-50 via-emerald-50/50 to-background dark:from-green-950/30 dark:via-emerald-950/20 dark:to-background">
+      <div className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-pink-600 dark:from-orange-900/50 dark:to-pink-900/50 border-b border-orange-500/20">
         <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 right-1/4 h-72 w-72 rounded-full bg-green-200/20 dark:bg-green-800/10 blur-3xl" />
-          <div className="absolute -bottom-20 left-1/4 h-60 w-60 rounded-full bg-emerald-200/20 dark:bg-emerald-800/10 blur-3xl" />
+          <div className="absolute top-1/2 left-1/4 h-64 w-64 -translate-y-1/2 rounded-full bg-orange-400/30 blur-3xl mix-blend-overlay" />
+          <div className="absolute bottom-0 right-1/4 h-48 w-48 rounded-full bg-pink-300/30 blur-3xl mix-blend-overlay" />
         </div>
-        <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-10 sm:py-14 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-green-50 dark:bg-green-950/40 px-4 py-1.5 text-sm font-medium text-green-600 dark:text-green-400 border border-green-100 dark:border-green-900/50 mb-4">
+        <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20 text-center">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/20 dark:bg-black/20 backdrop-blur-md px-4 py-1.5 text-sm font-medium text-white border border-white/30 mb-6 shadow-xl">
             <Sparkles className="size-4" />
             For Service Providers
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-2">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white mb-4 drop-shadow-sm">
             Register Your{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-200 to-pink-100">
               Service
             </span>
           </h1>
-          <p className="mx-auto max-w-xl text-muted-foreground">
+          <p className="mx-auto max-w-2xl text-orange-50 text-lg">
             Fill in the details below to register your service. We will connect you with thousands of potential clients.
           </p>
         </div>
@@ -554,9 +560,9 @@ function SellPageContent() {
                 <div
                   className={`flex items-center justify-center size-9 rounded-full text-sm font-semibold transition-colors ${
                     i < step
-                      ? "bg-green-600 text-white"
+                      ? "bg-orange-600 text-white"
                       : i === step
-                        ? "bg-green-600 text-white ring-4 ring-green-100 dark:ring-green-900"
+                        ? "bg-orange-600 text-white ring-4 ring-orange-100 dark:ring-orange-900"
                         : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -570,7 +576,7 @@ function SellPageContent() {
           </div>
           <div className="w-full bg-muted rounded-full h-2 mt-4">
             <div
-              className="bg-green-600 h-2 rounded-full transition-all duration-300"
+              className="bg-orange-600 h-2 rounded-full transition-all duration-300"
               style={{ width: `${((step + 1) / STEPS.length) * 100}%` }}
             />
           </div>
@@ -578,15 +584,15 @@ function SellPageContent() {
 
         {/* Step 1: Service Type */}
         {step === 0 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-            <Card>
-              <CardHeader>
-                <CardTitle>What type of service are you registering?</CardTitle>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <Card className="rounded-[2rem] border-0 shadow-2xl bg-white/70 dark:bg-zinc-900/60 backdrop-blur-3xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
+              <CardHeader className="bg-gradient-to-r from-orange-500/10 to-transparent p-8 border-b border-orange-500/10">
+                <CardTitle className="text-2xl font-bold">What type of service are you registering?</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-3">
-                  <Label>Service Category</Label>
-                  <div className="grid grid-cols-2 gap-3">
+              <CardContent className="space-y-8 p-8">
+                <div className="space-y-4">
+                  <Label className="text-lg text-muted-foreground">Service Category</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {CATEGORY_OPTIONS.map((cat) => (
                       <button
                         key={cat.value}
@@ -595,16 +601,18 @@ function SellPageContent() {
                           setCategory(cat.value);
                           setTransactionType("");
                         }}
-                        className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left ${
+                        className={`group flex flex-col items-center justify-center gap-3 p-6 rounded-2xl border-2 transition-all ${
                           category === cat.value
-                            ? "border-green-500 bg-green-50 dark:bg-green-950/30"
-                            : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700"
+                            ? "border-orange-500 bg-orange-50 dark:bg-orange-900/30 shadow-lg shadow-orange-500/20 scale-[1.02]"
+                            : "border-zinc-200 dark:border-zinc-800 hover:border-orange-200 dark:hover:border-orange-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                         }`}
                       >
-                        <cat.Icon className={`size-6 ${category === cat.value ? "text-green-600" : "text-muted-foreground"}`} />
-                        <div>
-                          <span className="text-sm font-medium">{cat.label}</span>
-                          <span className="ml-1.5">{cat.emoji}</span>
+                        <div className={`p-4 rounded-full transition-colors ${category === cat.value ? "bg-orange-100 dark:bg-orange-800" : "bg-zinc-100 dark:bg-zinc-800 group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20"}`}>
+                          <cat.Icon className={`size-8 ${category === cat.value ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}`} />
+                        </div>
+                        <div className="text-center">
+                          <span className="text-sm font-bold block mb-1">{cat.label}</span>
+                          <span className="text-lg">{cat.emoji}</span>
                         </div>
                       </button>
                     ))}
@@ -622,7 +630,7 @@ function SellPageContent() {
                           onClick={() => setTransactionType(opt.value)}
                           className={`px-6 py-3 rounded-xl border-2 font-medium transition-all ${
                             transactionType === opt.value
-                              ? "border-green-500 bg-green-50 dark:bg-green-950/30 text-green-700 dark:text-green-400"
+                              ? "border-orange-500 bg-orange-50 dark:bg-orange-950/30 text-orange-700 dark:text-orange-400"
                               : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 text-muted-foreground"
                           }`}
                         >
@@ -639,12 +647,12 @@ function SellPageContent() {
 
         {/* Step 2: Service Details */}
         {step === 1 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Service Details</CardTitle>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <Card className="rounded-[2rem] border-0 shadow-2xl bg-white/70 dark:bg-zinc-900/60 backdrop-blur-3xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
+              <CardHeader className="bg-gradient-to-r from-orange-500/10 to-transparent p-8 border-b border-orange-500/10">
+                <CardTitle className="text-2xl font-bold">Service Details</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className="space-y-6 p-8">
                 <div className="space-y-2">
                   <Label htmlFor="title">Title</Label>
                   <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={120} placeholder="e.g. Spacious 3BHK in Andheri West" />
@@ -967,12 +975,12 @@ function SellPageContent() {
 
         {/* Step 3: Location & Images */}
         {step === 2 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Location & Images</CardTitle>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <Card className="rounded-[2rem] border-0 shadow-2xl bg-white/70 dark:bg-zinc-900/60 backdrop-blur-3xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
+              <CardHeader className="bg-gradient-to-r from-orange-500/10 to-transparent p-8 border-b border-orange-500/10">
+                <CardTitle className="text-2xl font-bold">Location & Images</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-6 p-8">
                 <div className="space-y-2">
                   <Label htmlFor="address">Full Address</Label>
                   <Input id="address" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Enter full address" />
@@ -989,11 +997,11 @@ function SellPageContent() {
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-8 text-center cursor-pointer hover:border-green-400 dark:hover:border-green-600 transition-colors"
+                    className="border-2 border-dashed border-zinc-300 dark:border-zinc-700 rounded-xl p-8 text-center cursor-pointer hover:border-orange-400 dark:hover:border-orange-600 transition-colors"
                   >
                     <div className="flex flex-col items-center gap-3">
-                      <div className="flex items-center justify-center size-14 rounded-2xl bg-green-50 dark:bg-green-950/30">
-                        <ImageIcon className="size-7 text-green-600 dark:text-green-400" />
+                      <div className="flex items-center justify-center size-14 rounded-2xl bg-orange-50 dark:bg-orange-950/30">
+                        <ImageIcon className="size-7 text-orange-600 dark:text-orange-400" />
                       </div>
                       <div>
                         <p className="font-medium text-foreground">Drop images here or click to upload</p>
@@ -1038,12 +1046,12 @@ function SellPageContent() {
 
         {/* Step 4: Personal Details */}
         {step === 3 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Your Contact Details</CardTitle>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <Card className="rounded-[2rem] border-0 shadow-2xl bg-white/70 dark:bg-zinc-900/60 backdrop-blur-3xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
+              <CardHeader className="bg-gradient-to-r from-orange-500/10 to-transparent p-8 border-b border-orange-500/10">
+                <CardTitle className="text-2xl font-bold">Personal Details</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-5">
+              <CardContent className="space-y-6 p-8">
                 <p className="text-sm text-muted-foreground">
                   These details will be shown to interested buyers/renters so they can contact you.
                 </p>
@@ -1076,14 +1084,14 @@ function SellPageContent() {
           </motion.div>
         )}
 
-        {/* Step 5: Preview & Submit */}
+        {/* Step 5: Preview */}
         {step === 4 && (
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Review Your Listing</CardTitle>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
+            <Card className="rounded-[2rem] border-0 shadow-2xl bg-white/70 dark:bg-zinc-900/60 backdrop-blur-3xl overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
+              <CardHeader className="bg-gradient-to-r from-orange-500/10 to-transparent p-8 border-b border-orange-500/10">
+                <CardTitle className="text-2xl font-bold">Preview & Submit</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-8 p-8">
                 {/* Service Type */}
                 <div>
                   <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">Service Type</h3>
@@ -1247,12 +1255,12 @@ function SellPageContent() {
           </Button>
 
           {step < STEPS.length - 1 ? (
-            <Button onClick={handleNext} className="gap-1.5 bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={handleNext} className="gap-1.5 bg-orange-600 hover:bg-orange-700 text-white">
               Next
               <ArrowRight className="size-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={submitting} className="gap-1.5 bg-green-600 hover:bg-green-700 text-white">
+            <Button onClick={handleSubmit} disabled={submitting} className="gap-1.5 bg-orange-600 hover:bg-orange-700 text-white">
               {submitting ? (
                 <>
                   <div className="size-4 border-2 border-white border-t-transparent rounded-full animate-spin" />

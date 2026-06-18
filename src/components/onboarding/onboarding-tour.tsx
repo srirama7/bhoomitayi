@@ -43,6 +43,7 @@ interface TourStep {
   preferredPosition: "bottom" | "top" | "left" | "right" | "center";
   highlight?: boolean;
   avatarSrc?: string;
+  isLogo?: boolean;
 }
 
 const TOUR_STEPS: TourStep[] = [
@@ -52,9 +53,10 @@ const TOUR_STEPS: TourStep[] = [
     title: "Welcome to BhoomiTayi! 👋",
     description:
       "Welcome to BhoomiTayi, India's trusted online marketplace where you can discover, buy, sell, rent, and promote services across multiple categories.\n\nLet's take a quick tour!",
-    icon: <Sparkles className="size-7 text-yellow-500" />,
+    icon: <Image src="/logo-v2.png" alt="BhoomiTayi Logo" width={80} height={80} className="rounded-full object-cover shadow-lg border border-zinc-200 dark:border-zinc-800" />,
     preferredPosition: "center",
     highlight: false,
+    isLogo: true,
   },
   {
     id: "register-service",
@@ -792,9 +794,10 @@ export function OnboardingTour() {
                       className="pointer-events-auto"
                       style={{ width: pos.cardWidth }}
                     >
-                      <div className="rounded-3xl bg-white dark:bg-zinc-900 shadow-2xl border border-zinc-200/80 dark:border-zinc-800 overflow-hidden">
+                      <div className="rounded-[2rem] bg-white/70 dark:bg-zinc-900/70 backdrop-blur-3xl shadow-2xl border border-white/40 dark:border-white/10 overflow-hidden relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-transparent pointer-events-none" />
                         {/* Gradient top border */}
-                        <div className="h-1.5 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+                        <div className="h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
 
                         {/* Close button */}
                         <button
@@ -827,6 +830,10 @@ export function OnboardingTour() {
                                     height={64}
                                     className="size-full object-cover"
                                   />
+                                </div>
+                              ) : stepData.isLogo ? (
+                                <div className="flex items-center justify-center">
+                                  {stepData.icon}
                                 </div>
                               ) : (
                                 <div className="p-3 bg-zinc-50 dark:bg-zinc-800 rounded-2xl">

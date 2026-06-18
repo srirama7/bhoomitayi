@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -93,8 +94,8 @@ export default function DashboardLayout({
       <aside className="fixed top-0 left-0 z-30 hidden h-screen w-64 border-r bg-background md:block">
         <div className="flex h-16 items-center justify-between border-b px-6">
           <Link href="/" className="flex items-center gap-2 text-xl font-bold">
-            <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600">
-              <Home className="size-4 text-white" />
+            <div className="flex items-center justify-center size-8 rounded-full overflow-hidden shadow-sm">
+              <Image src="/logo-v2.png" alt="Logo" width={32} height={32} className="object-cover w-full h-full" />
             </div>
             <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-extrabold">
               BhoomiTayi

@@ -129,7 +129,7 @@ export function PaymentGateway({
             {/* Left Column: Plans */}
             <div className="flex-1 p-6 md:p-10 overflow-y-auto bg-[#111111] custom-scrollbar">
               <div className="flex items-center gap-3 mb-2">
-                <Zap className="size-6 text-yellow-500 fill-yellow-500" />
+                <Image src="/logo-v2.png" alt="Logo" width={24} height={24} className="rounded-full object-cover" />
                 <h3 className="text-2xl font-bold text-white tracking-tight">Booster Packs</h3>
                 <span className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider bg-red-500/10 text-red-400 rounded-md border border-red-500/20">
                   Limited Time

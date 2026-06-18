@@ -156,11 +156,11 @@ export function Navbar() {
     <motion.header
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.6, type: "spring", stiffness: 200, damping: 20 }}
       className={`sticky top-0 z-50 w-full transition-all duration-500 ${
         scrolled
-          ? "bg-white/70 dark:bg-zinc-950/70 backdrop-blur-2xl shadow-lg shadow-black/[0.03] dark:shadow-black/20 border-b border-zinc-200/60 dark:border-white/[0.06]"
-          : "bg-white/40 dark:bg-zinc-950/40 backdrop-blur-xl border-b border-transparent"
+          ? "bg-white/50 dark:bg-zinc-950/50 backdrop-blur-3xl shadow-sm shadow-black/[0.02] dark:shadow-black/20 border-b border-zinc-200/50 dark:border-white/[0.05]"
+          : "bg-white/20 dark:bg-zinc-950/20 backdrop-blur-2xl border-b border-transparent"
       }`}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -172,32 +172,34 @@ export function Navbar() {
           <motion.div
             whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
             transition={{ duration: 0.4 }}
-            className="relative flex items-center justify-center size-10 rounded-xl overflow-hidden bg-white shadow-lg"
+            className="relative flex items-center justify-center size-14 rounded-full shadow-md overflow-hidden"
           >
-            <Image src="/logo.png" alt="BhoomiTayi Logo" width={40} height={40} className="object-cover" />
+            <Image src="/logo-v2.png" alt="BhoomiTayi Logo" width={56} height={56} className="object-cover w-full h-full rounded-full" priority />
           </motion.div>
           <div className="flex flex-col">
-            <span className="text-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent font-extrabold tracking-tight leading-none">
+            <span className="text-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent font-extrabold tracking-tight leading-none">
               BhoomiTayi
             </span>
-            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">
+            <span className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">
               by ayushree herbals
             </span>
           </div>
         </Link>
 
         {/* Desktop Navigation */}
-        <nav id="nav-categories" className="hidden items-center gap-0.5 md:flex">
+        <nav id="nav-categories" className="hidden items-center gap-1 md:flex">
           {CATEGORIES.map((cat) => (
-            <Link key={cat.value} href={cat.href}>
+            <Link key={cat.value} href={cat.href} className="relative group px-1">
               <Button
                 variant="ghost"
                 size="sm"
-                className="gap-1.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-all duration-200 hover:text-blue-600 dark:hover:text-blue-400"
+                className="relative z-10 gap-1.5 rounded-full hover:bg-transparent transition-all duration-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 font-medium"
               >
                 {categoryIcons[cat.value]}
                 {t(categoryI18nKeys[cat.value])}
               </Button>
+              {/* Premium hover pill background */}
+              <div className="absolute inset-0 z-0 bg-zinc-100/80 dark:bg-zinc-800/80 rounded-full scale-50 opacity-0 transition-all duration-300 group-hover:scale-100 group-hover:opacity-100" />
             </Link>
           ))}
           <Button
@@ -318,14 +320,14 @@ export function Navbar() {
                     className="flex items-center gap-3 transition-all hover:opacity-90"
                     onClick={() => setMobileOpen(false)}
                   >
-                    <div className="flex items-center justify-center size-10 rounded-xl overflow-hidden bg-white shadow-sm border border-zinc-100 dark:border-zinc-800">
-                      <Image src="/logo.png" alt="BhoomiTayi Logo" width={40} height={40} className="object-cover" />
+                    <div className="flex items-center justify-center size-14 rounded-full shadow-md overflow-hidden">
+                      <Image src="/logo-v2.png" alt="BhoomiTayi Logo" width={56} height={56} className="object-cover w-full h-full rounded-full" />
                     </div>
                     <div className="flex flex-col items-start">
-                      <span className="text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-extrabold leading-none">
+                      <span className="text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-extrabold leading-none">
                         BhoomiTayi
                       </span>
-                      <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">
+                      <span className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">
                         by ayushree herbals
                       </span>
                     </div>

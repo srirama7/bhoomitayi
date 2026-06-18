@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -129,10 +130,18 @@ function SignupForm() {
       <div className="fixed inset-0 overflow-hidden pointer-events-none"><div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-blue-200/20 dark:bg-blue-800/10 blur-3xl" /><div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-200/20 dark:bg-indigo-800/10 blur-3xl" /></div>
       <Card className="relative w-full max-w-md rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80 backdrop-blur-sm">
         <CardHeader className="text-center">
-          <Link href="/" className="mb-2 inline-block">
-            <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent">
-              BhoomiTayi
-            </h1>
+          <Link href="/" className="mb-4 flex flex-col items-center justify-center gap-3 transition-all hover:opacity-90">
+            <div className="flex items-center justify-center size-24 rounded-full shadow-lg overflow-hidden">
+              <Image src="/logo-v2.png" alt="BhoomiTayi Logo" width={96} height={96} className="object-cover w-full h-full rounded-full" priority />
+            </div>
+            <div className="flex flex-col items-center">
+              <span className="text-3xl font-bold tracking-tight bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent leading-none">
+                BhoomiTayi
+              </span>
+              <span className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider mt-1">
+                by ayushree herbals
+              </span>
+            </div>
           </Link>
           <CardTitle className="text-xl">Create an account</CardTitle>
           <CardDescription>

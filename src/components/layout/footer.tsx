@@ -46,14 +46,14 @@ export function Footer() {
               href="/"
               className="group flex items-center gap-3 transition-all hover:opacity-90"
             >
-              <div className="relative flex items-center justify-center size-10 rounded-xl overflow-hidden bg-white shadow-lg">
-                <Image src="/logo.png" alt="BhoomiTayi Logo" width={40} height={40} className="object-cover" />
+              <div className="relative flex items-center justify-center size-14 rounded-full shadow-md overflow-hidden">
+                <Image src="/logo-v2.png" alt="BhoomiTayi Logo" width={56} height={56} className="object-cover w-full h-full rounded-full" />
               </div>
               <div className="flex flex-col">
-                <span className="text-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent font-extrabold tracking-tight leading-none">
+                <span className="text-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent font-extrabold tracking-tight leading-none">
                   BhoomiTayi
                 </span>
-                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">
+                <span className="text-[11px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">
                   by ayushree herbals
                 </span>
               </div>

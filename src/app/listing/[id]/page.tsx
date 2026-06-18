@@ -144,8 +144,13 @@ export default function ListingDetailPage() {
   const canReceiveInquiries = effectiveStatus === "active";
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-indigo-50/50 via-white to-blue-50/50 dark:from-zinc-950 dark:via-zinc-900/80 dark:to-zinc-950">
+      {/* Soft animated background elements */}
+      <div className="absolute top-0 right-0 w-[50vw] h-[50vw] bg-blue-400/10 dark:bg-blue-600/10 rounded-full blur-[120px] animate-pulse-glow pointer-events-none mix-blend-screen" />
+      <div className="absolute bottom-0 left-0 w-[40vw] h-[40vw] bg-purple-400/10 dark:bg-purple-600/10 rounded-full blur-[120px] animate-pulse-glow pointer-events-none mix-blend-screen" style={{ animationDelay: '2s' }} />
+      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] dark:opacity-[0.05] mix-blend-overlay pointer-events-none z-0" />
+      
+      <div className="container relative z-10 mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-sm text-muted-foreground mb-6">
           <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
@@ -158,13 +163,15 @@ export default function ListingDetailPage() {
         </nav>
 
         {/* Image Gallery */}
-        <ImageGallery images={listing.images ?? []} title={listing.title} />
+        <div className="rounded-3xl overflow-hidden shadow-2xl ring-1 ring-black/5 dark:ring-white/10 bg-white/5 backdrop-blur-3xl">
+          <ImageGallery images={listing.images ?? []} title={listing.title} />
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-10">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-8">
             {/* Header */}
-            <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 shadow-3d">
+            <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl rounded-[2.5rem] border border-white/40 dark:border-white/10 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)]">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 mb-3">
@@ -342,9 +349,10 @@ export default function ListingDetailPage() {
             </div>
 
             {profile && (
-              <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80 overflow-hidden">
-                <div className="h-1.5 bg-gradient-to-r from-blue-600 to-indigo-600" />
-                <CardContent className="p-6 space-y-5">
+              <Card className="rounded-[2.5rem] border-0 shadow-2xl bg-gradient-to-br from-white/80 to-white/40 dark:from-zinc-900/80 dark:to-zinc-900/40 backdrop-blur-3xl overflow-hidden relative group">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
+                <CardContent className="p-8 space-y-6 relative z-10">
                   <div>
                     <h3 className="font-bold text-xl text-foreground flex items-center gap-2 mb-4">
                       Contact Details
@@ -494,11 +502,13 @@ export default function ListingDetailPage() {
 
 function DetailItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <div className="flex items-center gap-3 p-3.5 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-100 dark:border-zinc-800/80 transition-colors">
-      <div className="text-blue-500 dark:text-blue-400">{icon}</div>
+    <div className="group flex items-center gap-4 p-4 bg-white/50 dark:bg-zinc-800/40 backdrop-blur-xl rounded-2xl border border-white/60 dark:border-white/5 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300">
+      <div className="flex items-center justify-center size-10 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 transition-all duration-300">
+        {icon}
+      </div>
       <div>
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="font-medium capitalize text-foreground">{value}</p>
+        <p className="text-[11px] font-bold tracking-wider uppercase text-muted-foreground">{label}</p>
+        <p className="font-semibold capitalize text-foreground">{value}</p>
       </div>
     </div>
   );
