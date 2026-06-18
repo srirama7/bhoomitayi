@@ -34,6 +34,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { NativeAuthGuard } from "@/components/layout/native-auth-guard";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -49,7 +51,9 @@ export default function RootLayout({
           <I18nProvider>
             <AuthProvider>
               <TooltipProvider>
-                <LayoutWrapper>{children}</LayoutWrapper>
+                <NativeAuthGuard>
+                  <LayoutWrapper>{children}</LayoutWrapper>
+                </NativeAuthGuard>
                 <Toaster richColors position="top-right" />
               </TooltipProvider>
             </AuthProvider>
