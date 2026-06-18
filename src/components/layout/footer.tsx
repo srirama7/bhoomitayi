@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Home, ArrowUpRight, Heart } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -43,14 +44,19 @@ export function Footer() {
           <div className="flex flex-col gap-5">
             <Link
               href="/"
-              className="flex items-center gap-2.5 font-bold text-xl group"
+              className="group flex items-center gap-3 transition-all hover:opacity-90"
             >
-              <div className="relative flex items-center justify-center size-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-600/20">
-                <Home className="size-5 text-white" />
+              <div className="relative flex items-center justify-center size-10 rounded-xl overflow-hidden bg-white shadow-lg">
+                <Image src="/logo.png" alt="BhoomiTayi Logo" width={40} height={40} className="object-cover" />
               </div>
-              <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent font-extrabold tracking-tight">
-                BhoomiTayi
-              </span>
+              <div className="flex flex-col">
+                <span className="text-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent font-extrabold tracking-tight leading-none">
+                  BhoomiTayi
+                </span>
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">
+                  by ayushree herbals
+                </span>
+              </div>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
               {t("footer.description")}

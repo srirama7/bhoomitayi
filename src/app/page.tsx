@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useTranslation } from "react-i18next";
 import {
   Search,
@@ -119,10 +120,15 @@ export default function HomePage() {
               initial={{ opacity: 0, y: -20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
-              className="inline-flex items-center gap-2 rounded-full bg-white/10 px-5 py-2 text-sm font-medium text-white/90 backdrop-blur-md border border-white/20 animate-pulse-glow"
+              className="inline-flex items-center gap-3 rounded-full bg-white/10 pl-2 pr-5 py-2 text-sm font-medium text-white/90 backdrop-blur-md border border-white/20 animate-pulse-glow"
             >
-              <Sparkles className="size-4 text-yellow-300" />
-              {t("hero.badge")}
+              <div className="flex items-center justify-center size-8 rounded-full overflow-hidden bg-white shadow-sm">
+                <Image src="/logo.png" alt="BhoomiTayi Logo" width={32} height={32} className="object-cover" />
+              </div>
+              <div className="flex flex-col items-start text-left">
+                <span className="font-bold text-white tracking-wide">BhoomiTayi</span>
+                <span className="text-[10px] text-blue-200 uppercase tracking-wider font-semibold leading-none">by ayushree herbals</span>
+              </div>
             </motion.div>
 
             <div className="space-y-4">

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import {
@@ -166,19 +167,23 @@ export function Navbar() {
         {/* Logo */}
         <Link
           href="/"
-          className="flex items-center gap-2.5 font-bold text-xl text-primary group"
+          className="group flex items-center gap-3 transition-all hover:opacity-90"
         >
           <motion.div
             whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
             transition={{ duration: 0.4 }}
-            className="relative flex items-center justify-center size-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-600/25"
+            className="relative flex items-center justify-center size-10 rounded-xl overflow-hidden bg-white shadow-lg"
           >
-            <Home className="size-5 text-white" />
-            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-40 blur-lg transition-opacity duration-300" />
+            <Image src="/logo.png" alt="BhoomiTayi Logo" width={40} height={40} className="object-cover" />
           </motion.div>
-          <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent font-extrabold tracking-tight">
-            BhoomiTayi
-          </span>
+          <div className="flex flex-col">
+            <span className="text-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 bg-clip-text text-transparent font-extrabold tracking-tight leading-none">
+              BhoomiTayi
+            </span>
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">
+              by ayushree herbals
+            </span>
+          </div>
         </Link>
 
         {/* Desktop Navigation */}
@@ -310,15 +315,20 @@ export function Navbar() {
                 <SheetTitle>
                   <Link
                     href="/"
-                    className="flex items-center gap-2 font-bold text-lg"
+                    className="flex items-center gap-3 transition-all hover:opacity-90"
                     onClick={() => setMobileOpen(false)}
                   >
-                    <div className="flex items-center justify-center size-8 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600">
-                      <Home className="size-4 text-white" />
+                    <div className="flex items-center justify-center size-10 rounded-xl overflow-hidden bg-white shadow-sm border border-zinc-100 dark:border-zinc-800">
+                      <Image src="/logo.png" alt="BhoomiTayi Logo" width={40} height={40} className="object-cover" />
                     </div>
-                    <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-extrabold">
-                      BhoomiTayi
-                    </span>
+                    <div className="flex flex-col items-start">
+                      <span className="text-xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-extrabold leading-none">
+                        BhoomiTayi
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider mt-0.5">
+                        by ayushree herbals
+                      </span>
+                    </div>
                   </Link>
                 </SheetTitle>
               </SheetHeader>
