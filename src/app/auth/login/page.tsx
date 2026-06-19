@@ -66,8 +66,12 @@ function LoginForm() {
       await signInWithEmailAndPassword(auth, email.trim(), password);
 
       toast.success("Signed in successfully!");
-      router.push(redirectTo);
-      router.refresh();
+      if (typeof window !== "undefined" && (window as any).AndroidBridge) {
+        setTimeout(() => { window.location.href = redirectTo; }, 500);
+      } else {
+        router.push(redirectTo);
+        router.refresh();
+      }
     } catch (error: unknown) {
       const firebaseError = error as { code?: string; message?: string };
       if (firebaseError.code === "auth/user-not-found" || firebaseError.code === "auth/wrong-password" || firebaseError.code === "auth/invalid-credential") {
@@ -103,7 +107,7 @@ function LoginForm() {
       try {
         userCredential = await signInWithNativeGoogle();
       } catch (nativeError) {
-        // Native sign-in failed or unavailable — try web popup
+        // Native sign-in failed or unavailable â€” try web popup
         // This only works in a real browser, NOT in an Android WebView.
         // If we're in a WebView and native also failed, we'll catch the
         // final error below and show a helpful message.
@@ -124,7 +128,7 @@ function LoginForm() {
           }
 
           // "disallowed_useragent" = we're in a WebView where Google blocks OAuth
-          // AND native Capacitor sign-in also failed — guide the user
+          // AND native Capacitor sign-in also failed â€” guide the user
           if (
             popupErr.code === "auth/internal-error" ||
             (popupErr.message || "").includes("disallowed_useragent") ||
@@ -175,8 +179,12 @@ function LoginForm() {
       }
 
       toast.success("Signed in successfully!");
-      router.push(redirectTo);
-      router.refresh();
+      if (typeof window !== "undefined" && (window as any).AndroidBridge) {
+        setTimeout(() => { window.location.href = redirectTo; }, 500);
+      } else {
+        router.push(redirectTo);
+        router.refresh();
+      }
     } catch (error: unknown) {
       console.error("Google sign-in error:", error);
       const firebaseError = error as { code?: string; message?: string };
@@ -332,3 +340,5 @@ function LoginForm() {
     </div>
   );
 }
+
+

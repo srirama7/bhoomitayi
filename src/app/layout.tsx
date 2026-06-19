@@ -54,7 +54,7 @@ export default function RootLayout({
                 <NativeAuthGuard>
                   <LayoutWrapper>{children}</LayoutWrapper>
                 </NativeAuthGuard>
-                <Toaster richColors position="top-right" />
+                <Toaster richColors position="bottom-center" />
               </TooltipProvider>
             </AuthProvider>
           </I18nProvider>
