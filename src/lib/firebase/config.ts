@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
@@ -36,7 +36,24 @@ const app = getApps().length === 0
   ? (isConfigValid ? initializeApp(firebaseConfig) : null)
   : getApps()[0];
 
-export const auth = app ? getAuth(app) : null as any;
+// Use initializeAuth with IndexedDB + localStorage persistence.
+// This avoids sessionStorage entirely, which fixes the
+// "missing initial state" error in Android WebView (Capacitor APK).
+// DO NOT use getAuth() here — it uses sessionStorage for redirect state
+// which is inaccessible in partitioned WebView environments.
+export const auth = app
+  ? (() => {
+      try {
+        // Try initializeAuth first (new instance)
+        return initializeAuth(app, {
+          persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+        });
+      } catch {
+        // Already initialized — get existing instance
+        return getAuth(app);
+      }
+    })()
+  : null as any;
 export const db = app ? getFirestore(app) : null as any;
 export const storage = app ? getStorage(app) : null as any;
 
