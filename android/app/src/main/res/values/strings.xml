@@ -4,4 +4,6 @@
     <string name="title_activity_main">BhoomiTayi</string>
     <string name="package_name">com.bhoomitayi.app</string>
     <string name="custom_url_scheme">com.bhoomitayi.app</string>
+    <string name="default_web_client_id">128735139971-h04ru4l2sf2l4cr2tfijp211e8rei9d2.apps.googleusercontent.com</string>
+    <string name="server_client_id">128735139971-h04ru4l2sf2l4cr2tfijp211e8rei9d2.apps.googleusercontent.com</string>
 </resources>
