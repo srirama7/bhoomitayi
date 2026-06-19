@@ -12,7 +12,16 @@ import {
 import { auth } from "@/lib/firebase/config";
 
 export function isNativeApp() {
-  return Capacitor.isNativePlatform();
+  try {
+    // Primary check: Capacitor API
+    if (Capacitor.isNativePlatform()) return true;
+    // Secondary check: Capacitor bridge object exists on window
+    // (sometimes isNativePlatform returns false with remote URLs)
+    if (typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform === "true") return true;
+    return false;
+  } catch {
+    return false;
+  }
 }
 
 export async function signInWithNativeGoogle(): Promise<UserCredential> {

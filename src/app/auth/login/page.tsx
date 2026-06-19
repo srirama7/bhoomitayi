@@ -7,7 +7,7 @@ import Image from "next/image";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
-import { isNativeApp, signInWithNativeGoogle } from "@/lib/firebase/native-auth";
+import { signInWithNativeGoogle } from "@/lib/firebase/native-auth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,46 +93,50 @@ function LoginForm() {
     setIsGoogleLoading(true);
 
     try {
-      const nativeApp = isNativeApp();
-
-      // Detect Android/iOS WebView environments where signInWithRedirect would fail
-      // due to sessionStorage partitioning (the exact error shown in the APK)
-      const ua = typeof window !== "undefined" ? navigator.userAgent : "";
-      const isWebView =
-        nativeApp ||
-        ua.includes("wv") || // Android WebView flag
-        /; wv\)/.test(ua) || // Another Android WebView pattern
-        (ua.includes("Android") && ua.includes("Version/") && !ua.includes("Chrome")) ||
-        (ua.includes("iPhone") && !ua.includes("Safari"));
-
       let userCredential;
 
-      if (nativeApp) {
-        // On native Android/iOS: use Capacitor Firebase plugin (no WebView redirect)
+      // Strategy: Always try Capacitor native Google sign-in first.
+      // In the APK: This uses Android's native Google account picker
+      //             (NOT a WebView), so Google never blocks it.
+      // In a browser: The Capacitor plugin isn't available, so it throws,
+      //               and we fall back to signInWithPopup.
+      try {
         userCredential = await signInWithNativeGoogle();
-      } else if (isWebView) {
-        throw new Error(
-          "Google sign-in is not available in this environment. " +
-          "Please use email/password login, or open the app normally."
-        );
-      } else {
-        // On web browser: use popup (never redirect - redirect breaks sessionStorage)
+      } catch (nativeError) {
+        // Native sign-in failed or unavailable — try web popup
+        // This only works in a real browser, NOT in an Android WebView.
+        // If we're in a WebView and native also failed, we'll catch the
+        // final error below and show a helpful message.
+        console.warn("Native Google sign-in unavailable, trying popup:", nativeError);
+
         const provider = new GoogleAuthProvider();
         try {
           userCredential = await signInWithPopup(auth, provider);
         } catch (popupError: unknown) {
-          const popupErr = popupError as { code?: string };
+          const popupErr = popupError as { code?: string; message?: string };
+
           if (popupErr.code === "auth/popup-blocked") {
-            // Do NOT fall back to signInWithRedirect - it breaks Android WebView
-            // and causes "missing initial state" sessionStorage errors.
-            // Instead, guide the user to allow popups.
             toast.error(
-              "Google sign-in popup was blocked by your browser. " +
-              "Please allow popups for this site and try again, or use email/password login."
+              "Google sign-in popup was blocked. Please allow popups and try again, or use email/password login."
             );
             setIsGoogleLoading(false);
             return;
           }
+
+          // "disallowed_useragent" = we're in a WebView where Google blocks OAuth
+          // AND native Capacitor sign-in also failed — guide the user
+          if (
+            popupErr.code === "auth/internal-error" ||
+            (popupErr.message || "").includes("disallowed_useragent") ||
+            (popupErr.message || "").includes("403")
+          ) {
+            toast.error(
+              "Google sign-in is not available in this app right now. Please use email/password login."
+            );
+            setIsGoogleLoading(false);
+            return;
+          }
+
           throw popupError;
         }
       }
