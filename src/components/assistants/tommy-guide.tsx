@@ -313,7 +313,15 @@ export function TommyGuide() {
 
   // Use mounted flag to avoid SSR mismatch
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   if (!mounted) return null;
 
@@ -322,6 +330,9 @@ export function TommyGuide() {
     // Will be set by the useEffect, render nothing for now
     return null;
   }
+
+  const btnSize = isMobile ? 48 : 64;
+  const halfBtnSize = btnSize / 2;
 
   return (
     <div id="tommy-guide-root">
@@ -335,18 +346,22 @@ export function TommyGuide() {
         aria-label="Tommy Guide"
         className="fixed z-40 touch-none select-none"
         style={{
-          left: `${position.x - 32}px`,
-          top: `${position.y - 32}px`,
+          left: `${position.x - halfBtnSize}px`,
+          top: `${position.y - halfBtnSize}px`,
           cursor: isDragging ? "grabbing" : "grab",
           display: open ? "none" : "block",
         }}
       >
-        <div className="size-16 rounded-full shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all duration-300 overflow-hidden ring-3 ring-orange-400 hover:ring-orange-500 hover:scale-105">
+        <div 
+          className={`${
+            isMobile ? "size-12 ring-2" : "size-16 ring-3"
+          } rounded-full shadow-xl shadow-orange-500/30 hover:shadow-orange-500/50 transition-all duration-300 overflow-hidden ring-orange-400 hover:ring-orange-500 hover:scale-105`}
+        >
           <Image src={TOMMY_AVATAR} alt="Tommy" width={64} height={64} className="size-full object-cover pointer-events-none" />
         </div>
-        <span className="absolute -top-1 -left-1 flex size-4">
+        <span className={`absolute -top-0.5 -left-0.5 flex ${isMobile ? "size-3" : "size-4"}`}>
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-400 opacity-75" />
-          <span className="relative inline-flex rounded-full size-4 bg-orange-500" />
+          <span className={`relative inline-flex rounded-full ${isMobile ? "size-3" : "size-4"} bg-orange-500`} />
         </span>
       </div>
 

@@ -838,9 +838,20 @@ export function BellaChat() {
 
   // Use mounted flag to avoid SSR mismatch
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const checkMobile = () => setIsMobile(window.innerWidth < 640);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   if (!mounted || position.x === -1) return null;
+
+  const btnSize = isMobile ? 48 : 64;
+  const halfBtnSize = btnSize / 2;
 
   return (
     <div id="bella-chat-root">
@@ -855,18 +866,22 @@ export function BellaChat() {
         aria-label="Bella"
         className="fixed z-50 touch-none select-none"
         style={{
-          left: `${position.x - 32}px`,
-          top: `${position.y - 32}px`,
+          left: `${position.x - halfBtnSize}px`,
+          top: `${position.y - halfBtnSize}px`,
           cursor: isDragging ? "grabbing" : "grab",
           display: open ? "none" : "block",
         }}
       >
-        <div className="size-16 rounded-full shadow-xl shadow-pink-500/30 hover:shadow-pink-500/50 transition-all duration-300 overflow-hidden ring-3 ring-pink-400 hover:ring-pink-500 hover:scale-105">
+        <div 
+          className={`${
+            isMobile ? "size-12 ring-2" : "size-16 ring-3"
+          } rounded-full shadow-xl shadow-pink-500/30 hover:shadow-pink-500/50 transition-all duration-300 overflow-hidden ring-pink-400 hover:ring-pink-500 hover:scale-105`}
+        >
           <Image src={BELLA_AVATAR} alt="Bella" width={64} height={64} className="size-full object-cover pointer-events-none" />
         </div>
-        <span className="absolute -top-1 -right-1 flex size-4">
+        <span className={`absolute -top-0.5 -right-0.5 flex ${isMobile ? "size-3" : "size-4"}`}>
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75" />
-          <span className="relative inline-flex rounded-full size-4 bg-pink-500" />
+          <span className={`relative inline-flex rounded-full ${isMobile ? "size-3" : "size-4"} bg-pink-500`} />
         </span>
       </div>
 
