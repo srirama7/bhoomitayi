@@ -4,9 +4,10 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, GoogleAuthProvider } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
+import { isNativeApp, signInWithNativeGoogle } from "@/lib/firebase/native-auth";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,27 +93,48 @@ function LoginForm() {
     setIsGoogleLoading(true);
 
     try {
-      const provider = new GoogleAuthProvider();
+      const nativeApp = isNativeApp();
 
-      // Check if we are running inside the BhoomiTayi App WebView
-      const isApp = typeof window !== "undefined" && window.navigator.userAgent.includes("BhoomiTayiApp");
-
-      if (isApp) {
-        // Direct redirect for App WebView since popups are not supported
-        await signInWithRedirect(auth, provider);
-        return;
-      }
+      // Detect Android/iOS WebView environments where signInWithRedirect would fail
+      // due to sessionStorage partitioning (the exact error shown in the APK)
+      const ua = typeof window !== "undefined" ? navigator.userAgent : "";
+      const isWebView =
+        nativeApp ||
+        ua.includes("wv") || // Android WebView flag
+        /; wv\)/.test(ua) || // Another Android WebView pattern
+        (ua.includes("Android") && ua.includes("Version/") && !ua.includes("Chrome")) ||
+        (ua.includes("iPhone") && !ua.includes("Safari"));
 
       let userCredential;
-      try {
-        userCredential = await signInWithPopup(auth, provider);
-      } catch (popupError: unknown) {
-        const popupErr = popupError as { code?: string };
-        if (popupErr.code === "auth/popup-blocked") {
-          await signInWithRedirect(auth, provider);
-          return;
+
+      if (nativeApp) {
+        // On native Android/iOS: use Capacitor Firebase plugin (no WebView redirect)
+        userCredential = await signInWithNativeGoogle();
+      } else if (isWebView) {
+        throw new Error(
+          "Google sign-in is not available in this environment. " +
+          "Please use email/password login, or open the app normally."
+        );
+      } else {
+        // On web browser: use popup (never redirect - redirect breaks sessionStorage)
+        const provider = new GoogleAuthProvider();
+        try {
+          userCredential = await signInWithPopup(auth, provider);
+        } catch (popupError: unknown) {
+          const popupErr = popupError as { code?: string };
+          if (popupErr.code === "auth/popup-blocked") {
+            // Do NOT fall back to signInWithRedirect - it breaks Android WebView
+            // and causes "missing initial state" sessionStorage errors.
+            // Instead, guide the user to allow popups.
+            toast.error(
+              "Google sign-in popup was blocked by your browser. " +
+              "Please allow popups for this site and try again, or use email/password login."
+            );
+            setIsGoogleLoading(false);
+            return;
+          }
+          throw popupError;
         }
-        throw popupError;
       }
 
       const user = userCredential.user;
@@ -164,6 +186,10 @@ function LoginForm() {
         toast.error("Google sign-in is temporarily unavailable. Please try again or use email login.");
       } else if (firebaseError.code === "auth/network-request-failed") {
         toast.error("Network error. Please check your internet connection and try again.");
+      } else if ((firebaseError.message || "").toLowerCase().includes("canceled")) {
+        toast.error("Google sign-in was cancelled.");
+      } else if ((firebaseError.message || "").includes("default_web_client_id")) {
+        toast.error("Android Google sign-in is not configured yet. Add google-services.json and rebuild the APK.");
       } else {
         toast.error(`Google sign-in failed: ${firebaseError.code || firebaseError.message || "Unknown error"}. Check console for details.`);
       }
