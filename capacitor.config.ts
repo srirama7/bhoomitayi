@@ -24,7 +24,7 @@ const config: CapacitorConfig = {
   plugins: {
     FirebaseAuthentication: {
       authDomain: 'real-estate-4a9f1.firebaseapp.com',
-      skipNativeAuth: true,
+      skipNativeAuth: false,
       providers: ['google.com'],
     },
   },

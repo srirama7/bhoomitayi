@@ -21,7 +21,7 @@ export async function signInWithNativeGoogle(): Promise<UserCredential> {
   }
 
   const result = await FirebaseAuthentication.signInWithGoogle({
-    skipNativeAuth: true,
+    skipNativeAuth: false,
   });
 
   const idToken = result.credential?.idToken;
