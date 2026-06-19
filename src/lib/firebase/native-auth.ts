@@ -1,7 +1,6 @@
 "use client";
 
 import { Capacitor } from "@capacitor/core";
-import { FirebaseAuthentication } from "@capacitor-firebase/authentication";
 import {
   GoogleAuthProvider,
   signInWithCredential,
@@ -11,13 +10,13 @@ import {
 
 import { auth } from "@/lib/firebase/config";
 
-export function isNativeApp() {
+export function isNativeApp(): boolean {
   try {
-    // Primary check: Capacitor API
+    if (typeof window === "undefined") return false;
+    // Check if running inside a Capacitor native app
     if (Capacitor.isNativePlatform()) return true;
-    // Secondary check: Capacitor bridge object exists on window
-    // (sometimes isNativePlatform returns false with remote URLs)
-    if (typeof window !== "undefined" && (window as any).Capacitor?.isNativePlatform === "true") return true;
+    // Check for the Android bridge object injected by MainActivity
+    if ((window as any).AndroidBridge) return true;
     return false;
   } catch {
     return false;
@@ -29,30 +28,54 @@ export async function signInWithNativeGoogle(): Promise<UserCredential> {
     throw new Error("Authentication service not available.");
   }
 
-  const result = await FirebaseAuthentication.signInWithGoogle({
-    skipNativeAuth: false,
-  });
+  // If running in native Android app, use the AndroidBridge
+  // which calls native Google Sign-in and posts back an idToken
+  if (isNativeApp() && (window as any).AndroidBridge?.startGoogleSignIn) {
+    return new Promise<UserCredential>((resolve, reject) => {
+      // Set a timeout in case native sign-in hangs
+      const timeout = setTimeout(() => {
+        window.removeEventListener("message", handler);
+        reject(new Error("Native Google sign-in timed out."));
+      }, 60000);
 
-  const idToken = result.credential?.idToken;
-  const accessToken = result.credential?.accessToken;
+      const handler = async (event: MessageEvent) => {
+        if (event.data?.type !== "GOOGLE_SIGN_IN_RESULT") return;
 
-  if (!idToken) {
-    throw new Error("Native Google sign-in did not return an ID token.");
+        clearTimeout(timeout);
+        window.removeEventListener("message", handler);
+
+        if (event.data.error) {
+          reject(new Error(event.data.error));
+          return;
+        }
+
+        const { idToken, accessToken } = event.data;
+        if (!idToken) {
+          reject(new Error("No ID token received from native sign-in."));
+          return;
+        }
+
+        try {
+          const credential = GoogleAuthProvider.credential(idToken, accessToken);
+          const result = await signInWithCredential(auth!, credential);
+          resolve(result);
+        } catch (err) {
+          reject(err);
+        }
+      };
+
+      window.addEventListener("message", handler);
+
+      // Tell Android to start Google Sign-in
+      (window as any).AndroidBridge.startGoogleSignIn();
+    });
   }
 
-  const credential = GoogleAuthProvider.credential(idToken, accessToken);
-  return signInWithCredential(auth, credential);
+  // Not in native app — throw so caller can fall back to web popup
+  throw new Error("Native Google sign-in is only available in the Android app.");
 }
 
 export async function signOutEverywhere() {
-  if (isNativeApp()) {
-    try {
-      await FirebaseAuthentication.signOut();
-    } catch (error) {
-      console.warn("Native sign-out failed:", error);
-    }
-  }
-
   if (auth) {
     await signOutFromFirebase(auth);
   }
