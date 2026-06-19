@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useAuthStore } from "@/lib/store";
 
 export default function LoginPage() {
   return (
@@ -36,6 +37,14 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  const { user, loading } = useAuthStore();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push(redirectTo);
+    }
+  }, [user, loading, router, redirectTo]);
 
   async function handleEmailLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -84,6 +93,16 @@ function LoginForm() {
 
     try {
       const provider = new GoogleAuthProvider();
+
+      // Check if we are running inside the BhoomiTayi App WebView
+      const isApp = typeof window !== "undefined" && window.navigator.userAgent.includes("BhoomiTayiApp");
+
+      if (isApp) {
+        // Direct redirect for App WebView since popups are not supported
+        await signInWithRedirect(auth, provider);
+        return;
+      }
+
       let userCredential;
       try {
         userCredential = await signInWithPopup(auth, provider);
