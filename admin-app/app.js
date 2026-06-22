@@ -9,7 +9,25 @@ firebase.initializeApp({
 });
 const db = firebase.firestore();
 const auth = firebase.auth();
-const APPROVAL_EMAIL_API_URL = "https://propnest-admin-official.vercel.app/api/listings/approval-email";
+async function sendApprovalEmail(listingId, listingTitle, ownerEmail) {
+  if (!ownerEmail) {
+    console.warn("No owner email found for listing, skipping email notification.", listingId);
+    return;
+  }
+  try {
+    await db.collection("mail").add({
+      to: ownerEmail,
+      message: {
+        subject: "Your application has been approved",
+        html: `<p>Your application has been approved. Please visit the website to view your listing.</p>`
+      }
+    });
+    console.log("Approval email written to Firestore mail collection for listing:", listingId);
+  } catch (error) {
+    console.error("Error writing approval email to Firestore:", error);
+  }
+}
+
 let allListings = [], allProfiles = {}, currentFilter = "all", countdownIntervals = {};
 
 // // AUTH
@@ -456,7 +474,13 @@ async function setTimer(id){
     if(!confirm("Do you want to approve again with updated timings?")) return;
   }
   try{await db.collection("listings").doc(id).update({expires_at:new Date(Date.now()+ms).toISOString(),status:"active",updated_at:new Date().toISOString()});
-    alert("Timer set! Listing is now active.");refreshData()}catch(e){alert("Error: "+e.message)}
+    alert("Timer set! Listing is now active.");
+    if (listing) {
+      const pr = allProfiles[listing.user_id] || {};
+      const ownerEmail = listing.owner_email || pr.email || "";
+      sendApprovalEmail(listing.id, listing.title, ownerEmail);
+    }
+    refreshData()}catch(e){alert("Error: "+e.message)}
 }
 async function clearTimer(id){
   try{await db.collection("listings").doc(id).update({expires_at:null,updated_at:new Date().toISOString()});
@@ -499,6 +523,14 @@ async function doBulkAction(act) {
       else{
         let status=act==="approve"?"active":act==="reject"?"rejected":"pending";
         await db.collection("listings").doc(id).update({status, updated_at: new Date().toISOString()});
+        if (act === "approve") {
+          const l = allListings.find(x => x.id === id);
+          if (l) {
+            const pr = allProfiles[l.user_id] || {};
+            const ownerEmail = l.owner_email || pr.email || "";
+            sendApprovalEmail(l.id, l.title, ownerEmail);
+          }
+        }
       }
     }
     await logAction("Bulk Action", `Admin bulk ${act}d ${ids.length} listings`);
@@ -545,6 +577,11 @@ async function doAction(id,action){
         await db.collection("listings").doc(id).update({status:action==="approve"?"active":"rejected",updated_at:new Date().toISOString()});
       }
       await logAction("Listing Action", `Admin performed ${action} on listing ${id} ("${l.title}")`);
+      if (action === "approve" || action === "relaunch") {
+        const pr = allProfiles[l.user_id] || {};
+        const ownerEmail = l.owner_email || pr.email || "";
+        sendApprovalEmail(l.id, l.title, ownerEmail);
+      }
       refreshData()}catch(e){alert("Error: "+e.message)}};
 }
 function closeModal(){document.getElementById("confirmModal").classList.add("hidden")}

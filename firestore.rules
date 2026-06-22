@@ -34,5 +34,15 @@ service cloud.firestore {
       allow read: if false;
       allow create: if request.auth != null;
     }
+
+    // Mail: allow creation of mail documents
+    match /mail/{mailId} {
+      allow create: if true;
+    }
+
+    // Audit logs: allow read and write
+    match /audit_logs/{logId} {
+      allow read, write: if true;
+    }
   }
 }

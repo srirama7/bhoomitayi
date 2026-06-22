@@ -8,11 +8,13 @@ type ApprovalEmailRequest = {
 };
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const defaultEmailFrom = "bhoomitayi74@gmail.com";
+const defaultEmailFrom = "bhoomitayi7@gmail.com";
 const defaultAllowedOrigin = "https://admin-app-jade-one.vercel.app";
 const allowedOrigins = new Set([
   defaultAllowedOrigin,
   "https://propnest-admin-official.vercel.app",
+  "http://localhost:4343",
+  "http://127.0.0.1:4343",
 ]);
 
 export async function OPTIONS(request: Request) {
@@ -62,18 +64,10 @@ export async function POST(request: Request) {
       ? `${appUrl}/listing/${encodeURIComponent(body.listingId)}`
       : null;
 
-  const subject = "Your listing payment has been listed";
+  const subject = "Your application has been approved";
   const html = `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111827">
-      <h2 style="margin:0 0 12px">Listing approved</h2>
-      <p>Your payment has been listed and your listing is now active.</p>
-      <p><strong>Listing:</strong> ${escapeHtml(listingTitle)}</p>
-      ${
-        listingUrl
-          ? `<p><a href="${listingUrl}" style="color:#2563eb">View your listing</a></p>`
-          : ""
-      }
-      <p>Thank you for using Bhoomitayi.</p>
+      <p>Your application has been approved. Please visit the website to view your listing.</p>
     </div>
   `;
 
