@@ -335,25 +335,25 @@ function createBellaEngine(
     },
     // ── Settings: Reading Mode ──
     {
-      patterns: [/reading\s*mode\s*on/i, /turn.*reading/i, /enable.*reading/i, /start.*reading/i, /reading\s*mode/i],
-      responseKey: "bella.reading_on",
-      action: () => settings.setReadingMode(true),
-    },
-    {
       patterns: [/reading\s*mode\s*off/i, /disable.*reading/i, /stop.*reading/i, /no.*reading/i, /exit.*reading/i],
       responseKey: "bella.reading_off",
       action: () => settings.setReadingMode(false),
     },
-    // ── Settings: High Contrast ──
     {
-      patterns: [/high\s*contrast\s*on/i, /turn.*contrast/i, /enable.*contrast/i, /more\s*contrast/i, /high\s*contrast/i],
-      responseKey: "bella.contrast_on",
-      action: () => settings.setHighContrast(true),
+      patterns: [/reading\s*mode\s*on/i, /turn.*reading/i, /enable.*reading/i, /start.*reading/i, /reading\s*mode/i],
+      responseKey: "bella.reading_on",
+      action: () => settings.setReadingMode(true),
     },
+    // ── Settings: High Contrast ──
     {
       patterns: [/contrast\s*off/i, /disable.*contrast/i, /normal\s*contrast/i, /low\s*contrast/i],
       responseKey: "bella.contrast_off",
       action: () => settings.setHighContrast(false),
+    },
+    {
+      patterns: [/high\s*contrast\s*on/i, /turn.*contrast/i, /enable.*contrast/i, /more\s*contrast/i, /high\s*contrast/i],
+      responseKey: "bella.contrast_on",
+      action: () => settings.setHighContrast(true),
     },
     // ── Settings: Font Size ──
     {
@@ -389,14 +389,14 @@ function createBellaEngine(
     },
     // ── Settings: Compact Mode ──
     {
-      patterns: [/compact\s*mode/i, /enable.*compact/i, /tight.*spacing/i, /compact.*on/i],
-      responseKey: "bella.compact_on",
-      action: () => settings.setCompactMode(true),
-    },
-    {
       patterns: [/compact.*off/i, /disable.*compact/i, /normal.*spacing/i, /spacious/i],
       responseKey: "bella.compact_off",
       action: () => settings.setCompactMode(false),
+    },
+    {
+      patterns: [/compact\s*mode/i, /enable.*compact/i, /tight.*spacing/i, /compact.*on/i],
+      responseKey: "bella.compact_on",
+      action: () => settings.setCompactMode(true),
     },
     // ── Settings: Notifications ──
     {
