@@ -98,7 +98,7 @@ export function PaymentGateway({
   }
 
   const copyUpi = () => {
-    navigator.clipboard.writeText("8762616609@axl");
+    navigator.clipboard.writeText("amoghabhat7403@oksbi");
     toast.success("UPI ID copied to clipboard!");
   }
 
@@ -204,14 +204,16 @@ export function PaymentGateway({
                   <span className="font-semibold text-sm">Secure UPI Payment</span>
                 </div>
 
-                <div className="bg-white p-3 rounded-2xl shadow-inner w-[240px] h-[240px] relative z-10">
-                  <Image
-                    src="/qr_code.jpeg"
-                    alt="UPI QR Code"
-                    fill
-                    className="object-contain p-2"
-                    priority
-                  />
+                <div className="bg-white rounded-2xl shadow-inner w-[240px] h-[240px] relative z-10 overflow-hidden flex items-center justify-center">
+                  <div className="relative w-full h-full scale-[1.35]">
+                    <Image
+                      src="/qr_code.png"
+                      alt="UPI QR Code"
+                      fill
+                      className="object-cover object-center"
+                      priority
+                    />
+                  </div>
                 </div>
                 
                 <p className="mt-6 text-2xl font-bold text-white tracking-tight">
@@ -227,7 +229,7 @@ export function PaymentGateway({
                   className="mt-6 flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 transition-colors text-sm font-medium text-zinc-300 hover:text-white"
                 >
                   <Copy className="size-4" />
-                  Copy UPI ID: 8762616609@axl
+                  Copy UPI ID: amoghabhat7403@oksbi
                 </button>
               </div>
 
