@@ -23,14 +23,23 @@ const geistMono = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.bhoomitayi.com"),
   title: "BhoomiTayi - Online Marketplace | Buy, Sell & Rent Services",
   description:
     "BhoomiTayi is India's trusted online marketplace helping you buy, sell, and rent across categories including homes, vehicles, commercial spaces, and more.",
+  keywords: ["bhoomitayi", "online marketplace", "buy and sell", "real estate", "vehicles", "commercial properties", "India"],
+  authors: [{ name: "BhoomiTayi" }],
   openGraph: {
     title: "BhoomiTayi - Online Marketplace | Buy, Sell & Rent Services",
     description:
       "BhoomiTayi is India's trusted online marketplace helping you buy, sell, and rent across categories including homes, vehicles, commercial spaces, and more.",
+    url: "https://www.bhoomitayi.com",
+    siteName: "BhoomiTayi",
     type: "website",
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 
