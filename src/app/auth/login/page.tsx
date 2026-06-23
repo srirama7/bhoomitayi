@@ -194,6 +194,8 @@ function LoginForm() {
         // Another popup was opened, ignore
       } else if (firebaseError.code === "auth/unauthorized-domain") {
         toast.error("This domain is not authorized for Google sign-in. Please contact support.");
+      } else if (firebaseError.code === "auth/argument-error") {
+        toast.error("Google sign-in is not configured for this domain. Please use Email & Password to sign in.");
       } else if (firebaseError.code === "auth/internal-error") {
         toast.error("Google sign-in is temporarily unavailable. Please try again or use email login.");
       } else if (firebaseError.code === "auth/network-request-failed") {
