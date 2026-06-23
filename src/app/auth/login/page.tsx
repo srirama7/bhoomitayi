@@ -114,6 +114,9 @@ function LoginForm() {
         console.warn("Native Google sign-in unavailable, trying popup:", nativeError);
 
         const provider = new GoogleAuthProvider();
+        provider.addScope("email");
+        provider.addScope("profile");
+        provider.setCustomParameters({ prompt: "select_account" });
         try {
           userCredential = await signInWithPopup(auth, provider);
         } catch (popupError: unknown) {

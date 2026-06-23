@@ -11,7 +11,7 @@ const sanitize = (val?: string) => {
 
 const fallbackFirebaseConfig = {
   apiKey: "AIzaSyBwCGZRm_2z2o1CWLfDzKSni58PyL3angY",
-  authDomain: "www.bhoomitayi.com",
+  authDomain: "real-estate-4a9f1.firebaseapp.com",
   projectId: "real-estate-4a9f1",
   storageBucket: "real-estate-4a9f1.firebasestorage.app",
   messagingSenderId: "128735139971",
