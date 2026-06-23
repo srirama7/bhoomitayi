@@ -41,6 +41,9 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
+  verification: {
+    google: "N3NRStwIOhKJ281RwTbeVm2dBqVIQ3slUWbddXWxh74",
+  },
 };
 
 import { NativeAuthGuard } from "@/components/layout/native-auth-guard";
