@@ -45,9 +45,10 @@ export const auth = app
   ? (() => {
       try {
         // Try initializeAuth first (new instance)
+        // Only use browserPopupRedirectResolver in browser (not during SSR)
         return initializeAuth(app, {
           persistence: [indexedDBLocalPersistence, browserLocalPersistence],
-          popupRedirectResolver: browserPopupRedirectResolver,
+          popupRedirectResolver: typeof window !== "undefined" ? browserPopupRedirectResolver : undefined,
         });
       } catch {
         // Already initialized — get existing instance
