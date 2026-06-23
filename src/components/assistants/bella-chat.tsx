@@ -128,6 +128,125 @@ function createBellaEngine(
         return "Opening the Register Service page. Let's list your property!";
       }
     },
+    {
+      patterns: [/go.*house/i, /open.*house/i, /browse.*house/i, /houses\s*listings/i],
+      resolver: async () => {
+        router.push("/houses");
+        if (!db) return "Opening the Houses section to browse independent homes, villas, and apartments!";
+        try {
+          const q = query(collection(db, "listings"), where("category", "==", "house"), where("status", "==", "active"));
+          const snap = await getDocs(q);
+          return `Taking you to the Houses section! We have ${snap.size} houses currently available for sale or rent.`;
+        } catch {
+          return "Opening the Houses section to browse independent homes, villas, and apartments!";
+        }
+      }
+    },
+    {
+      patterns: [/go.*land/i, /open.*land/i, /browse.*land/i, /plots\s*available/i],
+      resolver: async () => {
+        router.push("/land");
+        if (!db) return "Opening the Land plots section to check available sites.";
+        try {
+          const q = query(collection(db, "listings"), where("category", "==", "land"), where("status", "==", "active"));
+          const snap = await getDocs(q);
+          return `Taking you to the Land plots section! There are ${snap.size} land plots/sites available right now.`;
+        } catch {
+          return "Opening the Land plots section to check available sites.";
+        }
+      }
+    },
+    {
+      patterns: [/go.*pg/i, /open.*pg/i, /browse.*pg/i, /hostels/i],
+      resolver: async () => {
+        router.push("/pg");
+        if (!db) return "Opening the PG section to find available accommodations.";
+        try {
+          const q = query(collection(db, "listings"), where("category", "==", "pg"), where("status", "==", "active"));
+          const snap = await getDocs(q);
+          return `Taking you to the PG & Hostel section! We have ${snap.size} paying guest accommodations listed.`;
+        } catch {
+          return "Opening the PG section to find available accommodations.";
+        }
+      }
+    },
+    {
+      patterns: [/go.*commercial/i, /open.*commercial/i, /browse.*commercial/i, /office\s*space/i],
+      resolver: async () => {
+        router.push("/commercial");
+        if (!db) return "Opening the Commercial spaces section.";
+        try {
+          const q = query(collection(db, "listings"), where("category", "==", "commercial"), where("status", "==", "active"));
+          const snap = await getDocs(q);
+          return `Taking you to the Commercial spaces section! We have ${snap.size} offices, shops, and warehouses listed.`;
+        } catch {
+          return "Opening the Commercial spaces section.";
+        }
+      }
+    },
+    {
+      patterns: [/go.*vehicle/i, /open.*vehicle/i, /browse.*vehicle/i, /show.*vehicles/i],
+      resolver: async () => {
+        router.push("/vehicles");
+        if (!db) return "Opening the Vehicles section.";
+        try {
+          const q = query(collection(db, "listings"), where("category", "==", "vehicle"), where("status", "==", "active"));
+          const snap = await getDocs(q);
+          return `Taking you to the Vehicles section! There are ${snap.size} cars, bikes, and scooters available.`;
+        } catch {
+          return "Opening the Vehicles section.";
+        }
+      }
+    },
+    {
+      patterns: [/go.*commodity/i, /open.*commodity/i, /browse.*commodity/i, /show.*commodities/i, /commodities/i],
+      resolver: async () => {
+        router.push("/commodities");
+        if (!db) return "Opening the Commodities section.";
+        try {
+          const q = query(collection(db, "listings"), where("category", "==", "commodity"), where("status", "==", "active"));
+          const snap = await getDocs(q);
+          return `Taking you to the Commodities section! We have ${snap.size} items like electronics and furniture listed.`;
+        } catch {
+          return "Opening the Commodities section.";
+        }
+      }
+    },
+    {
+      patterns: [/go.*about/i, /open.*about/i, /tell.*about\s*us/i, /about\s*us/i],
+      resolver: async () => {
+        router.push("/about");
+        return "Opening the About Us page. Let's learn more about BhoomiTayi!";
+      }
+    },
+    {
+      patterns: [/go.*contact/i, /open.*contact/i, /contact\s*us/i],
+      resolver: async () => {
+        router.push("/contact");
+        return "Opening the Contact page. You can reach out to us directly there!";
+      }
+    },
+    {
+      patterns: [/go.*glossary/i, /open.*glossary/i, /jargon/i],
+      resolver: async () => {
+        router.push("/glossary");
+        return "Opening the Real Estate Glossary page to help you understand common property terms.";
+      }
+    },
+    {
+      patterns: [/go.*privacy/i, /open.*privacy/i, /privacy\s*policy/i],
+      resolver: async () => {
+        router.push("/privacy");
+        return "Opening the Privacy Policy page.";
+      }
+    },
+    {
+      patterns: [/go.*terms/i, /open.*terms/i, /terms\s*of\s*service/i, /terms\s*and\s*conditions/i],
+      resolver: async () => {
+        router.push("/terms");
+        return "Opening the Terms of Service page.";
+      }
+    },
     // ── Firebase Data: Global Stats ──
     {
       patterns: [/how\s*many.*listings/i, /total.*properties/i, /total.*listings/i, /website.*stats/i],
@@ -583,12 +702,58 @@ function createBellaEngine(
       responseKey: "_loan",
     },
     {
-      patterns: [/document/i, /paper/i, /khata/i, /deed/i, /ec\b/i, /encumbrance/i],
+      patterns: [/document/i, /paper/i, /deed/i],
       responseKey: "_documents",
+    },
+    // ── BhoomiTayi Specific Details ──
+    {
+      patterns: [/founder/i, /who\s*founded/i, /who\s*owns/i, /ceo/i],
+      responseKey: "_founder",
+    },
+    {
+      patterns: [/list.*fee/i, /charge/i, /how\s*much.*cost/i, /cost\s*to\s*list/i, /is\s*registration\s*free/i, /free\s*to\s*register/i],
+      responseKey: "_pricing_fees",
+    },
+    {
+      patterns: [/how.*contact/i, /support\s*email/i, /phone\s*number/i, /support\s*phone/i, /office\s*address/i, /where.*office/i],
+      responseKey: "_contact_info",
+    },
+    // ── Glossary Jargon Answers ──
+    {
+      patterns: [/\b(a\s*khata|b\s*khata|khata)\b/i],
+      responseKey: "_khata",
+    },
+    {
+      patterns: [/\b(rtc|pahani)\b/i],
+      responseKey: "_rtc",
+    },
+    {
+      patterns: [/\b(ec|encumbrance)\b/i],
+      responseKey: "_ec",
+    },
+    {
+      patterns: [/carpet\s*area/i, /built-up\s*area/i, /super\s*built-up/i],
+      responseKey: "_carpet_area",
+    },
+    {
+      patterns: [/\bfsi\b/i, /floor\s*space\s*index/i],
+      responseKey: "_fsi",
+    },
+    {
+      patterns: [/na\s*land/i, /non-agricultural/i, /land\s*conversion/i],
+      responseKey: "_na_land",
+    },
+    {
+      patterns: [/mutation/i, /change\s*ownership/i],
+      responseKey: "_mutation",
+    },
+    {
+      patterns: [/guidance\s*value/i, /government\s*rate/i],
+      responseKey: "_guidance_value",
     },
     // ── Help ──
     {
-      patterns: [/help/i, /what can you/i, /features/i, /what do you/i, /how.*use/i, /मदद/i, /ಸಹಾಯ/i, /సహాయం/i, /സഹായം/i, /உதவி/i],
+      patterns: [/help/i, /what can you/i, /features/i, /what do you/i, /how.*use/i, /मदद/i, /ಸಹಾಯ/i, /ಸಹಾಯಂ/i, /ಸಹಾಯಂ/i, /உதவி/i],
       responseKey: "_help",
     },
     // ── Fun ──
@@ -633,6 +798,18 @@ const KNOWLEDGE_RESPONSES: Record<string, string> = {
   _thanks: "You're welcome! Happy to help. I'm always here if you need anything!",
   _bye: "Bye! Come back anytime. Happy property hunting!",
   _about_bella: "I'm Bella - your AI real estate assistant built right into BhoomiTayi! I've absorbed all of Tommy's knowledge to become even smarter.\n\nI can:\n- Give detailed step-by-step selling guides\n- Analyze market trends and pricing\n- Control ALL website settings via chat\n- Guide you through buying/selling\n- Speak in your language!",
+  _founder: "BhoomiTayi was founded in Bangalore, India in 2026. We are a team of passionate technologists and real estate experts committed to making buying, selling, and renting properties completely transparent and fee-free!",
+  _pricing_fees: "Registration is free for both buyers and sellers! For verification and platform maintenance, BhoomiTayi charges a nominal listing fee when posting properties. Listings go live immediately upon submission.",
+  _contact_info: "You can contact BhoomiTayi support via:\n\n📧 Email: support@bhoomitayi.in\n📞 Phone: +91 98765 43210\n📍 Office: Bangalore, Karnataka, India\n\nYou can also open the Contact Us page to send us a direct message!",
+  _khata: "A Khata is a municipal record that details property tax assessments.\n\n- A Khata indicates the property has all necessary legal approvals, complies with building bylaws, and is fully authorized.\n- B Khata is a temporary register for properties that are unauthorized, deviate from building plans, or lack proper approvals, allowing the municipality to collect tax without granting full legal status.",
+  _rtc: "RTC (Pahani) stands for Record of Rights, Tenancy, and Crops. It is a crucial land record in Karnataka containing details of land ownership, area, soil type, and crop history.",
+  _ec: "An Encumbrance Certificate (EC) is a legal document that provides evidence that a property is free from any monetary or legal liabilities (such as unpaid mortgages or pending legal disputes).",
+  _carpet_area: "Carpet Area vs Super Built-Up Area:\n\n- Carpet Area: The actual usable area within the inner walls of a house or apartment where one can lay a carpet.\n- Super Built-Up Area: The built-up area of the property plus a proportionate share of common areas like lobbies, staircases, lifts, and corridors.",
+  _fsi: "FSI (Floor Space Index) is the ratio of the total built-up area of a building to the total area of the plot on which it stands. It determines how many floors/area you can build.",
+  _na_land: "NA Land (Non-Agricultural Land) is land that has been legally converted from agricultural use to residential, commercial, or industrial use. It requires a conversion order from competent authorities.",
+  _stamp_duty: "Stamp Duty is a tax levied by the state government on legal documents related to the transfer of property ownership. BhoomiTayi is free to register, but state transaction fees apply when finalizing real estate purchases.",
+  _mutation: "Mutation is the process of updating or changing the title ownership details in local municipal revenue records after a property transaction is completed.",
+  _guidance_value: "Guidance Value is the minimum value of a property set by the state government below which a property cannot be registered in the sub-registrar office.",
 };
 
 async function matchIntent(
