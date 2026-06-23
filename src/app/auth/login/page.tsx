@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
 import { signInWithNativeGoogle } from "@/lib/firebase/native-auth";
@@ -40,6 +40,49 @@ function LoginForm() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const { user, loading } = useAuthStore();
+
+  // Handle redirect result on page load (from signInWithRedirect)
+  useEffect(() => {
+    if (!auth) return;
+    setIsGoogleLoading(true);
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result?.user) {
+          const user = result.user;
+          try {
+            if (db) {
+              const profileRef = doc(db, "profiles", user.uid);
+              const profileSnap = await getDoc(profileRef);
+              if (!profileSnap.exists()) {
+                await setDoc(profileRef, {
+                  id: user.uid,
+                  full_name: user.displayName || "",
+                  email: user.email || "",
+                  avatar_url: user.photoURL || null,
+                  role: "user",
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                });
+              }
+            }
+          } catch (profileError) {
+            console.error("Failed to create/check profile:", profileError);
+          }
+          toast.success("Signed in with Google successfully!");
+          router.push(redirectTo);
+          router.refresh();
+        }
+      })
+      .catch((error) => {
+        const firebaseError = error as { code?: string; message?: string };
+        if (firebaseError.code && firebaseError.code !== "auth/no-auth-event") {
+          console.error("Redirect sign-in error:", error);
+          toast.error("Google sign-in failed. Please try again.");
+        }
+      })
+      .finally(() => setIsGoogleLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!loading && user) {
@@ -97,118 +140,66 @@ function LoginForm() {
     setIsGoogleLoading(true);
 
     try {
-      let userCredential;
-
-      // Strategy: Always try Capacitor native Google sign-in first.
-      // In the APK: This uses Android's native Google account picker
-      //             (NOT a WebView), so Google never blocks it.
-      // In a browser: The Capacitor plugin isn't available, so it throws,
-      //               and we fall back to signInWithPopup.
+      // Strategy: Try native Android Google Sign-In first (for APK).
+      // If not available, fall back to signInWithRedirect (for web browsers).
       try {
-        userCredential = await signInWithNativeGoogle();
+        const userCredential = await signInWithNativeGoogle();
+        // Native sign-in succeeded
+        const user = userCredential.user;
+        try {
+          if (db) {
+            const profileRef = doc(db, "profiles", user.uid);
+            const profileSnap = await getDoc(profileRef);
+            if (!profileSnap.exists()) {
+              await setDoc(profileRef, {
+                id: user.uid,
+                full_name: user.displayName || "",
+                email: user.email || "",
+                avatar_url: user.photoURL || null,
+                role: "user",
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              });
+            } else {
+              const data = profileSnap.data();
+              if (!data.email && user.email) {
+                await updateDoc(profileRef, {
+                  email: user.email,
+                  avatar_url: data.avatar_url || user.photoURL || null
+                });
+              }
+            }
+          }
+        } catch (profileError) {
+          console.error("Failed to create/check profile:", profileError);
+        }
+        toast.success("Signed in successfully!");
+        if (typeof window !== "undefined" && (window as any).AndroidBridge) {
+          setTimeout(() => { window.location.href = redirectTo; }, 500);
+        } else {
+          router.push(redirectTo);
+          router.refresh();
+        }
       } catch (nativeError) {
-        // Native sign-in failed or unavailable â€” try web popup
-        // This only works in a real browser, NOT in an Android WebView.
-        // If we're in a WebView and native also failed, we'll catch the
-        // final error below and show a helpful message.
-        console.warn("Native Google sign-in unavailable, trying popup:", nativeError);
-
+        // Not in Android app — use redirect (most reliable for web)
+        console.warn("Native Google sign-in unavailable, using redirect:", nativeError);
         const provider = new GoogleAuthProvider();
         provider.addScope("email");
         provider.addScope("profile");
         provider.setCustomParameters({ prompt: "select_account" });
-        try {
-          userCredential = await signInWithPopup(auth, provider);
-        } catch (popupError: unknown) {
-          const popupErr = popupError as { code?: string; message?: string };
-
-          if (popupErr.code === "auth/popup-blocked") {
-            toast.error(
-              "Google sign-in popup was blocked. Please allow popups and try again, or use email/password login."
-            );
-            setIsGoogleLoading(false);
-            return;
-          }
-
-          // "disallowed_useragent" = we're in a WebView where Google blocks OAuth
-          // AND native Capacitor sign-in also failed â€” guide the user
-          if (
-            popupErr.code === "auth/internal-error" ||
-            (popupErr.message || "").includes("disallowed_useragent") ||
-            (popupErr.message || "").includes("403")
-          ) {
-            toast.error(
-              "Google sign-in is not available in this app right now. Please use email/password login."
-            );
-            setIsGoogleLoading(false);
-            return;
-          }
-
-          throw popupError;
-        }
-      }
-
-      const user = userCredential.user;
-
-      // Auto-create profile if it doesn't exist (handles first-time Google sign-in)
-      // This is in its own try/catch so a Firestore failure doesn't block sign-in
-      try {
-        if (db) {
-          const profileRef = doc(db, "profiles", user.uid);
-          const profileSnap = await getDoc(profileRef);
-          if (!profileSnap.exists()) {
-            await setDoc(profileRef, {
-              id: user.uid,
-              full_name: user.displayName || "",
-              email: user.email || "",
-              avatar_url: user.photoURL || null,
-              role: "user",
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-            });
-          } else {
-            // Sync email and photo if they were missing (useful for existing profiles)
-            const data = profileSnap.data();
-            if (!data.email && user.email) {
-              await updateDoc(profileRef, { 
-                email: user.email,
-                avatar_url: data.avatar_url || user.photoURL || null
-              });
-            }
-          }
-        }
-      } catch (profileError) {
-        console.error("Failed to create/check profile:", profileError);
-      }
-
-      toast.success("Signed in successfully!");
-      if (typeof window !== "undefined" && (window as any).AndroidBridge) {
-        setTimeout(() => { window.location.href = redirectTo; }, 500);
-      } else {
-        router.push(redirectTo);
-        router.refresh();
+        // This redirects the browser to Google — result is handled in the useEffect above on return
+        await signInWithRedirect(auth, provider);
+        return;
       }
     } catch (error: unknown) {
       console.error("Google sign-in error:", error);
       const firebaseError = error as { code?: string; message?: string };
-      if (firebaseError.code === "auth/popup-closed-by-user") {
-        // User closed the popup, no need to show an error
-      } else if (firebaseError.code === "auth/cancelled-popup-request") {
-        // Another popup was opened, ignore
-      } else if (firebaseError.code === "auth/unauthorized-domain") {
+      if (firebaseError.code === "auth/unauthorized-domain") {
         toast.error("This domain is not authorized for Google sign-in. Please contact support.");
-      } else if (firebaseError.code === "auth/argument-error") {
-        toast.error("Google sign-in is not configured for this domain. Please use Email & Password to sign in.");
-      } else if (firebaseError.code === "auth/internal-error") {
-        toast.error("Google sign-in is temporarily unavailable. Please try again or use email login.");
       } else if (firebaseError.code === "auth/network-request-failed") {
         toast.error("Network error. Please check your internet connection and try again.");
-      } else if ((firebaseError.message || "").toLowerCase().includes("canceled")) {
-        toast.error("Google sign-in was cancelled.");
-      } else if ((firebaseError.message || "").includes("default_web_client_id")) {
-        toast.error("Android Google sign-in is not configured yet. Add google-services.json and rebuild the APK.");
       } else {
-        toast.error(`Google sign-in failed: ${firebaseError.code || firebaseError.message || "Unknown error"}. Check console for details.`);
+        toast.error(`Google sign-in failed. Please try again or use email login.`);
       }
       setIsGoogleLoading(false);
     }
