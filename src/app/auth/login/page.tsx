@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { signInWithEmailAndPassword, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
 import { signInWithNativeGoogle } from "@/lib/firebase/native-auth";
@@ -181,15 +181,47 @@ function LoginForm() {
           router.refresh();
         }
       } catch (nativeError) {
-        // Not in Android app — use redirect (most reliable for web)
-        console.warn("Native Google sign-in unavailable, using redirect:", nativeError);
+        // Not in Android app — try popup first, redirect as fallback
+        console.warn("Native Google sign-in unavailable, trying popup:", nativeError);
         const provider = new GoogleAuthProvider();
         provider.addScope("email");
         provider.addScope("profile");
         provider.setCustomParameters({ prompt: "select_account" });
-        // This redirects the browser to Google — result is handled in the useEffect above on return
-        await signInWithRedirect(auth, provider);
-        return;
+        try {
+          // signInWithPopup now works because browserPopupRedirectResolver is set in initializeAuth
+          const userCredential = await signInWithPopup(auth, provider);
+          const user = userCredential.user;
+          try {
+            if (db) {
+              const profileRef = doc(db, "profiles", user.uid);
+              const profileSnap = await getDoc(profileRef);
+              if (!profileSnap.exists()) {
+                await setDoc(profileRef, {
+                  id: user.uid,
+                  full_name: user.displayName || "",
+                  email: user.email || "",
+                  avatar_url: user.photoURL || null,
+                  role: "user",
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                });
+              }
+            }
+          } catch (profileError) {
+            console.error("Failed to create/check profile:", profileError);
+          }
+          toast.success("Signed in with Google successfully!");
+          router.push(redirectTo);
+          router.refresh();
+        } catch (popupError: unknown) {
+          const popupErr = popupError as { code?: string };
+          if (popupErr.code === "auth/popup-blocked" || popupErr.code === "auth/popup-closed-by-user") {
+            // Popup was blocked — fall back to redirect
+            await signInWithRedirect(auth, provider);
+            return;
+          }
+          throw popupError;
+        }
       }
     } catch (error: unknown) {
       console.error("Google sign-in error:", error);
