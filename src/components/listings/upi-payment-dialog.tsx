@@ -204,16 +204,14 @@ export function PaymentGateway({
                   <span className="font-semibold text-sm">Secure UPI Payment</span>
                 </div>
 
-                <div className="bg-white rounded-2xl shadow-inner w-[240px] h-[240px] relative z-10 overflow-hidden flex items-center justify-center">
-                  <div className="relative w-full h-full scale-[1.35]">
-                    <Image
-                      src="/qr_code.png"
-                      alt="UPI QR Code"
-                      fill
-                      className="object-cover object-center"
-                      priority
-                    />
-                  </div>
+                <div className="bg-white p-3 rounded-2xl shadow-inner w-[240px] h-[240px] relative z-10">
+                  <Image
+                    src="/qr_code.jpeg"
+                    alt="UPI QR Code"
+                    fill
+                    className="object-contain p-2"
+                    priority
+                  />
                 </div>
                 
                 <p className="mt-6 text-2xl font-bold text-white tracking-tight">
