@@ -642,6 +642,19 @@ function createBellaEngine(
       patterns: [/what.*is.*bhoomitayi/i, /about.*bhoomitayi/i, /tell.*about.*bhoomitayi/i, /bhoomitayi.*kya/i, /ಭೂಮಿತಾಯಿ/i, /భూమితాయి/i, /ഭൂമിതായി/i, /பூமிதாயி/i, /भूमितायी/i],
       responseKey: "_about_bhoomitayi",
     },
+    // ── BhoomiTayi Specific Details ──
+    {
+      patterns: [/founder/i, /who\s*founded/i, /who\s*owns/i, /ceo/i],
+      responseKey: "_founder",
+    },
+    {
+      patterns: [/list.*fee/i, /charge/i, /how\s*much.*cost/i, /cost\s*to\s*list/i, /is\s*registration\s*free/i, /free\s*to\s*register/i],
+      responseKey: "_pricing_fees",
+    },
+    {
+      patterns: [/how.*contact/i, /support\s*email/i, /phone\s*number/i, /support\s*phone/i, /office\s*address/i, /where.*office/i],
+      responseKey: "_contact_info",
+    },
     // ── Property Help ──
     {
       patterns: [/house/i, /home/i, /flat/i, /apartment/i, /villa/i, /bhk/i, /मकान/i, /ಮನೆ/i, /ఇల్లు/i, /വീട്/i, /வீடு/i],
@@ -705,19 +718,7 @@ function createBellaEngine(
       patterns: [/document/i, /paper/i, /deed/i],
       responseKey: "_documents",
     },
-    // ── BhoomiTayi Specific Details ──
-    {
-      patterns: [/founder/i, /who\s*founded/i, /who\s*owns/i, /ceo/i],
-      responseKey: "_founder",
-    },
-    {
-      patterns: [/list.*fee/i, /charge/i, /how\s*much.*cost/i, /cost\s*to\s*list/i, /is\s*registration\s*free/i, /free\s*to\s*register/i],
-      responseKey: "_pricing_fees",
-    },
-    {
-      patterns: [/how.*contact/i, /support\s*email/i, /phone\s*number/i, /support\s*phone/i, /office\s*address/i, /where.*office/i],
-      responseKey: "_contact_info",
-    },
+
     // ── Glossary Jargon Answers ──
     {
       patterns: [/\b(a\s*khata|b\s*khata|khata)\b/i],
