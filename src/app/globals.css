@@ -550,3 +550,10 @@ html.transitioning *::after {
   background-clip: padding-box, border-box;
   animation: border-spin 4s linear infinite;
 }
+
+/* Fix background cutoff in desktop mode on mobile/tablet viewports */
+@media (min-width: 768px) {
+  html, body, .flex.min-h-screen.flex-col {
+    min-width: 1200px;
+  }
+}
