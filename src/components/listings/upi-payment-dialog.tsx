@@ -81,10 +81,25 @@ export function PaymentGateway({
 }: PaymentGatewayProps) {
   const [step, setStep] = useState<GatewayStep>("qr");
   const [selectedPlanId, setSelectedPlanId] = useState("pro");
+  const [mobileStep, setMobileStep] = useState<"plans" | "payment">("plans");
 
   function handleClose() {
     if (submitting) return;
     setStep("qr");
+    setMobileStep("plans");
+    onOpenChange(false);
+  }
+
+  function handleBack() {
+    if (submitting) return;
+    if (step === "confirmed") {
+      setStep("qr");
+      return;
+    }
+    if (step === "qr" && mobileStep === "payment") {
+      setMobileStep("plans");
+      return;
+    }
     onOpenChange(false);
   }
 
@@ -113,7 +128,7 @@ export function PaymentGateway({
         {/* Top Navigation */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-[#161616]">
           <button
-            onClick={handleClose}
+            onClick={handleBack}
             disabled={submitting}
             className="rounded-full p-2 hover:bg-zinc-800 transition-colors disabled:opacity-50"
           >
@@ -123,11 +138,19 @@ export function PaymentGateway({
           <div className="w-9" /> {/* Spacer for centering */}
         </div>
 
+        {/* Step Indicator for Mobile */}
+        {step === "qr" && (
+          <div className="flex md:hidden items-center justify-center gap-2 py-3 bg-[#111111] border-b border-zinc-800/50">
+            <span className={`h-1.5 rounded-full transition-all duration-300 ${mobileStep === "plans" ? "w-8 bg-blue-500" : "w-2 bg-zinc-700"}`} />
+            <span className={`h-1.5 rounded-full transition-all duration-300 ${mobileStep === "payment" ? "w-8 bg-blue-500" : "w-2 bg-zinc-700"}`} />
+          </div>
+        )}
+
         {/* Main Content Area */}
         {step === "qr" && (
           <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
             {/* Left Column: Plans */}
-            <div className="flex-1 p-6 md:p-10 overflow-y-auto bg-[#111111] custom-scrollbar">
+            <div className={`flex-1 p-6 md:p-10 overflow-y-auto bg-[#111111] custom-scrollbar ${mobileStep === "plans" ? "block" : "hidden md:block"}`}>
               <div className="flex items-center gap-3 mb-2">
                 <Image src="/logo-v2.png" alt="Logo" width={24} height={24} className="rounded-full object-cover" />
                 <h3 className="text-2xl font-bold text-white tracking-tight">Booster Packs</h3>
@@ -191,10 +214,29 @@ export function PaymentGateway({
                 <span className="text-zinc-400 font-medium mr-4">Custom ₹</span>
                 <span className="text-zinc-600 text-sm">Min ₹249</span>
               </div>
+
+              {/* Mobile-only Proceed Button */}
+              <div className="mt-8 md:hidden">
+                <Button
+                  onClick={() => setMobileStep("payment")}
+                  className="h-12 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition-all active:scale-95 animate-pulse"
+                >
+                  Proceed to Payment (₹{selectedPlan.price})
+                </Button>
+              </div>
             </div>
 
             {/* Right Column: Payment */}
-            <div className="w-full md:w-[400px] border-l border-zinc-800/80 bg-[#161616] p-6 md:p-8 flex flex-col justify-center">
+            <div className={`w-full md:w-[400px] md:border-l border-zinc-800/80 bg-[#161616] p-6 md:p-8 flex flex-col md:justify-center overflow-y-auto custom-scrollbar ${mobileStep === "payment" ? "flex" : "hidden md:flex"}`}>
+              {/* Mobile-only Back to Plans button */}
+              <button 
+                onClick={() => setMobileStep("plans")}
+                className="md:hidden mb-4 self-start flex items-center gap-1.5 text-xs text-blue-400 font-semibold hover:text-blue-300"
+              >
+                <ArrowLeft className="size-3" />
+                Change Plan (Selected: {selectedPlan.name})
+              </button>
+
               <div className="bg-[#1C1C1E] rounded-3xl border border-zinc-800/50 p-6 flex flex-col items-center relative overflow-hidden shadow-2xl">
                 {/* Decorative background glow */}
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] bg-blue-500/10 blur-[80px] rounded-full pointer-events-none" />
@@ -247,7 +289,7 @@ export function PaymentGateway({
 
         {/* Confirmation Step */}
         {step === "confirmed" && (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#111111]">
+          <div className="flex-1 flex flex-col items-center md:justify-center p-8 bg-[#111111] overflow-y-auto custom-scrollbar">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
