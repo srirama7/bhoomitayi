@@ -648,12 +648,46 @@ function createBellaEngine(
       responseKey: "_founder",
     },
     {
-      patterns: [/list.*fee/i, /charge/i, /how\s*much.*cost/i, /cost\s*to\s*list/i, /is\s*registration\s*free/i, /free\s*to\s*register/i],
+      patterns: [/list.*fee/i, /charge/i, /how\s*much.*(cost|list|fee)/i, /cost\s*to\s*list/i, /is\s*registration\s*free/i, /free\s*to\s*register/i],
       responseKey: "_pricing_fees",
     },
     {
       patterns: [/how.*contact/i, /support\s*email/i, /phone\s*number/i, /support\s*phone/i, /office\s*address/i, /where.*office/i],
       responseKey: "_contact_info",
+    },
+
+    // ── Glossary Jargon Answers ──
+    {
+      patterns: [/\b(a\s*khata|b\s*khata|khata)\b/i],
+      responseKey: "_khata",
+    },
+    {
+      patterns: [/\b(rtc|pahani)\b/i],
+      responseKey: "_rtc",
+    },
+    {
+      patterns: [/\b(ec|encumbrance)\b/i],
+      responseKey: "_ec",
+    },
+    {
+      patterns: [/carpet\s*area/i, /built-up\s*area/i, /super\s*built-up/i],
+      responseKey: "_carpet_area",
+    },
+    {
+      patterns: [/\bfsi\b/i, /floor\s*space\s*index/i],
+      responseKey: "_fsi",
+    },
+    {
+      patterns: [/na\s*land/i, /non-agricultural/i, /land\s*conversion/i],
+      responseKey: "_na_land",
+    },
+    {
+      patterns: [/mutation/i, /change\s*ownership/i],
+      responseKey: "_mutation",
+    },
+    {
+      patterns: [/guidance\s*value/i, /government\s*rate/i],
+      responseKey: "_guidance_value",
     },
     // ── Property Help ──
     {
@@ -673,7 +707,7 @@ function createBellaEngine(
       responseKey: "_commercial",
     },
     {
-      patterns: [/vehicle/i, /car/i, /bike/i, /scooter/i, /truck/i, /वाहन/i, /ವಾಹನ/i, /వాహన/i, /വാഹന/i, /வாகன/i],
+      patterns: [/vehicle/i, /\bcar(s)?\b/i, /bike/i, /scooter/i, /truck/i, /वाहन/i, /ವಾಹನ/i, /వాహన/i, /വാഹന/i, /வாகன/i],
       responseKey: "_vehicles",
     },
     // ── Tommy's Enhanced Knowledge ──
@@ -717,40 +751,6 @@ function createBellaEngine(
     {
       patterns: [/document/i, /paper/i, /deed/i],
       responseKey: "_documents",
-    },
-
-    // ── Glossary Jargon Answers ──
-    {
-      patterns: [/\b(a\s*khata|b\s*khata|khata)\b/i],
-      responseKey: "_khata",
-    },
-    {
-      patterns: [/\b(rtc|pahani)\b/i],
-      responseKey: "_rtc",
-    },
-    {
-      patterns: [/\b(ec|encumbrance)\b/i],
-      responseKey: "_ec",
-    },
-    {
-      patterns: [/carpet\s*area/i, /built-up\s*area/i, /super\s*built-up/i],
-      responseKey: "_carpet_area",
-    },
-    {
-      patterns: [/\bfsi\b/i, /floor\s*space\s*index/i],
-      responseKey: "_fsi",
-    },
-    {
-      patterns: [/na\s*land/i, /non-agricultural/i, /land\s*conversion/i],
-      responseKey: "_na_land",
-    },
-    {
-      patterns: [/mutation/i, /change\s*ownership/i],
-      responseKey: "_mutation",
-    },
-    {
-      patterns: [/guidance\s*value/i, /government\s*rate/i],
-      responseKey: "_guidance_value",
     },
     // ── Help ──
     {
