@@ -556,4 +556,8 @@ html.transitioning *::after {
   html, body, .flex.min-h-screen.flex-col {
     min-width: 1200px;
   }
+  
+  header, main, footer, section, .fixed.inset-0.pointer-events-none {
+    min-width: 1200px;
+  }
 }

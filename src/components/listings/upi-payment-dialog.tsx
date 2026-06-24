@@ -150,7 +150,7 @@ export function PaymentGateway({
         {step === "qr" && (
           <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
             {/* Left Column: Plans */}
-            <div className={`flex-1 p-6 md:p-10 overflow-y-auto bg-[#111111] custom-scrollbar ${mobileStep === "plans" ? "block" : "hidden md:block"}`}>
+            <div className={`flex-1 p-6 md:p-10 overflow-y-auto bg-[#111111] custom-scrollbar ${mobileStep === "plans" ? "flex flex-col" : "hidden md:flex md:flex-col"}`}>
               <div className="flex items-center gap-3 mb-2">
                 <Image src="/logo-v2.png" alt="Logo" width={24} height={24} className="rounded-full object-cover" />
                 <h3 className="text-2xl font-bold text-white tracking-tight">Booster Packs</h3>
@@ -160,7 +160,7 @@ export function PaymentGateway({
               </div>
               <p className="text-zinc-400 mb-8 text-sm">Pay less, get more visibility</p>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {PLANS.map((plan) => {
                   const isSelected = selectedPlanId === plan.id;
                   return (
