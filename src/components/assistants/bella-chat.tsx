@@ -316,21 +316,221 @@ function createBellaEngine(
     },
     // ── Firebase Data: Specific Category ──
     {
-      patterns: [/how\s*many\s*(houses|homes)/i, /show.*houses/i],
+      patterns: [
+        /how\s*many\s*(houses|homes)/i, 
+        /show.*houses/i, 
+        /list.*(houses|homes)/i, 
+        /listings?\s*in\s*(houses|homes)/i
+      ],
       resolver: async () => {
         if (!db) return "Database access is currently unavailable.";
-        const q = query(collection(db, "listings"), where("category", "==", "house"), where("status", "==", "active"));
-        const snap = await getDocs(q);
-        return `We have ${snap.size} houses currently available for sale or rent. Check the 'Houses' section in the menu to see them!`;
+        try {
+          const qCount = query(collection(db, "listings"), where("category", "==", "house"), where("status", "==", "active"));
+          const countSnap = await getDocs(qCount);
+          
+          const qLatest = query(
+            collection(db, "listings"),
+            where("category", "==", "house"),
+            where("status", "==", "active"),
+            orderBy("created_at", "desc"),
+            limit(3)
+          );
+          const latestSnap = await getDocs(qLatest);
+          
+          let resp = `We have ${countSnap.size} houses currently available for sale or rent.\n`;
+          if (!latestSnap.empty) {
+            resp += "\nHere are the 3 most recent house listings:\n";
+            latestSnap.forEach(doc => {
+              const data = doc.data();
+              resp += `\n🏠 ${data.title} - ₹${data.price.toLocaleString('en-IN')}\n📍 ${data.address}\n`;
+            });
+          }
+          return resp + "\nCheck the 'Houses' section in the menu to browse them all!";
+        } catch {
+          return "Opening the Houses section to browse independent homes, villas, and apartments!";
+        }
       }
     },
     {
-      patterns: [/how\s*many\s*lands/i, /show.*land/i, /plots\s*available/i],
+      patterns: [
+        /how\s*many\s*lands?/i, 
+        /show.*lands?/i, 
+        /list.*lands?/i, 
+        /plots\s*available/i, 
+        /listings?\s*in\s*lands?/i
+      ],
       resolver: async () => {
         if (!db) return "Database access is currently unavailable.";
-        const q = query(collection(db, "listings"), where("category", "==", "land"), where("status", "==", "active"));
-        const snap = await getDocs(q);
-        return `There are ${snap.size} land plots/sites available right now. You can find residential and agricultural land in our 'Land' section.`;
+        try {
+          const qCount = query(collection(db, "listings"), where("category", "==", "land"), where("status", "==", "active"));
+          const countSnap = await getDocs(qCount);
+          
+          const qLatest = query(
+            collection(db, "listings"),
+            where("category", "==", "land"),
+            where("status", "==", "active"),
+            orderBy("created_at", "desc"),
+            limit(3)
+          );
+          const latestSnap = await getDocs(qLatest);
+          
+          let resp = `There are ${countSnap.size} land plots/sites available right now.\n`;
+          if (!latestSnap.empty) {
+            resp += "\nHere are the 3 most recent land listings:\n";
+            latestSnap.forEach(doc => {
+              const data = doc.data();
+              resp += `\n📍 ${data.title} - ₹${data.price.toLocaleString('en-IN')}\n📍 ${data.address}\n`;
+            });
+          }
+          return resp + "\nYou can find residential and agricultural land in our 'Land' section.";
+        } catch {
+          return "Opening the Land plots section to check available sites.";
+        }
+      }
+    },
+    {
+      patterns: [
+        /how\s*many\s*pgs?/i, 
+        /show.*pgs?/i, 
+        /list.*pgs?/i, 
+        /listings?\s*in\s*pgs?/i, 
+        /hostels?/i
+      ],
+      resolver: async () => {
+        if (!db) return "Database access is currently unavailable.";
+        try {
+          const qCount = query(collection(db, "listings"), where("category", "==", "pg"), where("status", "==", "active"));
+          const countSnap = await getDocs(qCount);
+          
+          const qLatest = query(
+            collection(db, "listings"),
+            where("category", "==", "pg"),
+            where("status", "==", "active"),
+            orderBy("created_at", "desc"),
+            limit(3)
+          );
+          const latestSnap = await getDocs(qLatest);
+          
+          let resp = `We have ${countSnap.size} paying guest accommodations listed.\n`;
+          if (!latestSnap.empty) {
+            resp += "\nHere are the 3 most recent PG & hostel listings:\n";
+            latestSnap.forEach(doc => {
+              const data = doc.data();
+              resp += `\n🛏️ ${data.title} - ₹${data.price.toLocaleString('en-IN')}/month\n📍 ${data.address}\n`;
+            });
+          }
+          return resp + "\nOpening the PG section to find available accommodations.";
+        } catch {
+          return "Opening the PG section to find available accommodations.";
+        }
+      }
+    },
+    {
+      patterns: [
+        /how\s*many\s*commercial/i, 
+        /show.*commercial/i, 
+        /list.*commercial/i, 
+        /listings?\s*in\s*commercial/i
+      ],
+      resolver: async () => {
+        if (!db) return "Database access is currently unavailable.";
+        try {
+          const qCount = query(collection(db, "listings"), where("category", "==", "commercial"), where("status", "==", "active"));
+          const countSnap = await getDocs(qCount);
+          
+          const qLatest = query(
+            collection(db, "listings"),
+            where("category", "==", "commercial"),
+            where("status", "==", "active"),
+            orderBy("created_at", "desc"),
+            limit(3)
+          );
+          const latestSnap = await getDocs(qLatest);
+          
+          let resp = `We have ${countSnap.size} offices, shops, and warehouses listed.\n`;
+          if (!latestSnap.empty) {
+            resp += "\nHere are the 3 most recent commercial listings:\n";
+            latestSnap.forEach(doc => {
+              const data = doc.data();
+              resp += `\n💼 ${data.title} - ₹${data.price.toLocaleString('en-IN')}\n📍 ${data.address}\n`;
+            });
+          }
+          return resp + "\nOpening the Commercial spaces section.";
+        } catch {
+          return "Opening the Commercial spaces section.";
+        }
+      }
+    },
+    {
+      patterns: [
+        /how\s*many\s*vehicles?/i, 
+        /show.*vehicles?/i, 
+        /list.*vehicles?/i, 
+        /listings?\s*in\s*vehicles?/i
+      ],
+      resolver: async () => {
+        if (!db) return "Database access is currently unavailable.";
+        try {
+          const qCount = query(collection(db, "listings"), where("category", "==", "vehicle"), where("status", "==", "active"));
+          const countSnap = await getDocs(qCount);
+          
+          const qLatest = query(
+            collection(db, "listings"),
+            where("category", "==", "vehicle"),
+            where("status", "==", "active"),
+            orderBy("created_at", "desc"),
+            limit(3)
+          );
+          const latestSnap = await getDocs(qLatest);
+          
+          let resp = `There are ${countSnap.size} cars, bikes, and scooters available.\n`;
+          if (!latestSnap.empty) {
+            resp += "\nHere are the 3 most recent vehicle listings:\n";
+            latestSnap.forEach(doc => {
+              const data = doc.data();
+              resp += `\n🚗 ${data.title} - ₹${data.price.toLocaleString('en-IN')}\n📍 ${data.address}\n`;
+            });
+          }
+          return resp + "\nOpening the Vehicles section.";
+        } catch {
+          return "Opening the Vehicles section.";
+        }
+      }
+    },
+    {
+      patterns: [
+        /how\s*many\s*commodit(y|ies)/i, 
+        /show.*commodit(y|ies)/i, 
+        /list.*commodit(y|ies)/i, 
+        /listings?\s*in\s*commodit(y|ies)/i
+      ],
+      resolver: async () => {
+        if (!db) return "Database access is currently unavailable.";
+        try {
+          const qCount = query(collection(db, "listings"), where("category", "==", "commodity"), where("status", "==", "active"));
+          const countSnap = await getDocs(qCount);
+          
+          const qLatest = query(
+            collection(db, "listings"),
+            where("category", "==", "commodity"),
+            where("status", "==", "active"),
+            orderBy("created_at", "desc"),
+            limit(3)
+          );
+          const latestSnap = await getDocs(qLatest);
+          
+          let resp = `We have ${countSnap.size} items like electronics and furniture listed.\n`;
+          if (!latestSnap.empty) {
+            resp += "\nHere are the 3 most recent commodity listings:\n";
+            latestSnap.forEach(doc => {
+              const data = doc.data();
+              resp += `\n📦 ${data.title} - ₹${data.price.toLocaleString('en-IN')}\n📍 ${data.address}\n`;
+            });
+          }
+          return resp + "\nOpening the Commodities section.";
+        } catch {
+          return "Opening the Commodities section.";
+        }
       }
     },
     // ── Settings: Reading Mode ──
