@@ -107,9 +107,9 @@ test.describe("Bella AI Complete Query Verification Suite", () => {
       { query: "notification off", expectedPattern: /disabled/i },
 
       // ── Contact / Corporate info ──
-      { query: "how to contact support?", expectedPattern: /support@bhoomitayi.in|\+91 98765 43210/i },
-      { query: "support email", expectedPattern: /support@bhoomitayi.in/i },
-      { query: "phone number", expectedPattern: /\+91 98765 43210/i },
+      { query: "how to contact support?", expectedPattern: /bhoomitayi7@gmail.com|7760200927/i },
+      { query: "support email", expectedPattern: /bhoomitayi7@gmail.com/i },
+      { query: "phone number", expectedPattern: /7760200927/i },
       { query: "office address", expectedPattern: /Bangalore, Karnataka, India/i },
 
       // ── Company details FAQ ──

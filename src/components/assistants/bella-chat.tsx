@@ -738,7 +738,7 @@ function createBellaEngine(
       }
     },
     {
-      patterns: [/open.*temp/i, /celsius/i, /fahrenheit/i, /hot/i, /cold/i, /weather.*calc/i],
+      patterns: [/open.*temp/i, /celsius/i, /fahrenheit/i, /\bhot\b/i, /\bcold\b/i, /weather.*calc/i],
       resolver: async () => { 
         settings.setActiveCalculator("temp"); 
         return "I've opened the Temperature Converter for you!"; 
@@ -1001,7 +1001,7 @@ const KNOWLEDGE_RESPONSES: Record<string, string> = {
   _about_bella: "I'm Bella - your AI real estate assistant built right into BhoomiTayi! I've absorbed all of Tommy's knowledge to become even smarter.\n\nI can:\n- Give detailed step-by-step selling guides\n- Analyze market trends and pricing\n- Control ALL website settings via chat\n- Guide you through buying/selling\n- Speak in your language!",
   _founder: "BhoomiTayi was founded in Bangalore, India in 2026. We are a team of passionate technologists and real estate experts committed to making buying, selling, and renting properties completely transparent and fee-free!",
   _pricing_fees: "Registration is free for both buyers and sellers! For verification and platform maintenance, BhoomiTayi charges a nominal listing fee when posting properties. Listings go live immediately upon submission.",
-  _contact_info: "You can contact BhoomiTayi support via:\n\n📧 Email: support@bhoomitayi.in\n📞 Phone: +91 98765 43210\n📍 Office: Bangalore, Karnataka, India\n\nYou can also open the Contact Us page to send us a direct message!",
+  _contact_info: "You can contact BhoomiTayi support via:\n\n📧 Email: bhoomitayi7@gmail.com\n📞 Phone: +91 7760200927\n📍 Office: Bangalore, Karnataka, India\n\nYou can also open the Contact Us page to send us a direct message!",
   _khata: "A Khata is a municipal record that details property tax assessments.\n\n- A Khata indicates the property has all necessary legal approvals, complies with building bylaws, and is fully authorized.\n- B Khata is a temporary register for properties that are unauthorized, deviate from building plans, or lack proper approvals, allowing the municipality to collect tax without granting full legal status.",
   _rtc: "RTC (Pahani) stands for Record of Rights, Tenancy, and Crops. It is a crucial land record in Karnataka containing details of land ownership, area, soil type, and crop history.",
   _ec: "An Encumbrance Certificate (EC) is a legal document that provides evidence that a property is free from any monetary or legal liabilities (such as unpaid mortgages or pending legal disputes).",

@@ -13,15 +13,15 @@ const CONTACT_INFO = [
   {
     icon: Mail,
     title: "Email",
-    value: "support@bhoomitayi.in",
-    href: "mailto:support@bhoomitayi.in",
+    value: "bhoomitayi7@gmail.com",
+    href: "mailto:bhoomitayi7@gmail.com",
     gradient: "from-blue-500 to-indigo-600",
   },
   {
     icon: Phone,
     title: "Phone",
-    value: "+91 98765 43210",
-    href: "tel:+919876543210",
+    value: "+91 7760200927",
+    href: "tel:+917760200927",
     gradient: "from-emerald-500 to-teal-600",
   },
   {

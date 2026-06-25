@@ -70,12 +70,8 @@ export default function MyListingsPage() {
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
   const [reactivatingListing, setReactivatingListing] = useState<Listing | null>(null);
   const [reactivating, setReactivating] = useState(false);
-  const [, forceTick] = useState(0);
 
-  useEffect(() => {
-    const timer = setInterval(() => forceTick((prev) => prev + 1), 1000);
-    return () => clearInterval(timer);
-  }, []);
+
 
   const statusConfig: Record<
     DisplayStatus,

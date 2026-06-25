@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* DARK MODE */
+    body.dark-mode { background-color: #0f172a; color: #f1f5f9; }
+    body.dark-mode .sidebar { background-color: #1e293b; border-right: 1px solid #334155; }
+    body.dark-mode .sidebar h1 { color: #f8fafc; }
+    body.dark-mode .tab { color: #94a3b8; }
+    body.dark-mode .tab:hover { background-color: #334155; color: #f1f5f9; }
+    body.dark-mode .tab.active { background-color: #3b82f6; color: white; }
+    body.dark-mode .content { background-color: #0f172a; color: #f1f5f9; }
+    body.dark-mode .stat-card, body.dark-mode .listing-card, body.dark-mode .revenue-card, body.dark-mode .chart-card { background: #1e293b; border-color: #334155; }
+    body.dark-mode .stat-value, body.dark-mode .rev-value, body.dark-mode .listing-name { color: #f8fafc; }
+    body.dark-mode .search-bar input { background: #1e293b; border-color: #334155; color: #f8fafc; }
+    body.dark-mode .detail-label { color: #94a3b8; }
+    body.dark-mode .detail-value { color: #cbd5e1; }
+    body.dark-mode .btn { border-color: #475569; color: #f1f5f9; background: #1e293b; }
+    body.dark-mode .btn:hover { background: #334155; }
+    body.dark-mode h2, body.dark-mode h3 { color: #f8fafc !important; }
+    body.dark-mode p { color: #94a3b8 !important; }
+    body.dark-mode [style*="background: white"], body.dark-mode [style*="background:white"] { background-color: #1e293b !important; border-color: #334155 !important; }
+    body.dark-mode .dark-mode-text { color: #f8fafc !important; }
+    body.dark-mode .dark-mode-card { background-color: #1e293b !important; border-color: #334155 !important; }
+    body.dark-mode .hover-bg:hover { background-color: #334155; }
+    .hover-bg { transition: background 0.2s; cursor: pointer; }
+    .hover-bg:hover { background-color: #f1f5f9; }
+  </style>
+  <title>BhoomiTayi Admin</title>
+  <link rel="stylesheet" href="style.css?v=8">
+</head>
+<body>
+  <!-- LOGIN -->
+  <div id="loginPage" class="login-page">
+    <div class="login-card">
+      <div class="login-logo">B</div>
+      <div class="login-title">BhoomiTayi Admin</div>
+      <div class="login-sub">Payment Verification Panel</div>
+      <label class="login-label">Username</label>
+      <input id="username" class="login-input" placeholder="Enter username">
+      <label class="login-label">Password</label>
+      <input id="password" class="login-input" type="password" placeholder="Enter password">
+      <button id="loginBtn" class="login-btn">Sign In</button>
+      <div id="loginError" class="login-error">Invalid credentials</div>
+    </div>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div id="dashboard" class="hidden">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-logo">B</div>
+        <div><div class="header-title">BhoomiTayi Admin</div><div class="header-sub">Full Control Dashboard</div></div>
+      </div>
+      <div class="header-right">
+        <div class="noti-bell" onclick="document.getElementById('notiDropdown').classList.toggle('show')">
+          🔔<div class="noti-badge" id="notiCount">0</div>
+          <div class="noti-dropdown" id="notiDropdown">
+            <div style="padding:15px;text-align:center;font-size:13px;font-weight:600;border-bottom:1px solid #e2e8f0">System Alerts</div>
+            <div id="notiList">
+              <div style="padding:15px;text-align:center;font-size:12px;color:#94a3b8">No new alerts</div>
+            </div>
+          </div>
+        </div>
+        <button class="btn" onclick="refreshData()">Refresh</button>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
+      </div>
+    </div>
+    <div class="marquee-container">
+      <div class="marquee-content" id="liveMarquee">
+        <span class="mq-item"><div class="mq-dot"></div> System initialized successfully</span>
+      </div>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="overview">Overview</button>
+      <button class="tab" data-tab="listings">Listings</button>
+      <button class="tab" data-tab="users">Users</button>
+      <button class="tab" data-tab="favorites">Favorites</button>
+      <button class="tab" data-tab="reports">Reports</button>
+      <button class="tab" data-tab="analytics">Analytics</button>
+      <button class="tab" data-tab="revenue">Revenue</button>
+      <button class="tab" data-tab="moderation">Moderation</button>
+      <button class="tab" data-tab="logs">Activity Logs</button>
+      <button class="tab" data-tab="firebase">Firebase Info</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="tab-overview" class="content">
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-blue"></span> All Listings</div><div class="stat-value" id="statAll">0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-orange"></span> Awaiting Approval</div><div class="stat-value" id="statPending">0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-green"></span> Live</div><div class="stat-value" id="statActive">0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-red"></span> Rejected</div><div class="stat-value" id="statRejected">0</div></div>
+      </div>
+      <div class="revenue-cards">
+        <div class="revenue-card rev-green"><div class="rev-label">Total Listing Value</div><div class="rev-value" id="revTotal">₹0</div><div class="rev-sub" id="revTotalSub">Across 0 listings</div></div>
+        <div class="revenue-card rev-yellow"><div class="rev-label">Active Timers</div><div class="rev-value" id="revTimers">0</div><div class="rev-sub">Listings with active timers</div></div>
+        <div class="revenue-card rev-blue"><div class="rev-label">Timed Out</div><div class="rev-value" id="revTimedOut">0</div><div class="rev-sub">Expired listings</div></div>
+      </div>
+
+      <div class="chart-card" style="margin-bottom: 24px;">
+        <h3 class="chart-title">System Health & Load</h3>
+        <div style="display:flex; gap:30px;">
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;"><span>Database Load</span><span id="dbLoadText">0%</span></div>
+            <div class="health-bar-container"><div class="health-bar-fill" id="dbLoadBar" style="width:0%"></div></div>
+          </div>
+          <div style="flex:1;">
+            <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700; color:#475569; margin-bottom:4px;"><span>Active Sessions</span><span id="sessionText">0</span></div>
+            <div class="health-bar-container"><div class="health-bar-fill" id="sessionBar" style="width:0%; background:linear-gradient(90deg, #f59e0b, #ef4444)"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3 class="chart-title">Listings by Category</h3>
+        <canvas id="overviewChart" height="280"></canvas>
+      </div>
+    </div>
+
+    <!-- LISTINGS -->
+    <div id="tab-listings" class="content hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <div class="search-bar" style="margin:0; flex:1; max-width:500px;"><input type="text" id="searchInput" placeholder="Search listings by title, user name, phone..." style="width:100%"></div>
+        <button class="btn btn-primary" onclick="exportListingsCSV()">⬇ Export CSV</button>
+      </div>
+      <div class="stats-row" id="listingStats"></div>
+      <input class="search-bar" id="searchInput" placeholder="Search by title, name, phone, category, address...">
+      <div id="listingsContainer"></div>
+
+      <!-- Bulk Actions Bar -->
+      <div id="bulkActionBar" style="display:none; position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:white; padding:15px 25px; border-radius:30px; box-shadow:0 10px 25px rgba(0,0,0,0.2); z-index:100; border:1px solid #e2e8f0; align-items:center; gap:15px;">
+        <span id="bulkCount" style="font-weight:600; color:#1e293b;">0 Selected</span>
+        <div style="width:1px; height:20px; background:#e2e8f0;"></div>
+        <button class="btn btn-primary" onclick="doBulkAction('approve')">✓ Approve All</button>
+        <button class="btn" style="color:#d97706;border-color:#fcd34d" onclick="doBulkAction('reject')">✕ Reject All</button>
+        <button class="btn btn-danger" onclick="doBulkAction('delete')">🗑 Delete All</button>
+      </div>
+    </div>
+
+    <!-- USERS -->
+    <div id="tab-users" class="content hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h2 class="section-title" style="margin:0;">User Management</h2>
+        <button class="btn btn-primary" onclick="exportUsersCSV()">⬇ Export CSV</button>
+      </div>
+      <div class="stats-row" id="userStats"></div>
+      <input class="search-bar" id="searchUserInput" placeholder="Search by name, email, phone, role...">
+      <div id="usersContainer"></div>
+    </div>
+
+    <!-- FAVORITES -->
+    <div id="tab-favorites" class="content hidden">
+      <h2 class="section-title">User Favorites</h2>
+      <div id="favoritesContainer"></div>
+    </div>
+
+    <!-- REPORTS -->
+    <div id="tab-reports" class="content hidden">
+      <h2 class="section-title">Listing Reports</h2>
+      <div id="reportsContainer"></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="tab-analytics" class="content hidden">
+      <h2 class="section-title">Analytics</h2>
+      <div class="stats-row">
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-blue"></span> Total Users</div><div class="stat-value" id="anaUsers">0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-green"></span> Total Listings</div><div class="stat-value" id="anaListings">0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-orange"></span> Avg Price</div><div class="stat-value" id="anaAvgPrice">₹0</div></div>
+        <div class="stat-card"><div class="stat-label"><span class="dot dot-red"></span> Reports</div><div class="stat-value" id="anaReports">0</div></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card"><h3 class="chart-title">Listings by Category</h3><canvas id="catChart" height="300"></canvas></div>
+        <div class="chart-card"><h3 class="chart-title">Listings by Status</h3><canvas id="statusChart" height="300"></canvas></div>
+      </div>
+      <div class="chart-row">
+        <div class="chart-card"><h3 class="chart-title">Transaction Type</h3><canvas id="txnChart" height="300"></canvas></div>
+        <div class="chart-card"><h3 class="chart-title">Listings Over Time (Last 30 Days)</h3><canvas id="timeChart" height="300"></canvas></div>
+      </div>
+      <div class="chart-row" style="margin-top:20px;">
+        <div class="chart-card" style="grid-column: 1 / -1;"><h3 class="chart-title">Top Geographic Locations (Pincodes)</h3><canvas id="pincodeChart" height="300"></canvas></div>
+      </div>
+    </div>
+
+    <!-- REVENUE -->
+    <div id="tab-revenue" class="content hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h2 style="margin: 0; color: #1e293b;">Platform Revenue</h2>
+        <button class="btn btn-primary" onclick="exportRevenueCSV()">⬇ Export CSV</button>
+      </div>
+      <div class="revenue-cards">
+        <div class="revenue-card rev-green"><div class="rev-label">Total Listing Value</div><div class="rev-value" id="rvTotal">₹0</div><div class="rev-sub" id="rvTotalSub"></div></div>
+        <div class="revenue-card rev-yellow"><div class="rev-label">Average Listing Price</div><div class="rev-value" id="rvAvg">₹0</div><div class="rev-sub">Across active listings</div></div>
+        <div class="revenue-card rev-blue"><div class="rev-label">Highest Listing</div><div class="rev-value" id="rvMax">₹0</div><div class="rev-sub" id="rvMaxSub"></div></div>
+      </div>
+      <div class="chart-card" style="margin-top:20px"><h3 class="chart-title">Value by Category</h3><canvas id="revCatChart" height="300"></canvas></div>
+      <div class="chart-card" style="margin-top:20px"><h3 class="chart-title">Top 10 Most Valuable Listings</h3><div id="topListings"></div></div>
+
+      <div class="chart-card" style="margin-top:20px">
+        <h3 class="chart-title">🎟️ Promo Code Engine</h3>
+        <p style="color:#64748b; font-size:13px; margin-bottom:15px;">Generate discount codes for users to purchase booster plans.</p>
+        <div style="display:flex; gap:10px; align-items:flex-end;">
+          <div>
+            <label style="display:block; font-size:11px; font-weight:bold; color:#475569;">Code Name</label>
+            <input type="text" id="promoCodeInput" class="search-bar" style="margin:0; padding:10px; border-radius:8px; width:150px;" placeholder="e.g. DIWALI50">
+          </div>
+          <div>
+            <label style="display:block; font-size:11px; font-weight:bold; color:#475569;">Discount (%)</label>
+            <input type="number" id="promoPercentInput" class="search-bar" style="margin:0; padding:10px; border-radius:8px; width:100px;" placeholder="50">
+          </div>
+          <button class="btn btn-primary" onclick="generatePromoCode()">Generate Code</button>
+        </div>
+        <div class="promo-list" id="promoListContainer"></div>
+      </div>
+    </div>
+
+    <!-- MODERATION -->
+    <div id="tab-moderation" class="content hidden">
+      <h2 style="margin-bottom: 20px; color: #1e293b;">Image Moderation Grid</h2>
+      <p style="color: #64748b; margin-bottom: 20px;">Review all images uploaded by users across all listings. Click an image to view the listing.</p>
+      <div id="moderationGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px;"></div>
+    </div>
+
+    <!-- LOGS -->
+    <div id="tab-logs" class="content hidden">
+      <h2 style="margin-bottom: 20px; color: #1e293b;">Activity Logs</h2>
+      <div id="logsContainer"></div>
+    </div>
+
+    <!-- FIREBASE INFO -->
+    <div id="tab-firebase" class="content hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h2 style="margin: 0; color: #1e293b;" class="dark-mode-text">Firebase Management</h2>
+        <span class="badge" style="background:#dcfce7; color:#166534; font-size:14px; padding:6px 12px; border:1px solid #bbf7d0;">Blaze Plan (Pay as you go)</span>
+      </div>
+
+      <div class="chart-card" style="margin-bottom: 24px;">
+        <h3 class="chart-title">Resource Usage & Quotas (Click for Breakdown)</h3>
+        <div style="display:flex; justify-content:space-between; text-align:center;">
+          <div style="flex:1; padding:10px; border-radius:8px;" class="hover-bg" onclick="showFirebaseBreakdown('db')">
+            <div style="font-size:24px; font-weight:bold; color:#1e293b;" class="dark-mode-text" id="fbDbStorage">2.4 GB</div>
+            <div style="font-size:12px; color:#64748b;">Firestore Database Size</div>
+          </div>
+          <div style="flex:1; border-left:1px solid #e2e8f0; border-right:1px solid #e2e8f0; padding:10px; border-radius:8px;" class="hover-bg" onclick="showFirebaseBreakdown('storage')">
+            <div style="font-size:24px; font-weight:bold; color:#1e293b;" class="dark-mode-text" id="fbBucketStorage">114.8 GB</div>
+            <div style="font-size:12px; color:#64748b;">Cloud Storage Bucket Size</div>
+          </div>
+          <div style="flex:1; border-right:1px solid #e2e8f0; padding:10px; border-radius:8px;" class="hover-bg" onclick="showFirebaseBreakdown('reads')">
+            <div style="font-size:24px; font-weight:bold; color:#1e293b;" class="dark-mode-text" id="fbReads">1.2M</div>
+            <div style="font-size:12px; color:#64748b;">Firestore Document Reads</div>
+          </div>
+          <div style="flex:1; padding:10px; border-radius:8px;" class="hover-bg" onclick="showFirebaseBreakdown('writes')">
+            <div style="font-size:24px; font-weight:bold; color:#1e293b;" class="dark-mode-text" id="fbWrites">48K</div>
+            <div style="font-size:12px; color:#64748b;">Firestore Document Writes</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label"><span class="dot dot-blue"></span> Active Connections</div>
+          <div class="stat-value">142</div>
+          <div class="rev-sub" style="font-size:11px; margin-top:4px;">Realtime concurrent users</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="dot dot-orange"></span> Hosting Bandwidth</div>
+          <div class="stat-value">12.5 GB</div>
+          <div class="rev-sub" style="font-size:11px; margin-top:4px;">Used this month</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="dot dot-green"></span> Function Invocations</div>
+          <div class="stat-value">845K</div>
+          <div class="rev-sub" style="font-size:11px; margin-top:4px;">Cloud Functions running</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label"><span class="dot dot-red"></span> Auth Monthly Active</div>
+          <div class="stat-value">8.2K</div>
+          <div class="rev-sub" style="font-size:11px; margin-top:4px;">Unique authenticated logins</div>
+        </div>
+      </div>
+
+      <div class="chart-card" style="margin-top:20px;">
+        <h3 class="chart-title">System Status & Configuration</h3>
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-label">Project ID</div><div class="detail-value">real-estate-4a9f1</div></div>
+          <div class="detail-item"><div class="detail-label">Region</div><div class="detail-value">asia-south1 (Mumbai)</div></div>
+          <div class="detail-item"><div class="detail-label">Authentication Methods</div><div class="detail-value">Email/Password, Google</div></div>
+          <div class="detail-item"><div class="detail-label">Firestore Rules</div><div class="detail-value" style="color:#059669; font-weight:bold;">Secure (Strict)</div></div>
+          <div class="detail-item"><div class="detail-label">Storage Rules</div><div class="detail-value" style="color:#059669; font-weight:bold;">Secure (Read/Write locked)</div></div>
+          <div class="detail-item"><div class="detail-label">System Uptime</div><div class="detail-value">99.99%</div></div>
+        </div>
+      </div>
+
+      <div class="chart-card" style="margin-top:20px;">
+        <h3 class="chart-title">Detailed Per-Listing Consumption</h3>
+        <p style="color:#64748b; font-size:13px; margin-bottom:15px;">A detailed breakdown of database storage, bucket storage (images), and read/write traffic consumed by every individual listing.</p>
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+          <input type="text" id="fbSearchInput" class="search-bar" style="margin:0; flex:1;" placeholder="Search listing title to see its consumption...">
+        </div>
+        <div id="fbDetailedList" style="max-height: 500px; overflow-y: auto; padding-right:10px;"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="tab-settings" class="content hidden">
+      <h2 style="margin-bottom: 20px; color: #1e293b;" class="dark-mode-text">Platform Settings</h2>
+
+      <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 20px;" class="dark-mode-card">
+        <h3 style="margin-bottom: 10px; color: #1e293b;" class="dark-mode-text">Appearance</h3>
+        <p style="color: #64748b; margin-bottom: 15px; font-size: 14px;">Toggle between Light Mode and Dark Mode for the Admin Panel.</p>
+        <button class="btn btn-primary" onclick="toggleThemeMode()">Toggle Light / Dark Mode</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- CONFIRM MODAL -->
+  <div id="confirmModal" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="modalTitle" class="dark-mode-text"></h3>
+      <p id="modalDesc"></p>
+      <div class="modal-btns">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" id="modalConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIREBASE BREAKDOWN MODAL -->
+  <div id="firebaseModal" class="modal-overlay hidden">
+    <div class="modal dark-mode-card" style="max-width: 500px; width: 90%;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+        <h3 id="fbModalTitle" style="margin:0; color:#1e293b;" class="dark-mode-text">Breakdown</h3>
+        <button onclick="document.getElementById('firebaseModal').classList.add('hidden')" style="background:none; border:none; font-size:28px; cursor:pointer; color:#64748b; line-height:1;">&times;</button>
+      </div>
+      <div id="fbModalContent" style="max-height: 400px; overflow-y:auto; padding-right:10px;"></div>
+      <div class="modal-btns" style="margin-top:25px;">
+        <button class="btn btn-primary" onclick="document.getElementById('firebaseModal').classList.add('hidden')" style="width:100%;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/11.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="app.js?v=14"></script>
+</body>
+</html>

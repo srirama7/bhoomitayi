@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "128735139971",
+    "project_id": "real-estate-4a9f1",
+    "storage_bucket": "real-estate-4a9f1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:128735139971:android:9a9cf3b4f0f7d3883023b6",
+        "android_client_info": {
+          "package_name": "com.bhoomitayi.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "128735139971-3j87i23pfqv4n94u9mff0296v89mvdkb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bhoomitayi.app",
+            "certificate_hash": "bf3ffcdcd7ee7e7aa8bf9b12177c93815dfab0e5"
+          }
+        },
+        {
+          "client_id": "128735139971-h04ru4l2sf2l4cr2tfijp211e8rei9d2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAnb2oFA9lVJoz2Ps3-8On9WPIc0YGC7Co"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "128735139971-h04ru4l2sf2l4cr2tfijp211e8rei9d2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

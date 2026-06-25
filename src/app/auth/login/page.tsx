@@ -9,6 +9,7 @@ import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
 import { signInWithNativeGoogle } from "@/lib/firebase/native-auth";
 import { toast } from "sonner";
+import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +33,12 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+  
+  const isMobile = typeof window !== "undefined" && Capacitor.isNativePlatform();
+  const paramRedirect = searchParams.get("redirectTo");
+  const redirectTo = (isMobile && (paramRedirect === "/dashboard" || !paramRedirect))
+    ? "/"
+    : (paramRedirect || "/dashboard");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

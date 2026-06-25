@@ -91,13 +91,9 @@ export default function AdminListingsPage() {
   const [timerInputs, setTimerInputs] = useState<TimerMap>({});
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [, forceTick] = useState(0);
   const [selectedListing, setSelectedListing] = useState<AdminListing | null>(null);
 
-  useEffect(() => {
-    const timer = setInterval(() => forceTick((prev) => prev + 1), 1000);
-    return () => clearInterval(timer);
-  }, []);
+
 
   useEffect(() => {
     if (authLoading) return;

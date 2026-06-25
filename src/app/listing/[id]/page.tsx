@@ -53,7 +53,6 @@ export default function ListingDetailPage() {
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [, forceTick] = useState(0);
 
   const isOwner = user && listing && user.uid === listing.user_id;
 
@@ -102,10 +101,7 @@ export default function ListingDetailPage() {
     load();
   }, [id]);
 
-  useEffect(() => {
-    const timer = setInterval(() => forceTick((prev) => prev + 1), 1000);
-    return () => clearInterval(timer);
-  }, []);
+
 
   if (loading) {
     return (

@@ -110,8 +110,8 @@ export default function AboutPage() {
           <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 shadow-3d p-6 sm:p-8">
             <h2 className="text-2xl font-bold text-foreground mb-4">Contact Us</h2>
             <div className="text-muted-foreground leading-relaxed space-y-2">
-              <p><strong>Email:</strong>{" "}<a href="mailto:support@bhoomitayi.in" className="text-blue-600 dark:text-blue-400 hover:underline">support@bhoomitayi.in</a></p>
-              <p><strong>Phone:</strong>{" "}<a href="tel:+919876543210" className="text-blue-600 dark:text-blue-400 hover:underline">+91 98765 43210</a></p>
+              <p><strong>Email:</strong>{" "}<a href="mailto:bhoomitayi7@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">bhoomitayi7@gmail.com</a></p>
+              <p><strong>Phone:</strong>{" "}<a href="tel:+917760200927" className="text-blue-600 dark:text-blue-400 hover:underline">+91 7760200927</a></p>
               <p><strong>Address:</strong> Bangalore, Karnataka, India</p>
             </div>
           </div>

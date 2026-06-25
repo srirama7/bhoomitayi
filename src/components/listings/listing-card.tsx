@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, MapPin, Bed, Bath, Maximize, Building2, Car, Package, Clock } from "lucide-react";
-import { motion } from "framer-motion";
 
 import { db } from "@/lib/firebase/config";
 import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
@@ -52,14 +51,12 @@ const transactionColors: Record<string, string> = {
 };
 
 export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }: ListingCardProps) {
-  const { user } = useAuthStore();
+  // Select only uid to avoid re-renders when Firebase refreshes the token and
+  // replaces the User object reference (which caused all cards to flicker at once).
+  const uid = useAuthStore((state) => state.user?.uid ?? null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [favoriteDocId, setFavoriteDocId] = useState<string | null>(null);
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [rotateX, setRotateX] = useState(0);
-  const [rotateY, setRotateY] = useState(0);
-  const [, forceTick] = useState(0);
 
   const primaryImage = listing.images?.[0] && typeof listing.images[0] === "string" ? listing.images[0] : null;
   const [imageError, setImageError] = useState(false);
@@ -70,16 +67,11 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(() => forceTick((prev) => prev + 1), 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (!user || !showFavorite) return;
+    if (!uid || !showFavorite) return;
 
     const checkFavorite = async () => {
       const favRef = collection(db, "favorites");
-      const q = query(favRef, where("user_id", "==", user.uid), where("listing_id", "==", listing.id));
+      const q = query(favRef, where("user_id", "==", uid), where("listing_id", "==", listing.id));
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
         setIsFavorited(true);
@@ -88,13 +80,13 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
     };
 
     checkFavorite();
-  }, [user, listing.id, showFavorite]);
+  }, [uid, listing.id, showFavorite]);
 
   const toggleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!user) return;
+    if (!uid) return;
     if (favoriteLoading) return;
 
     setFavoriteLoading(true);
@@ -106,7 +98,7 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
         setFavoriteDocId(null);
       } else {
         const docRef = await addDoc(collection(db, "favorites"), {
-          user_id: user.uid,
+          user_id: uid,
           listing_id: listing.id,
           created_at: new Date().toISOString(),
         });
@@ -120,19 +112,6 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
     }
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    setRotateX(-(e.clientY - centerY) / 30);
-    setRotateY((e.clientX - centerX) / 30);
-  };
-
-  const handleMouseLeave = () => {
-    setRotateX(0);
-    setRotateY(0);
-  };
 
   const renderDetails = () => {
     if (!details) return null;
@@ -265,14 +244,8 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
 
   return (
     <Link href={`/listing/${listing.id}`}>
-      <motion.div
-        ref={cardRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        animate={{ rotateX, rotateY }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        style={{ perspective: 800, transformStyle: "preserve-3d" }}
-        whileHover={{ scale: 1.02 }}
+      <div
+        className="transition-transform duration-200 hover:scale-[1.02]"
       >
         <Card className="group overflow-hidden p-0 transition-all duration-400 shadow-3d border-zinc-200/80 dark:border-zinc-800/80 hover:border-blue-200 dark:hover:border-blue-800/60 rounded-2xl bg-white dark:bg-zinc-900/80 backdrop-blur-sm">
           {/* Image */}
@@ -322,7 +295,7 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
               </Badge>
             </div>
 
-            {showFavorite && user && (
+            {showFavorite && uid && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -396,7 +369,7 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </div>
     </Link>
   );
 }
