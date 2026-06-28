@@ -137,7 +137,7 @@ export function ListingGrid({ listings, totalCount, currentPage }: ListingGridPr
       </div>
 
       {/* Listings */}
-      {listings.filter((l) => getRemainingTimeMs(l.expires_at) !== 0).length === 0 ? (
+      {listings.filter((l) => !l.expires_at || getRemainingTimeMs(l.expires_at) !== 0).length === 0 ? (
         <div className="text-center py-16">
           <p className="text-lg text-muted-foreground">No properties found</p>
           <p className="text-sm text-muted-foreground mt-1">Try adjusting your filters</p>
@@ -150,7 +150,7 @@ export function ListingGrid({ listings, totalCount, currentPage }: ListingGridPr
               : "space-y-4"
           }
         >
-          {listings.filter((l) => getRemainingTimeMs(l.expires_at) !== 0).map((listing) => (
+          {listings.filter((l) => !l.expires_at || getRemainingTimeMs(l.expires_at) !== 0).map((listing) => (
             <ListingCard key={listing.id} listing={listing} viewMode={viewMode} />
           ))}
         </div>

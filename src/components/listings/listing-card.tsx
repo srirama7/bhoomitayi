@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, MapPin, Bed, Bath, Maximize, Building2, Car, Package, Clock } from "lucide-react";
@@ -61,6 +61,28 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
   const primaryImage = listing.images?.[0] && typeof listing.images[0] === "string" ? listing.images[0] : null;
   const [imageError, setImageError] = useState(false);
   const details = listing.details as Record<string, unknown> | null;
+
+  // Compute remainingMs client-side only to prevent server/client hydration mismatch flicker
+  const [remainingMs, setRemainingMs] = useState<number | null>(null);
+  const [effectiveStatus, setEffectiveStatus] = useState(listing.status);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    const update = () => {
+      const ms = getRemainingTimeMs(listing.expires_at);
+      setRemainingMs(ms);
+      setEffectiveStatus(getEffectiveListingStatus(listing));
+    };
+    update();
+    // Only tick every second if there's a timer set
+    if (listing.expires_at) {
+      intervalRef.current = setInterval(update, 1000);
+    }
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [listing]);
+
 
   const handleImageError = useCallback(() => {
     setImageError(true);
@@ -239,8 +261,6 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
     }
   };
 
-  const effectiveStatus = getEffectiveListingStatus(listing);
-  const remainingMs = getRemainingTimeMs(listing.expires_at);
 
   return (
     <Link href={`/listing/${listing.id}`}>
