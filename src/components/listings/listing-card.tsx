@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, MapPin, Bed, Bath, Maximize, Building2, Car, Package, Clock } from "lucide-react";
@@ -50,7 +50,7 @@ const transactionColors: Record<string, string> = {
   rent: "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800",
 };
 
-export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }: ListingCardProps) {
+function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: ListingCardProps) {
   // Select only uid to avoid re-renders when Firebase refreshes the token and
   // replaces the User object reference (which caused all cards to flicker at once).
   const uid = useAuthStore((state) => state.user?.uid ?? null);
@@ -74,14 +74,25 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
       setEffectiveStatus(getEffectiveListingStatus(listing));
     };
     update();
-    // Only tick every second if there's a timer set
     if (listing.expires_at) {
-      intervalRef.current = setInterval(update, 1000);
+      // Tick every second only when < 1 minute left, otherwise every 10 seconds
+      // This drastically reduces re-renders and prevents flickering
+      const tick = () => {
+        const ms = getRemainingTimeMs(listing.expires_at);
+        setRemainingMs(ms);
+        setEffectiveStatus(getEffectiveListingStatus(listing));
+        const interval = ms !== null && ms < 60000 ? 1000 : 10000;
+        intervalRef.current = setTimeout(tick, interval);
+      };
+      const initialMs = getRemainingTimeMs(listing.expires_at);
+      const initialInterval = initialMs !== null && initialMs < 60000 ? 1000 : 10000;
+      intervalRef.current = setTimeout(tick, initialInterval);
     }
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (intervalRef.current) clearTimeout(intervalRef.current as unknown as ReturnType<typeof setTimeout>);
     };
-  }, [listing]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listing.id, listing.expires_at]);
 
 
   const handleImageError = useCallback(() => {
@@ -393,3 +404,5 @@ export function ListingCard({ listing, showFavorite = true, viewMode = "grid" }:
     </Link>
   );
 }
+
+export const ListingCard = memo(ListingCardInner);
