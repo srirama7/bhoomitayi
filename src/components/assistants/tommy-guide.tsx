@@ -86,11 +86,9 @@ const PAGE_GUIDES: Record<string, PageGuide> = {
   "/sell": {
     greetingKey: "tommy.sell_greeting",
     steps: [
-      { titleKey: "Step 1: Choose Category", contentKey: "Select what you're selling - House, Land, PG, Commercial, Vehicle, or Commodity." },
-      { titleKey: "Step 2: Fill Details", contentKey: "Add a clear title, detailed description, exact measurements, and a competitive price." },
-      { titleKey: "Step 3: Upload Photos", contentKey: "Add high quality photos. First photo becomes the thumbnail. Use natural lighting!" },
-      { titleKey: "Step 4: Set Location", contentKey: "Enter the exact address and area. Accurate location helps buyers find your listing." },
-      { titleKey: "Step 5: Submit", contentKey: "Review everything, then submit. Your listing goes live immediately!" },
+      { titleKey: "Step 1: Choose Category", contentKey: "Select the type of service — House, Land, PG, Commercial, Vehicle, or Commodity. Then choose if you're selling, renting, or leasing." },
+      { titleKey: "Step 2: Fill Details", contentKey: "Enter your Title, Description, Address, Phone Number, Email, and upload 1–4 Photos. That's all — quick and simple!" },
+      { titleKey: "Step 3: Review & Submit", contentKey: "Preview your listing details and submit. Your listing will go live after admin approval. Buyers will contact you via phone or email." },
     ],
   },
   "/auth/login": {
