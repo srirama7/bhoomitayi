@@ -80,3 +80,11 @@ export async function signOutEverywhere() {
     await signOutFromFirebase(auth);
   }
 }
+
+export function getListingUrl(id: string): string {
+  if (isNativeApp()) {
+    return `/listing/1?id=${id}`;
+  }
+  return `/listing/${id}`;
+}
+

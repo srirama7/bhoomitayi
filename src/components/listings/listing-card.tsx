@@ -8,6 +8,7 @@ import { Heart, MapPin, Bed, Bath, Maximize, Building2, Car, Package, Clock } fr
 import { db } from "@/lib/firebase/config";
 import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
+import { getListingUrl } from "@/lib/firebase/native-auth";
 import { formatPrice } from "@/lib/constants";
 import {
   formatRemainingDuration,
@@ -274,7 +275,7 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
 
 
   return (
-    <Link href={`/listing/${listing.id}`}>
+    <Link href={getListingUrl(listing.id)}>
       <div
         className="transition-transform duration-200 hover:scale-[1.02]"
       >

@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Heart, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { getListingUrl } from "@/lib/firebase/native-auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -150,7 +151,7 @@ export default function FavoritesPage() {
                 </div>
                 <CardContent className="flex flex-col gap-2 pt-4">
                   <Link
-                    href={`/listing/${listing.id}`}
+                    href={getListingUrl(listing.id)}
                     className="font-semibold hover:underline"
                   >
                     {listing.title}

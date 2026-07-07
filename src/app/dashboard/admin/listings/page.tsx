@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { getListingUrl } from "@/lib/firebase/native-auth";
 import {
   CheckCircle2,
   Clock3,
@@ -309,7 +310,7 @@ export default function AdminListingsPage() {
                                             <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400"><MoreVertical className="size-4" /></Button>
                                          </DropdownMenuTrigger>
                                          <DropdownMenuContent align="end" className="w-48 font-bold text-xs uppercase">
-                                            <DropdownMenuItem asChild><Link href={`/listing/${l.id}`} target="_blank">Live View</Link></DropdownMenuItem>
+                                            <DropdownMenuItem asChild><Link href={getListingUrl(l.id)} target="_blank">Live View</Link></DropdownMenuItem>
                                             <DropdownMenuItem onClick={() => setDeleteId(l.id)} className="text-red-600">Remove Item</DropdownMenuItem>
                                          </DropdownMenuContent>
                                       </DropdownMenu>
@@ -416,7 +417,7 @@ export default function AdminListingsPage() {
                            </div>
                         </div>
 
-                        <Link href={`/listing/${selectedListing.id}`} target="_blank" className="block mt-4">
+                        <Link href={getListingUrl(selectedListing.id)} target="_blank" className="block mt-4">
                            <Button variant="secondary" size="sm" className="w-full">
                               <ExternalLink className="size-4 mr-2" /> View Public Page
                            </Button>

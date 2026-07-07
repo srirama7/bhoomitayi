@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { getListingUrl } from "@/lib/firebase/native-auth";
 import {
   Search,
   MoreHorizontal,
@@ -309,7 +310,7 @@ export default function AdminUsersPage() {
                         <div className="flex items-center gap-3">
                           <Badge variant="outline" className="text-[9px] uppercase font-semibold h-5">{l.status}</Badge>
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 group-hover:text-zinc-900" asChild>
-                            <Link href={`/listing/${l.id}`} target="_blank"><ExternalLink className="size-3.5" /></Link>
+                            <Link href={getListingUrl(l.id)} target="_blank"><ExternalLink className="size-3.5" /></Link>
                           </Button>
                         </div>
                       </div>

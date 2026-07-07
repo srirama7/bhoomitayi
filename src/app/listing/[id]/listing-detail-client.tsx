@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { doc, getDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { getListingById, getSimilarListings } from "@/lib/queries";
@@ -45,7 +45,9 @@ import { toast } from "sonner";
 export default function ListingDetailClient() {
   const params = useParams();
   const router = useRouter();
-  const id = params.id as string;
+  const searchParams = useSearchParams();
+  const queryId = searchParams.get("id");
+  const id = (queryId || params.id) as string;
   const { user } = useAuthStore();
 
   const [listing, setListing] = useState<Listing | null>(null);

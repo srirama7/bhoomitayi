@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Clock } from "lucide-react";
 import { formatPrice } from "@/lib/constants";
+import { getListingUrl } from "@/lib/firebase/native-auth";
 import Image from "next/image";
 
 interface RecentListing {
@@ -38,7 +39,7 @@ export function RecentlyViewed() {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {recent.map((item) => (
-          <Link key={item.id} href={`/listing/${item.id}`} className="group block">
+          <Link key={item.id} href={getListingUrl(item.id)} className="group block">
             <div className="bg-white dark:bg-zinc-900/80 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 overflow-hidden shadow-sm transition-all hover:shadow-md hover:-translate-y-1">
               <div className="relative h-32 w-full bg-zinc-100 dark:bg-zinc-800">
                 {item.image ? (
