@@ -171,7 +171,7 @@ export async function generateListingPDF(listing: Listing, _lang: string = "en")
     
     doc.setFontSize(18);
     doc.setTextColor(37, 99, 235);
-    doc.text(formatPrice(listing.price), pageWidth - margin - 5, finalY + 17, { align: "right" });
+    doc.text(listing.price != null ? formatPrice(listing.price) : "N/A", pageWidth - margin - 5, finalY + 17, { align: "right" });
 
     // ── Footer ──
     const pageHeight = doc.internal.pageSize.getHeight();

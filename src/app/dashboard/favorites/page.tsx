@@ -20,8 +20,8 @@ import {
   deleteDoc,
 } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
-import { formatPrice } from "@/lib/constants";
 import type { Listing } from "@/lib/types/database";
+
 
 interface FavoriteWithListing {
   id: string;
@@ -160,13 +160,8 @@ export default function FavoritesPage() {
                     <MapPin className="size-4" />
                     {listing.address}
                   </div>
-                  <p className="text-lg font-bold">
-                    {formatPrice(listing.price)}
-                    {listing.transaction_type === "rent" && (
-                      <span className="text-sm font-normal text-muted-foreground">
-                        /month
-                      </span>
-                    )}
+                  <p className="text-sm text-muted-foreground line-clamp-1">
+                    {listing.address}
                   </p>
                   <Button
                     variant="outline"

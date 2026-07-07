@@ -24,12 +24,13 @@ export interface Listing {
   transaction_type: "buy" | "sell" | "rent";
   title: string;
   description: string;
-  price: number;
+  price?: number;
   address: string;
-  pincode: string;
-  latitude: number | null;
-  longitude: number | null;
+  pincode?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   images: string[];
+  owner_name?: string | null;
   owner_email?: string | null;
   owner_phone?: string | null;
   status: "pending" | "pending_payment" | "active" | "rejected" | "sold" | "archived" | "timed_out";
@@ -46,7 +47,7 @@ export interface Listing {
     minutes: number;
     seconds: number;
   } | null;
-  details: Json;
+  details?: Json;
   created_at: string;
   updated_at: string;
 }

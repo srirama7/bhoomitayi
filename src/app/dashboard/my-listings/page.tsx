@@ -45,7 +45,6 @@ import {
   orderBy,
 } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
-import { formatPrice } from "@/lib/constants";
 import { generateListingPDF } from "@/lib/generate-pdf";
 import { SUPPORTED_LANGUAGES } from "@/lib/i18n";
 import {
@@ -199,11 +198,12 @@ export default function MyListingsPage() {
     try {
       const nextReactivationCount = (reactivatingListing.reactivation_count ?? 0) + 1;
       const submittedAt = new Date().toISOString();
+      const isFree = plan?.price === 0;
 
       await updateDoc(doc(db, "listings", reactivatingListing.id), {
         status: "pending_payment",
-        payment_status: "pending",
-        payment_amount: plan?.price || LISTING_FEE,
+        payment_status: isFree ? "not_required" : "pending",
+        payment_amount: plan?.price !== undefined ? plan.price : LISTING_FEE,
         booster_plan: plan?.name || "Basic",
         plan_days: plan?.days || 30,
         payment_reason: "reactivation",
@@ -214,27 +214,31 @@ export default function MyListingsPage() {
       });
 
       setListings((prev) =>
-        prev.map((listing) =>
-          listing.id === reactivatingListing.id
-            ? {
-                ...listing,
-                status: "pending_payment",
-                payment_status: "pending",
-                payment_amount: plan?.price || LISTING_FEE,
-                booster_plan: plan?.name || "Basic",
-                plan_days: plan?.days || 30,
-                payment_reason: "reactivation",
-                last_payment_submitted_at: submittedAt,
-                reactivation_count: nextReactivationCount,
-                expires_at: null,
-                updated_at: submittedAt,
-              }
-            : listing
-        )
+          prev.map((listing) =>
+              listing.id === reactivatingListing.id
+                  ? {
+                    ...listing,
+                    status: "pending_payment",
+                    payment_status: isFree ? "not_required" : "pending",
+                    payment_amount: plan?.price !== undefined ? plan.price : LISTING_FEE,
+                    booster_plan: plan?.name || "Basic",
+                    plan_days: plan?.days || 30,
+                    payment_reason: "reactivation",
+                    last_payment_submitted_at: submittedAt,
+                    reactivation_count: nextReactivationCount,
+                    expires_at: null,
+                    updated_at: submittedAt,
+                  }
+                  : listing
+          )
       );
 
       setReactivatingListing(null);
-      toast.success("Restart payment submitted. Admin will review it and restart the timer.");
+      toast.success(
+          isFree
+              ? "Reactivation request submitted successfully. Admin will review and activate it."
+              : "Restart payment submitted. Admin will review it and restart the timer."
+      );
     } catch (error) {
       console.error("Failed to submit reactivation payment:", error);
       toast.error("Failed to submit reactivation payment");
@@ -336,8 +340,8 @@ export default function MyListingsPage() {
                     <h3 className="font-bold text-xl line-clamp-1 text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {listing.title}
                     </h3>
-                    <p className="text-2xl font-extrabold text-foreground tracking-tight">
-                      {formatPrice(listing.price)}
+                    <p className="text-sm text-muted-foreground line-clamp-1">
+                      {listing.address}
                     </p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium">
                       <Calendar className="size-3.5" />

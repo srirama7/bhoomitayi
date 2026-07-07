@@ -137,7 +137,7 @@ export default function ListingDetailClient() {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const details = listing.details as Record<string, any>;
+  const details = (listing.details || {}) as Record<string, any>;
   const effectiveStatus = getEffectiveListingStatus(listing);
   const remainingMs = getRemainingTimeMs(listing.expires_at);
   const canReceiveInquiries = effectiveStatus === "active";
@@ -183,7 +183,7 @@ export default function ListingDetailClient() {
                   <h1 className="text-2xl md:text-3xl font-bold text-foreground">{listing.title}</h1>
                   <p className="flex items-center gap-1.5 text-muted-foreground mt-2">
                     <MapPin className="h-4 w-4 text-blue-500" />
-                    {listing.address} - {listing.pincode}
+                    {listing.address}{listing.pincode ? ` - ${listing.pincode}` : ""}
                   </p>
                   <div className="mt-2">
                     <ListingCountdown
@@ -194,10 +194,9 @@ export default function ListingDetailClient() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">{formatPrice(listing.price)}</p>
-                  {listing.transaction_type === "rent" && (
-                    <p className="text-sm text-muted-foreground">/month</p>
-                  )}
+                  <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-3 py-1 text-sm font-semibold text-blue-700 dark:text-blue-300 capitalize">
+                    {listing.transaction_type === "commercial_lease" ? "Lease" : listing.transaction_type}
+                  </span>
                 </div>
               </div>
             </div>
@@ -278,7 +277,7 @@ export default function ListingDetailClient() {
             </div>
 
             <ListingTools 
-              listingPrice={listing.price} 
+              listingPrice={listing.price ?? 0} 
               description={listing.description || ""} 
               area={Number(details.area_sqft) || undefined}
               category={listing.category}
