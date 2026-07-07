@@ -303,7 +303,7 @@ export default function AdminUsersPage() {
                             <div className="flex items-center gap-2 mt-0.5">
                               <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">{l.category}</span>
                               <span className="text-[10px] text-zinc-300">•</span>
-                              <span className="text-[10px] font-bold text-blue-600">{formatPrice(l.price)}</span>
+                              <span className="text-[10px] font-bold text-blue-600">{l.price != null ? formatPrice(l.price) : '—'}</span>
                             </div>
                           </div>
                         </div>

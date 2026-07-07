@@ -117,7 +117,7 @@ export default function AdminDashboardPage() {
                  <div key={l.id} className="flex items-center justify-between p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm">
                     <div className="min-w-0">
                        <p className="text-sm font-medium text-zinc-900 dark:text-zinc-100 truncate">{l.title}</p>
-                       <p className="text-[11px] text-zinc-500">{formatPrice(l.price)}</p>
+                       <p className="text-[11px] text-zinc-500">{l.price != null ? formatPrice(l.price) : '—'}</p>
                     </div>
                     <Badge variant="outline" className="text-[10px] uppercase">{l.category}</Badge>
                  </div>

@@ -303,7 +303,7 @@ export default function AdminListingsPage() {
                                          effS === 'timed_out' ? "border-red-100 text-red-600" : "border-zinc-100 text-zinc-400"
                                       )}>{effS.replace('_', ' ')}</Badge>
                                    </td>
-                                   <td className="px-6 py-4 font-bold text-zinc-900 dark:text-zinc-100">{formatPrice(l.price)}</td>
+                                   <td className="px-6 py-4 font-bold text-zinc-900 dark:text-zinc-100">{l.price != null ? formatPrice(l.price) : <span className="text-zinc-400 font-normal text-xs">—</span>}</td>
                                    <td className="px-6 py-4 text-right">
                                       <DropdownMenu>
                                          <DropdownMenuTrigger asChild>
@@ -343,7 +343,7 @@ export default function AdminListingsPage() {
                      <div className="p-4 space-y-4">
                         <div>
                            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{selectedListing.title}</p>
-                           <p className="text-xs text-zinc-500 capitalize">{selectedListing.category} • {formatPrice(selectedListing.price)}</p>
+                           <p className="text-xs text-zinc-500 capitalize">{selectedListing.category} • {selectedListing.price != null ? formatPrice(selectedListing.price) : '—'}</p>
                         </div>
                         
                         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md border border-blue-100 dark:border-blue-900/30">

@@ -9,7 +9,6 @@ import { db } from "@/lib/firebase/config";
 import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
 import type { Profile, Listing, Favorite } from "@/lib/types/database";
-import { formatPrice } from "@/lib/constants";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
