@@ -202,7 +202,8 @@ export default function ListingDetailClient() {
             </div>
 
             {/* Key Details */}
-            <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 shadow-3d">
+            {Object.keys(details).length > 0 && (
+              <div className="bg-white dark:bg-zinc-900/80 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 p-6 shadow-3d">
               <h2 className="text-xl font-semibold mb-4 text-foreground">Service Details</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {listing.category === "house" && (
@@ -274,7 +275,8 @@ export default function ListingDetailClient() {
                   </>
                 )}
               </div>
-            </div>
+              </div>
+            )}
 
             <ListingTools 
               listingPrice={listing.price ?? 0} 

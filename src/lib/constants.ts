@@ -114,7 +114,8 @@ export const MAX_IMAGES = 4;
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5 MB
 export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
-export function formatPrice(price: number): string {
+export function formatPrice(price: number | undefined | null): string {
+  if (price == null || isNaN(price)) return "N/A";
   if (price >= 10000000) {
     return `₹${(price / 10000000).toFixed(2)} Cr`;
   }
@@ -127,6 +128,7 @@ export function formatPrice(price: number): string {
   return `₹${price.toLocaleString("en-IN")}`;
 }
 
-export function formatArea(sqft: number): string {
+export function formatArea(sqft: number | undefined | null): string {
+  if (sqft == null || isNaN(sqft)) return "N/A sq.ft";
   return `${sqft.toLocaleString("en-IN")} sq.ft`;
 }
