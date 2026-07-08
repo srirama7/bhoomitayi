@@ -175,7 +175,9 @@ export default function ListingDetailClient() {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <Badge variant="secondary" className="capitalize rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200 dark:border-blue-800">{listing.category}</Badge>
+                  {listing.transaction_type && (
                     <Badge className="capitalize rounded-lg">{listing.transaction_type}</Badge>
+                  )}
                     {effectiveStatus !== "active" && (
                       <Badge variant="destructive" className="capitalize rounded-lg">{effectiveStatus.replace("_", " ")}</Badge>
                     )}
@@ -194,9 +196,11 @@ export default function ListingDetailClient() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-3 py-1 text-sm font-semibold text-blue-700 dark:text-blue-300 capitalize">
-                    {listing.transaction_type}
-                  </span>
+                  {listing.transaction_type && (
+                    <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-3 py-1 text-sm font-semibold text-blue-700 dark:text-blue-300 capitalize">
+                      {listing.transaction_type}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

@@ -318,13 +318,15 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
                   : listing.category.charAt(0).toUpperCase() +
                     listing.category.slice(1)}
               </Badge>
-              <Badge
-                variant="secondary"
-                className={`${transactionColors[listing.transaction_type]} text-xs font-semibold border backdrop-blur-md`}
-              >
-                {listing.transaction_type.charAt(0).toUpperCase() +
-                  listing.transaction_type.slice(1)}
-              </Badge>
+              {listing.transaction_type && (
+                <Badge
+                  variant="secondary"
+                  className={`${transactionColors[listing.transaction_type] || ""} text-xs font-semibold border backdrop-blur-md`}
+                >
+                  {listing.transaction_type.charAt(0).toUpperCase() +
+                    listing.transaction_type.slice(1)}
+                </Badge>
+              )}
             </div>
 
             {showFavorite && uid && (
@@ -362,9 +364,11 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
 
           {/* Content */}
           <CardContent className="flex flex-col gap-2 p-4">
-            <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300 capitalize w-fit">
-              {listing.transaction_type}
-            </span>
+            {listing.transaction_type && (
+              <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300 capitalize w-fit">
+                {listing.transaction_type}
+              </span>
+            )}
 
             <h3 className="line-clamp-1 text-sm font-semibold leading-tight text-foreground">
               {listing.title}
