@@ -351,7 +351,7 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
             {remainingMs !== null && effectiveStatus === "active" && (
               <div className={`absolute bottom-2 right-2 flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold backdrop-blur-md border ${
                 remainingMs < 3600000 
-                  ? "bg-amber-100/90 text-amber-700 border-amber-200 dark:bg-amber-950/90 dark:text-amber-300 dark:border-amber-800 animate-pulse" 
+                  ? "bg-amber-100/90 text-amber-700 border-amber-200 dark:bg-amber-950/90 dark:text-amber-300 dark:border-amber-800" 
                   : "bg-white/90 text-blue-600 border-zinc-200 dark:bg-zinc-900/90 dark:text-blue-400 dark:border-zinc-800"
               }`}>
                 <Clock className="size-3" />

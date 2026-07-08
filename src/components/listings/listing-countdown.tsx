@@ -83,7 +83,7 @@ export function ListingCountdown({
 
   if (isTimedOut) {
     return (
-      <div className="rounded-xl border-4 border-red-500 bg-red-50 p-6 dark:bg-red-950/20 animate-pulse-subtle">
+      <div className="rounded-xl border-4 border-red-500 bg-red-50 p-6 dark:bg-red-950/20">
         <div className="flex items-center gap-4 mb-4">
           <div className="flex size-14 items-center justify-center rounded-full bg-red-600 text-white">
             <AlertTriangle className="size-8" />
