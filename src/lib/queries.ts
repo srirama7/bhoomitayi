@@ -92,61 +92,23 @@ export async function getListings(params: ListingsQueryParams) {
     const data = allListings.slice(startIndex, startIndex + pageSize);
 
     if (data.length === 0) {
-      return { data: [MOCK_LISTINGS["test-listing"] as Listing], count: 1, error: null };
+      return { data: [], count: 0, error: null };
     }
     return { data, count, error: null };
   } catch (error) {
     console.error("Error fetching listings:", error);
-    return { data: [MOCK_LISTINGS["test-listing"] as Listing], count: 1, error: null };
+    return { data: [], count: 0, error: null };
   }
 }
 
-const MOCK_LISTINGS: Record<string, Listing & {
-  profiles?: { full_name: string; phone: string | null; avatar_url: string | null; email?: string | null };
-}> = {
-  "test-listing": {
-    id: "test-listing",
-    user_id: "test-user",
-    category: "land",
-    transaction_type: "sell",
-    title: "Premium 30x40 Plot for Sale in Puttur",
-    description: "A perfect spot to build your dream home! Good road access, peaceful locality, and great investment opportunity. Near Ambika College.",
-    price: 4500000,
-    address: "Puttur, near Ambika College",
-    pincode: "574201",
-    images: ["https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=800&auto=format&fit=crop&q=60"],
-    owner_name: "Amogh Bhat",
-    owner_phone: "9988776655",
-    owner_email: "amogh@bhoomitayi.com",
-    status: "active",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    details: {
-      area_sqft: 1200,
-      land_type: "residential",
-      facing: "east",
-      landmark: "Near Ambika College"
-    },
-    profiles: {
-      full_name: "Amogh Bhat",
-      phone: "9988776655",
-      avatar_url: null,
-      email: "amogh@bhoomitayi.com"
-    }
-  }
-};
 
 export async function getListingById(id: string) {
   try {
-    if (id === "test-listing" || id === "1") {
-      return { data: MOCK_LISTINGS["test-listing"], error: null };
-    }
-
     const docRef = doc(db, "listings", id);
     const docSnap = await getDoc(docRef);
 
     if (!docSnap.exists()) {
-      return { data: MOCK_LISTINGS["test-listing"], error: null };
+      return { data: null, error: "Listing not found" };
     }
 
     const listing = { id: docSnap.id, ...docSnap.data() } as Listing & {
@@ -169,7 +131,7 @@ export async function getListingById(id: string) {
     return { data: listing, error: null };
   } catch (error) {
     console.error("Error fetching listing:", error);
-    return { data: MOCK_LISTINGS["test-listing"], error: null };
+    return { data: null, error: "Failed to fetch listing" };
   }
 }
 
@@ -192,12 +154,12 @@ export async function getSimilarListings(listing: { category: string; id: string
       .slice(0, 4);
 
     if (results.length === 0) {
-      return [MOCK_LISTINGS["test-listing"] as Listing];
+      return [];
     }
     return results;
   } catch (error) {
     console.error("Error fetching similar listings:", error);
-    return [MOCK_LISTINGS["test-listing"] as Listing];
+    return [];
   }
 }
 
@@ -226,11 +188,11 @@ export async function getFeaturedListings() {
     const results = allMapped.slice(0, 8);
 
     if (results.length === 0) {
-      return [MOCK_LISTINGS["test-listing"] as Listing];
+      return [];
     }
     return results;
   } catch (error) {
     console.error("Error fetching featured listings:", error);
-    return [MOCK_LISTINGS["test-listing"] as Listing];
+    return [];
   }
 }
