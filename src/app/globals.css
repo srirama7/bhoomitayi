@@ -561,3 +561,56 @@ html.transitioning *::after {
     min-width: 1200px;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────── */
+/* NATIVE APP (Android WebView) - Disable ALL heavy GPU animations     */
+/* Heavy blur+animation combos on large divs cause GPU flashing in     */
+/* Android WebView. When .native-app is on <body>, freeze everything.  */
+/* ─────────────────────────────────────────────────────────────────── */
+.native-app .animate-aurora,
+.native-app .animate-aurora-delayed,
+.native-app .animate-aurora-slow,
+.native-app .animate-morph,
+.native-app .animate-gradient,
+.native-app .animate-float,
+.native-app .animate-float-delayed,
+.native-app .animate-float-slow,
+.native-app .animate-pulse-glow,
+.native-app .animate-particle,
+.native-app .animate-shimmer,
+.native-app .animate-ring-glow,
+.native-app .animate-counter-glow,
+.native-app .animate-text-gradient,
+.native-app .animated-border {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* Keep static gradient background visible but not shifting */
+.native-app .animate-gradient {
+  background-size: 100% 100% !important;
+  background-position: 0% 50% !important;
+}
+
+/* Disable backdrop-filter on native which can also cause GPU stalls */
+.native-app .backdrop-blur-3xl,
+.native-app .backdrop-blur-2xl,
+.native-app .backdrop-blur-xl,
+.native-app .backdrop-blur-md,
+.native-app .backdrop-blur-sm {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Disable mix-blend-mode which requires compositing layers (GPU heavy) */
+.native-app .mix-blend-multiply,
+.native-app .mix-blend-screen,
+.native-app .mix-blend-overlay {
+  mix-blend-mode: normal !important;
+}
+
+/* Remove blur filter on blob/glow orbs to prevent GPU overdraw */
+.native-app [class*="blur-"] {
+  filter: none !important;
+}
+

@@ -9,6 +9,7 @@ import { TommyGuide } from "@/components/assistants/tommy-guide";
 import { SettingsWidget } from "@/components/settings/settings-widget";
 import { SettingsApplier } from "@/components/settings/settings-applier";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
+import { FeedbackSidebar } from "@/components/layout/feedback-sidebar";
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -43,6 +44,7 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       <TommyGuide />
       <SettingsWidget />
       <OnboardingTour />
+      <FeedbackSidebar />
     </div>
   );
 }

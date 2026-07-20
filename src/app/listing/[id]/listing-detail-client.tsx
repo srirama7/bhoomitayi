@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { doc, getDoc, deleteDoc } from "firebase/firestore";
+import { doc, getDoc, deleteDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { getListingById, getSimilarListings } from "@/lib/queries";
 import { ImageGallery } from "@/components/listings/image-gallery";
@@ -30,17 +30,20 @@ import {
   Wind, ShowerHead, Building2, Fence, Compass,
   Users, UtensilsCrossed, Home, ChevronRight, Flag,
   Gauge, Fuel, Settings2, Package, ShieldCheck, Trash2,
-  Phone, Mail,
+  Phone, Mail, Copy,
 } from "lucide-react";
 import Link from "next/link";
 import type { Listing } from "@/lib/types/database";
 import { ReportButton } from "@/components/listings/report-button";
 import { ShareButton } from "@/components/listings/share-button";
 import { QrButton } from "@/components/listings/qr-button";
+import { FlyerButton } from "@/components/listings/flyer-button";
 import { ListingTools } from "@/components/listings/listing-tools";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "@/lib/store";
 import { toast } from "sonner";
+import { formatPhoneWithCountryCode } from "@/lib/utils";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function ListingDetailClient() {
   const params = useParams();
@@ -56,6 +59,56 @@ export default function ListingDetailClient() {
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [submittingPin, setSubmittingPin] = useState(false);
+
+  // Auto-translate states
+  const [translatedTitle, setTranslatedTitle] = useState("");
+  const [translatedDesc, setTranslatedDesc] = useState("");
+  const [translatedAddress, setTranslatedAddress] = useState("");
+  const [translationLang, setTranslationLang] = useState("");
+  const [translating, setTranslating] = useState(false);
+
+  const handleTranslate = async (targetLang: string) => {
+    if (!listing) return;
+    if (!targetLang) {
+      setTranslationLang("");
+      setTranslatedTitle("");
+      setTranslatedDesc("");
+      setTranslatedAddress("");
+      return;
+    }
+
+    setTranslating(true);
+    setTranslationLang(targetLang);
+
+    try {
+      const translateText = async (text: string) => {
+        if (!text || !text.trim()) return "";
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Translation request failed");
+        const data = await res.json();
+        return data[0].map((x: any) => x[0]).join("");
+      };
+
+      const [tTitle, tDesc, tAddress] = await Promise.all([
+        translateText(listing.title),
+        translateText(listing.description || ""),
+        translateText(listing.address),
+      ]);
+
+      setTranslatedTitle(tTitle);
+      setTranslatedDesc(tDesc);
+      setTranslatedAddress(tAddress);
+    } catch (err) {
+      console.error("Translation error:", err);
+      toast.error("Auto-translation failed. Please try again.");
+      setTranslationLang("");
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   const isOwner = user && listing && user.uid === listing.user_id;
 
@@ -71,6 +124,36 @@ export default function ListingDetailClient() {
     }
     setDeleting(false);
     setShowDeleteDialog(false);
+  };
+
+  const handleRequestPin = async () => {
+    if (!listing) return;
+    setSubmittingPin(true);
+    try {
+      const pinReqTime = new Date().toISOString();
+      await updateDoc(doc(db, "listings", listing.id), {
+        pin_status: "pending_approval",
+        pin_payment_status: "pending",
+        pin_payment_amount: 499,
+        pin_requested_at: pinReqTime,
+        updated_at: pinReqTime,
+      });
+      setListing((prev) => prev ? {
+        ...prev,
+        pin_status: "pending_approval",
+        pin_payment_status: "pending",
+        pin_payment_amount: 499,
+        pin_requested_at: pinReqTime,
+        updated_at: pinReqTime,
+      } : null);
+      toast.success("Pin request submitted! Admin will verify and pin your listing.");
+      setShowPinDialog(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to submit pin request");
+    } finally {
+      setSubmittingPin(false);
+    }
   };
 
   useEffect(() => {
@@ -173,21 +256,56 @@ export default function ListingDetailClient() {
             <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl rounded-[2.5rem] border border-white/40 dark:border-white/10 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)]">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-2 mb-3">
-                    <Badge variant="secondary" className="capitalize rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200 dark:border-blue-800">{listing.category}</Badge>
-                  {listing.transaction_type && (
-                    <Badge className="capitalize rounded-lg">{listing.transaction_type}</Badge>
-                  )}
-                    {effectiveStatus !== "active" && (
-                      <Badge variant="destructive" className="capitalize rounded-lg">{effectiveStatus.replace("_", " ")}</Badge>
-                    )}
+                  <div className="flex flex-wrap items-center gap-4 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="capitalize rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200 dark:border-blue-800">{listing.category}</Badge>
+                      {listing.transaction_type && (
+                        <Badge className="capitalize rounded-lg">{listing.transaction_type}</Badge>
+                      )}
+                      {effectiveStatus !== "active" && (
+                        <Badge variant="destructive" className="capitalize rounded-lg">{effectiveStatus.replace("_", " ")}</Badge>
+                      )}
+                    </div>
+
+                    {/* Translation Dropdown Bar */}
+                    <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 px-3 py-1.5 rounded-xl border border-zinc-200/40 dark:border-zinc-700/40 shrink-0">
+                      <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
+                        🌐 Translation:
+                      </span>
+                      <div className="flex gap-1">
+                        {[
+                          { code: "", label: "Original" },
+                          { code: "en", label: "English" },
+                          { code: "kn", label: "ಕನ್ನಡ" },
+                          { code: "hi", label: "हिन्दी" },
+                          { code: "ta", label: "தமிழ்" },
+                          { code: "te", label: "తెలుగు" }
+                        ].map((lang) => (
+                          <button
+                            key={lang.code}
+                            disabled={translating}
+                            onClick={() => handleTranslate(lang.code)}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all ${
+                              translationLang === lang.code
+                                ? "bg-blue-600 text-white"
+                                : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+                            } disabled:opacity-50`}
+                          >
+                            {lang.label}
+                          </button>
+                        ))}
+                      </div>
+                      {translating && (
+                        <span className="text-[10px] text-blue-500 animate-pulse ml-1">Translating...</span>
+                      )}
+                    </div>
                   </div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-foreground">{listing.title}</h1>
+                  <h1 className="text-2xl md:text-3xl font-bold text-foreground">{translatedTitle || listing.title}</h1>
                   <p className="flex items-center gap-1.5 text-muted-foreground mt-2">
                     <MapPin className="h-4 w-4 text-blue-500" />
-                    {listing.address}{listing.pincode ? ` - ${listing.pincode}` : ""}
+                    {translatedAddress || listing.address}{listing.pincode ? ` - ${listing.pincode}` : ""}
                   </p>
-                  <div className="mt-2">
+                  <div className="mt-4">
                     <ListingCountdown
                       expiresAt={listing.expires_at}
                       status={effectiveStatus}
@@ -297,7 +415,7 @@ export default function ListingDetailClient() {
                   {Math.max(1, Math.ceil((listing.description?.split(/\s+/).length || 1) / 200))} min read
                 </span>
               </h2>
-              <p className="text-muted-foreground whitespace-pre-line leading-relaxed">{listing.description}</p>
+              <p className="text-muted-foreground whitespace-pre-line leading-relaxed">{translatedDesc || listing.description}</p>
             </div>
 
             {/* Amenities */}
@@ -339,17 +457,43 @@ export default function ListingDetailClient() {
               <FavoriteButton listingId={listing.id} size="default" variant="outline" />
               <ShareButton title={listing.title} />
               <QrButton title={listing.title} />
+              <FlyerButton listing={listing} />
               <ReportButton listingId={listing.id} />
               {isOwner && (
-                <Button
-                  variant="destructive"
-                  size="default"
-                  onClick={() => setShowDeleteDialog(true)}
-                  className="gap-1.5"
-                >
-                  <Trash2 className="size-4" />
-                  Delete
-                </Button>
+                <>
+                  <Button
+                    variant="destructive"
+                    size="default"
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="gap-1.5"
+                  >
+                    <Trash2 className="size-4" />
+                    Delete
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (listing.pinned) {
+                        toast.info("Your listing is already pinned!");
+                      } else if (listing.pin_status === "pending_approval") {
+                        toast.info("Your pin request is pending admin verification.");
+                      } else {
+                        setShowPinDialog(true);
+                      }
+                    }}
+                    className="gap-1 px-3 border-amber-300 bg-amber-50 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/20 dark:hover:bg-amber-950/50"
+                  >
+                    <span className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1">
+                      {listing.pinned ? (
+                        <>📌 Active</>
+                      ) : listing.pin_status === "pending_approval" ? (
+                        <>⏳ Pending</>
+                      ) : (
+                        <>📌 Pin</>
+                      )}
+                    </span>
+                  </Button>
+                </>
               )}
             </div>
 
@@ -385,7 +529,7 @@ export default function ListingDetailClient() {
                           </div>
                           <div>
                             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Phone Number</p>
-                            <a href={`tel:${profile.phone || listing.owner_phone}`} className="text-sm font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{profile.phone || listing.owner_phone}</a>
+                            <a href={`tel:${formatPhoneWithCountryCode(profile.phone || listing.owner_phone || "")}`} className="text-sm font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{formatPhoneWithCountryCode(profile.phone || listing.owner_phone || "")}</a>
                           </div>
                         </div>
                       )}
@@ -410,7 +554,7 @@ export default function ListingDetailClient() {
                         </div>
                         <div>
                           <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Location</p>
-                          <p className="text-sm font-semibold text-foreground leading-snug">{listing.address}</p>
+                          <p className="text-sm font-semibold text-foreground leading-snug">{translatedAddress || listing.address}</p>
                         </div>
                       </div>
 
@@ -430,7 +574,7 @@ export default function ListingDetailClient() {
                         <>
                           <Button 
                             className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md font-bold h-11"
-                            onClick={() => window.location.href = `tel:${profile.phone || listing.owner_phone}`}
+                            onClick={() => window.location.href = `tel:${formatPhoneWithCountryCode(profile.phone || listing.owner_phone || "")}`}
                           >
                             <Phone className="mr-2 size-4" />
                             Call
@@ -439,7 +583,7 @@ export default function ListingDetailClient() {
                             variant="outline" 
                             className="w-full rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-bold h-11"
                             onClick={() => {
-                              const ph = profile.phone || listing.owner_phone;
+                              const ph = formatPhoneWithCountryCode(profile.phone || listing.owner_phone || "");
                               if (ph) window.open(`https://wa.me/${ph.replace(/\D/g, '')}`, '_blank');
                             }}
                           >
@@ -497,6 +641,60 @@ export default function ListingDetailClient() {
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={deleting}>
               {deleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Pin confirmation payment dialog */}
+      <Dialog open={showPinDialog} onOpenChange={setShowPinDialog}>
+        <DialogContent className="max-w-[450px] bg-[#111111] border-zinc-800 text-zinc-100 rounded-2xl shadow-2xl p-6">
+          <DialogHeader className="text-left">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-white">
+              <span>📌</span> Pin Listing to Top
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs mt-1">
+              Boost your listing to appear at the very top of search results and the homepage for 30 days.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* QR Scan Details */}
+          <div className="space-y-6 py-6 flex flex-col items-center">
+            <div className="text-center">
+              <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">PROMOTION PLAN</p>
+              <h3 className="text-2xl font-black text-white">1-Month Pin Placement</h3>
+              <p className="text-4xl font-black text-amber-400 mt-2">₹499</p>
+            </div>
+
+            {/* QR Code */}
+            <div className="bg-white p-4 rounded-3xl w-56 h-56 flex items-center justify-center shadow-lg border-4 border-amber-500">
+              <QRCodeSVG
+                value="upi://pay?pa=amoghabhat7403@oksbi&pn=BhoomiTayi&am=499&cu=INR"
+                size={190}
+                level="Q"
+              />
+            </div>
+
+            <div className="text-center space-y-2">
+              <p className="text-xs text-zinc-400">Scan QR Code with any UPI app (GPay, PhonePe, Paytm)</p>
+              <div className="flex items-center justify-center gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-xl max-w-xs mx-auto">
+                <span className="text-xs font-mono select-all truncate max-w-[200px]">amoghabhat7403@oksbi</span>
+                <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-400" onClick={() => {
+                  navigator.clipboard.writeText("amoghabhat7403@oksbi");
+                  toast.success("UPI ID copied!");
+                }}>
+                  <Copy className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="flex-1 rounded-xl border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-900" onClick={() => setShowPinDialog(false)}>
+              Cancel
+            </Button>
+            <Button className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl" onClick={handleRequestPin} disabled={submittingPin}>
+              {submittingPin ? "Submitting..." : "I've Paid, Submit Request"}
             </Button>
           </DialogFooter>
         </DialogContent>

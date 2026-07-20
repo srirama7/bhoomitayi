@@ -47,6 +47,7 @@ export const metadata: Metadata = {
 };
 
 import { NativeAuthGuard } from "@/components/layout/native-auth-guard";
+import { NativeBodyClass } from "@/components/layout/native-body-class";
 
 export default function RootLayout({
   children,
@@ -60,6 +61,7 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <ThemeProvider>
+          <NativeBodyClass />
           <I18nProvider>
             <AuthProvider>
               <TooltipProvider>

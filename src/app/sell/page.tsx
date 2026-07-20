@@ -12,19 +12,24 @@ import {
   Building2,
   Car,
   Package,
+  Phone,
+  Mail,
+  ChevronRight,
+  Check,
+  Info,
   Upload,
   X,
+  ZoomIn,
+  MapPin,
+  Loader2,
+  FileText,
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Sparkles,
   ImageIcon,
-  Phone,
-  Mail,
-  MapPin,
-  Loader2,
-  FileText,
 } from "lucide-react";
+import { formatPhoneWithCountryCode } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -248,7 +253,7 @@ function SellPageContent() {
         description: description.trim(),
         address: address.trim(),
         images: imageUrls,
-        owner_phone: ownerPhone.trim(),
+        owner_phone: formatPhoneWithCountryCode(ownerPhone.trim()),
         owner_email: ownerEmail.trim(),
         status: "active",
         created_at: new Date().toISOString(),

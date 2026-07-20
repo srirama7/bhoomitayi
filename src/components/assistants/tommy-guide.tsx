@@ -185,15 +185,10 @@ export function TommyGuide() {
     return key;
   }, [t]);
 
-  // Auto-open when page changes (if not dismissed for this page)
+  // Reset current step when page changes (auto-open disabled so it only opens when explicitly clicked)
   useEffect(() => {
     setCurrentStep(0);
-    if (!dismissed.has(pathname)) {
-      const timer = setTimeout(() => setOpen(true), 1500);
-      return () => clearTimeout(timer);
-    }
-    setOpen(false);
-  }, [pathname, dismissed]);
+  }, [pathname]);
 
   // Re-show when language changes
   useEffect(() => {

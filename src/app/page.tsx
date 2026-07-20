@@ -33,6 +33,7 @@ import { useAuthStore } from "@/lib/store";
 import { ListingCard } from "@/components/listings/listing-card";
 import { RecentlyViewed } from "@/components/listings/recently-viewed";
 import type { Listing } from "@/lib/types/database";
+import { isNativeApp } from "@/lib/firebase/native-auth";
 
 const CATEGORY_ICONS = [Home, Mountain, Bed, Building2, Car, Package];
 const CATEGORY_DESC_KEYS = [
@@ -89,6 +90,7 @@ export default function HomePage() {
   const router = useRouter();
   const [listings, setListings] = useState<Listing[]>([]);
   const [loadingListings, setLoadingListings] = useState(true);
+  const [isNative, setIsNative] = useState(false);
 
   // Hero animation states
   const [heroIndex, setHeroIndex] = useState(0);
@@ -117,11 +119,16 @@ export default function HomePage() {
   ];
 
   useEffect(() => {
+    setIsNative(isNativeApp());
+  }, []);
+
+  useEffect(() => {
+    if (isNative) return;
     const timer = setInterval(() => {
       setHeroIndex((prev) => (prev + 1) % heroWords.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, []);
+  }, [isNative]);
 
   useEffect(() => {
     if (!authLoading && profile?.role === "admin") {
@@ -152,8 +159,8 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] dark:opacity-[0.06] mix-blend-overlay" />
       </div>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 dark:from-blue-900 dark:via-indigo-950 dark:to-purple-950 animate-gradient noise-overlay">
-        <HeroParticles />
+      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 dark:from-blue-900 dark:via-indigo-950 dark:to-purple-950 noise-overlay">
+        {!isNative && <HeroParticles />}
 
         {/* Aurora glow orbs */}
         <div className="absolute inset-0 overflow-hidden">
@@ -214,34 +221,49 @@ export default function HomePage() {
                 {t("hero.title_line1")}
                 <br />
                 <div className="h-[1.2em] relative overflow-visible flex justify-center">
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={heroIndex}
-                      className="absolute text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 animate-text-gradient inline-block"
+                  {isNative ? (
+                    <span
+                      className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 animate-text-gradient inline-block"
                       style={{ backgroundSize: "200% auto" }}
-                      initial={{ opacity: 0, y: 30 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -30 }}
-                      transition={{ duration: 0.6, ease: "easeInOut" }}
                     >
-                      {heroWords[heroIndex]}
-                    </motion.span>
-                  </AnimatePresence>
+                      {t("hero.title_line2")}
+                    </span>
+                  ) : (
+                    <AnimatePresence mode="wait">
+                      <motion.span
+                        key={heroIndex}
+                        className="absolute text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 animate-text-gradient inline-block"
+                        style={{ backgroundSize: "200% auto" }}
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -30 }}
+                        transition={{ duration: 0.6, ease: "easeInOut" }}
+                      >
+                        {heroWords[heroIndex]}
+                      </motion.span>
+                    </AnimatePresence>
+                  )}
                 </div>
               </motion.h1>
               <div className="h-[4.5rem] sm:h-[3.5rem] relative flex justify-center">
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={heroIndex}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -15 }}
-                    transition={{ duration: 0.6, ease: "easeInOut" }}
-                    className="absolute mx-auto max-w-2xl text-lg sm:text-xl text-blue-100/80 leading-relaxed text-center"
-                  >
-                    {heroSubtitles[heroIndex]}
-                  </motion.p>
-                </AnimatePresence>
+                {isNative ? (
+                  <p className="mx-auto max-w-2xl text-lg sm:text-xl text-blue-100/80 leading-relaxed text-center">
+                    {t("hero.subtitle")}
+                  </p>
+                ) : (
+                  <AnimatePresence mode="wait">
+                    <motion.p
+                      key={heroIndex}
+                      initial={{ opacity: 0, y: 15 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -15 }}
+                      transition={{ duration: 0.6, ease: "easeInOut" }}
+                      className="absolute mx-auto max-w-2xl text-lg sm:text-xl text-blue-100/80 leading-relaxed text-center"
+                    >
+                      {heroSubtitles[heroIndex]}
+                    </motion.p>
+                  </AnimatePresence>
+                )}
               </div>
             </div>
 

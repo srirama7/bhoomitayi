@@ -135,11 +135,21 @@ export function Navbar() {
   }, []);
 
   const handleLogout = async () => {
-    await signOut(auth);
-    useAuthStore.getState().setUser(null);
-    useAuthStore.getState().setProfile(null);
-    router.push("/");
-    router.refresh();
+    try {
+      // Clear store immediately so NativeAuthGuard redirects right away
+      // (don't wait for Firebase onAuthStateChanged — it's too slow on Android WebView)
+      useAuthStore.getState().setUser(null);
+      useAuthStore.getState().setProfile(null);
+      // Navigate first so UI doesn't hang
+      router.replace("/auth/login");
+      // Then sign out from Firebase in background
+      await signOut(auth);
+    } catch {
+      // Even if signOut fails, we've already cleared local state and redirected
+      useAuthStore.getState().setUser(null);
+      useAuthStore.getState().setProfile(null);
+      router.replace("/auth/login");
+    }
   };
 
   const getInitials = (name: string | undefined | null) => {
@@ -157,7 +167,7 @@ export function Navbar() {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, type: "spring", stiffness: 200, damping: 20 }}
-      className={`sticky top-0 z-50 w-full transition-all duration-500 ${
+      className={`sticky top-0 z-50 w-full transition-all duration-500 pt-[env(safe-area-inset-top,0px)] ${
         scrolled
           ? "bg-white/50 dark:bg-zinc-950/50 backdrop-blur-3xl shadow-sm shadow-black/[0.02] dark:shadow-black/20 border-b border-zinc-200/50 dark:border-white/[0.05]"
           : "bg-white/20 dark:bg-zinc-950/20 backdrop-blur-2xl border-b border-transparent"
@@ -217,13 +227,14 @@ export function Navbar() {
             <Plus className="size-4" />
             {t("nav.register_service")}
           </Button>
+          
+          <div id="language-selector-desktop" className="ml-2">
+            <LanguageSelector variant="desktop" />
+          </div>
         </nav>
 
         {/* Desktop Right Side */}
         <div className="hidden items-center gap-2 md:flex">
-          <div id="language-selector-desktop">
-            <LanguageSelector variant="desktop" />
-          </div>
           <div id="theme-toggle-desktop">
             <ThemeToggle />
           </div>

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { X, Send, User, LogOut } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -339,14 +340,16 @@ function createBellaEngine(
           
           let resp = `We have ${countSnap.size} houses currently available for sale or rent.\n`;
           if (!latestSnap.empty) {
-            resp += "\nHere are the 3 most recent house listings:\n";
+            resp += "\nHere are the active house listings:\n";
             latestSnap.forEach(doc => {
               const data = doc.data();
-              resp += `\n🏠 ${data.title} - ₹${data.price.toLocaleString('en-IN')}\n📍 ${data.address}\n`;
+              const priceStr = data.price ? `₹${Number(data.price).toLocaleString('en-IN')}` : 'Contact for Price';
+              resp += `\n🏠 **[${data.title} - ${priceStr}](/listing/${doc.id})**\n📍 Location: ${data.address}\n`;
             });
           }
           return resp + "\nCheck the 'Houses' section in the menu to browse them all!";
-        } catch {
+        } catch (err) {
+          console.error("Error fetching houses in Bella:", err);
           return "Opening the Houses section to browse independent homes, villas, and apartments!";
         }
       }
@@ -952,10 +955,10 @@ function createBellaEngine(
       patterns: [/document/i, /paper/i, /deed/i],
       responseKey: "_documents",
     },
-    // ── Help ──
+    // ── Help & Capabilities ──
     {
-      patterns: [/help/i, /what can you/i, /features/i, /what do you/i, /how.*use/i, /मदद/i, /ಸಹಾಯ/i, /ಸಹಾಯಂ/i, /ಸಹಾಯಂ/i, /உதவி/i],
-      responseKey: "_help",
+      patterns: [/help/i, /what.*can.*(you.*)?do/i, /capabilities/i, /features/i, /what do you/i, /how.*use/i, /मदद/i, /ಸಹಾಯ/i, /ಸಹಾಯಂ/i, /உதவி/i],
+      responseKey: "_what_can_do",
     },
     // ── Fun ──
     {
@@ -996,6 +999,7 @@ const KNOWLEDGE_RESPONSES: Record<string, string> = {
   _loan: "Home loan guide:\n\n1. Check your CIBIL score (aim for 750+)\n2. Compare rates - SBI, HDFC, ICICI, Axis\n3. Calculate EMI (should be < 40% of income)\n4. Prepare documents: ID, income proof, property papers\n\nCurrent rates: ~8.5-9.5%\nBanks fund 80% of property value\nTax benefit: Section 80C & 24B",
   _documents: "Essential property documents:\n\nFor Buying:\n- Sale Deed, Title Deed\n- EC - Encumbrance Certificate\n- Khata Certificate & Extract\n- Tax paid receipts\n- Building plan approval\n- Occupancy Certificate\n\nAlways get a lawyer to verify!",
   _help: "I'm Bella, your smarter real estate assistant!\n\nSelling Tips: 'listing guide', 'negotiation', 'market trends', 'photography', 'timing'\nProperty Help: houses, land, PG, commercial, vehicles, price guidance, documents\nSettings: 'dark/light mode', 'reading mode', 'font size', 'language', 'notifications'\n\nTry asking 'how to list' or 'what are the market trends'!",
+  _what_can_do: "Here is a complete list of everything I can do for you:\n\n1. 🏠 FIND PROPERTIES & LISTINGS\n   - Ask me: 'show houses', 'plots in land', 'commercial spaces', or 'any PG available?'\n   - I will fetch real-time listings with titles, prices, locations, and clickable links!\n\n2. 📈 SMART CALCULATORS & TOOLS\n   - Ask me: 'EMI calculator', 'SIP calculator', 'Tax calculator', 'Scientific calculator', 'GST calculator', 'Margin calculator', 'Age calculator', or 'Currency converter'\n   - I will instantly open the tool right here in the chat!\n\n3. ⚙️ CONTROL WEBSITE SETTINGS\n   - Ask me: 'dark mode', 'light mode', 'increase font size', 'reading mode', or 'change language to Hindi/Kannada'\n   - I will apply the changes to the website instantly!\n\n4. 📝 WALKTHROUGHS & TIPS\n   - Ask me: 'how to list' (walkthrough), 'negotiation tips', 'photography guide', 'market trends', or 'best time to sell'",
   _thanks: "You're welcome! Happy to help. I'm always here if you need anything!",
   _bye: "Bye! Come back anytime. Happy property hunting!",
   _about_bella: "I'm Bella - your AI real estate assistant built right into BhoomiTayi! I've absorbed all of Tommy's knowledge to become even smarter.\n\nI can:\n- Give detailed step-by-step selling guides\n- Analyze market trends and pricing\n- Control ALL website settings via chat\n- Guide you through buying/selling\n- Speak in your language!",
@@ -1065,11 +1069,11 @@ export function BellaChat() {
   const router = useRouter();
   const intents = createBellaEngine(setTheme, (l) => i18n.changeLanguage(l), settings, user, t, router);
 
-  // Initialize position at bottom-right on mount
+  // Initialize position at bottom-right on mount (shifted left by 110px to avoid overlapping with side toolbars)
   useEffect(() => {
     if (position.x === -1) {
       setPosition({
-        x: window.innerWidth - 80,
+        x: window.innerWidth - 110,
         y: window.innerHeight - 80,
       });
     }
@@ -1214,6 +1218,56 @@ export function BellaChat() {
     setIsTyping(false);
   };
 
+  const renderMessageContent = (text: string) => {
+    const regex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push(text.substring(lastIndex, match.index));
+      }
+      
+      const label = match[1];
+      const url = match[2];
+      const isInternal = url.startsWith("/");
+      
+      if (isInternal) {
+        parts.push(
+          <Link
+            key={match.index}
+            href={url}
+            onClick={() => setOpen(false)} // Auto-close Bella AI drawer when navigating
+            className="text-pink-600 dark:text-pink-400 font-extrabold hover:underline inline"
+          >
+            {label}
+          </Link>
+        );
+      } else {
+        parts.push(
+          <a
+            key={match.index}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-pink-600 dark:text-pink-400 font-extrabold hover:underline inline"
+          >
+            {label}
+          </a>
+        );
+      }
+      
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < text.length) {
+      parts.push(text.substring(lastIndex));
+    }
+
+    return parts.length > 0 ? parts : text;
+  };
+
   // Use mounted flag to avoid SSR mismatch
   const [mounted, setMounted] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -1295,7 +1349,30 @@ export function BellaChat() {
 
           {/* Quick Commands */}
           <div className="flex gap-1.5 px-3 py-2 border-b border-zinc-100 dark:border-zinc-800 overflow-x-auto">
-            {["Dark mode", "Reading mode", "Font large", "Help"].map((cmd) => (
+            {[
+              "What can you do?",
+              "EMI Calculator",
+              "SIP Calculator",
+              "Tax Calculator",
+              "GST Calculator",
+              "Margin Calculator",
+              "Age Calculator",
+              "Scientific Calc",
+              "Currency Converter",
+              "Show Houses",
+              "Show Land",
+              "Show PG",
+              "Show Commercial",
+              "How to List",
+              "Negotiation Tips",
+              "Market Trends",
+              "Photography Tips",
+              "Timing Tips",
+              "Dark mode",
+              "Light mode",
+              "Reading mode",
+              "Font large"
+            ].map((cmd) => (
               <button
                 key={cmd}
                 onClick={() => handleQuickCmd(cmd)}
@@ -1326,7 +1403,7 @@ export function BellaChat() {
                         : "bg-zinc-100 dark:bg-zinc-800 text-foreground rounded-bl-md"
                     }`}
                   >
-                    {msg.content}
+                    {renderMessageContent(msg.content)}
                   </div>
                   {msg.role === "user" && (
                     <div className="flex-shrink-0 size-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">

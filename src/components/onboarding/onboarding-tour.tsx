@@ -559,16 +559,17 @@ export function OnboardingTour() {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // ── Auto-show tour EVERY time the homepage loads/refreshes ──
+  // ── Auto-show tour on initial homepage load ──
   useEffect(() => {
     if (!mounted) return;
     if (pathname !== "/") return;
+    if (hasSeenOnboarding) return; // Fix: Prevent blocking users if they already completed/skipped it
     const timer = setTimeout(() => {
       setIsTourActive(true);
       setCurrentStep(0);
     }, 1500);
     return () => clearTimeout(timer);
-  }, [mounted, pathname]);
+  }, [mounted, pathname, hasSeenOnboarding]);
 
   // ── Update target rect when step changes ──
   useEffect(() => {
@@ -1120,9 +1121,8 @@ export function OnboardingTour() {
         <div
           className="fixed z-[55]"
           style={{
-            right: isMobile ? "16px" : "20px",
-            // Position in middle-right area, above Bella AI
-            // Bella AI is typically fixed at bottom-right; we place the "?" button above it
+            right: isMobile ? "70px" : "85px",
+            // Position in middle-right area, shifted left to avoid overlapping with daily news
             bottom: isMobile ? "120px" : "140px",
           }}
           id="onboarding-help-btn"
