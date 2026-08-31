@@ -1,6 +1,8 @@
-PropNest.apk
 android/
-www/
-.netlify/
-deno.lock
-capacitor.config.ts
+.next/
+out/
+node_modules/
+.git/
+*.apk
+*.aab
+*.zip

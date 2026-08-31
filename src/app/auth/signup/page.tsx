@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatPhoneWithCountryCode } from "@/lib/utils";
+import { DEFAULT_FREE_TOKENS } from "@/lib/constants";
 import {
   Card,
   CardContent,
@@ -30,7 +32,7 @@ export default function SignupPage() {
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirectTo") || "/dashboard";
+  const redirectTo = searchParams.get("redirectTo") || "/";
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -93,9 +95,11 @@ function SignupForm() {
             id: user.uid,
             full_name: fullName.trim(),
             email: user.email || email.trim(),
-            phone: phone.trim(),
+            phone: formatPhoneWithCountryCode(phone.trim()),
             avatar_url: null,
             role: "user",
+            tokens: DEFAULT_FREE_TOKENS,
+            unlocked_listings: [],
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });

@@ -1,21 +1,43 @@
 # Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# ── Preserve line numbers for stack traces ──────────────────────────
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# ── Capacitor / WebView JS bridge ───────────────────────────────────
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+-keep class com.getcapacitor.** { *; }
+-dontwarn com.getcapacitor.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# ── Firebase ─────────────────────────────────────────────────────────
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+-keep class com.google.android.gms.** { *; }
+-dontwarn com.google.android.gms.**
+
+# ── Facebook SDK stubs (referenced by capacitor-firebase-authentication)
+# The plugin optionally supports Facebook login; we don't use it,
+# so just suppress the missing-class errors so R8 doesn't abort.
+-dontwarn com.facebook.**
+-keep class com.facebook.** { *; }
+
+# ── Capacitor Firebase Authentication plugin ─────────────────────────
+-keep class io.capawesome.capacitorjs.plugins.firebase.** { *; }
+-dontwarn io.capawesome.capacitorjs.plugins.firebase.**
+
+# ── Capacitor Splash Screen ──────────────────────────────────────────
+-keep class com.capacitorjs.plugins.splashscreen.** { *; }
+-dontwarn com.capacitorjs.plugins.splashscreen.**
+
+# ── Kotlin / Coroutines ──────────────────────────────────────────────
+-keep class kotlin.** { *; }
+-dontwarn kotlin.**
+-keep class kotlinx.coroutines.** { *; }
+-dontwarn kotlinx.coroutines.**
+
+# ── General Android / Androidx ───────────────────────────────────────
+-dontwarn androidx.**
+-keep class androidx.** { *; }
+

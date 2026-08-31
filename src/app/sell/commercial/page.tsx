@@ -29,6 +29,7 @@ import {
 } from "@/lib/constants";
 import { LISTING_FEE } from "@/lib/listing-timer";
 import { PaymentGateway } from "@/components/listings/upi-payment-dialog";
+import { cleanFirestoreData } from "@/lib/utils";
 
 const STEPS = [
   "Basic Details",
@@ -267,25 +268,48 @@ export default function SellCommercialPage() {
 
     setSubmitting(true);
     try {
-      await addDoc(collection(db, "listings"), {
+      const payload = cleanFirestoreData({
         ...pendingListingData,
-        payment_amount: plan?.price || LISTING_FEE,
+        payment_amount: plan?.price !== undefined ? plan.price : LISTING_FEE,
         booster_plan: plan?.name || "Basic",
         plan_days: plan?.days || 30,
-        payment_status: "pending",
+        payment_status: plan?.price === 0 ? "not_required" : "pending",
         payment_reason: "initial_listing",
         reactivation_count: 0,
         last_payment_submitted_at: new Date().toISOString(),
         status: "pending_payment",
       });
 
+      const listingRef = await addDoc(collection(db, "listings"), payload);
+
+      if (plan?.price > 0) {
+        await addDoc(collection(db, "token_requests"), cleanFirestoreData({
+          user_id: user?.uid,
+          user_name: plan.senderName || user?.displayName || "Seller",
+          user_email: user?.email || "",
+          tokens: 0,
+          amount: plan.price,
+          transaction_id: plan.txnId || "",
+          notes: `BOOSTER PLAN: ${plan.name} (${plan.days} Days) | Listing ID: ${listingRef.id}`,
+          status: "pending",
+          is_booster: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }));
+      }
+
       setShowPaymentDialog(false);
       setPendingListingData(null);
-      toast.success("Listing submitted! It will go live after admin verifies your payment.");
+      toast.success(
+        plan?.price === 0
+          ? "Listing submitted! It will go live after admin approval."
+          : "Listing submitted! It will go live after admin verifies your payment."
+      );
       router.push("/dashboard/my-listings");
-    } catch (err) {
+    } catch (err: any) {
+      console.error("Listing submission error:", err);
       toast.error(
-        err instanceof Error ? err.message : "Failed to create listing"
+        err?.message || "Failed to create listing"
       );
     } finally {
       setSubmitting(false);

@@ -66,10 +66,106 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
     );
   }
 
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+    if (isLeftSwipe && validImages.length > 1) {
+      goTo(currentIndex + 1);
+    }
+    if (isRightSwipe && validImages.length > 1) {
+      goTo(currentIndex - 1);
+    }
+  };
+
   return (
     <>
-      {/* Main Gallery */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 rounded-2xl overflow-hidden shadow-3d">
+      {/* ── MOBILE SWIPEABLE TOUCH SLIDER (Phone Screens) ── */}
+      <div
+        className="relative block md:hidden aspect-[4/3] rounded-2xl overflow-hidden shadow-3d group select-none bg-zinc-900"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {failedImages.has(currentIndex) ? (
+          <ImagePlaceholder />
+        ) : (
+          <SmartImage
+            src={validImages[currentIndex] || validImages[0]}
+            alt={`${title} - Photo ${currentIndex + 1}`}
+            fill
+            className="object-cover transition-opacity duration-300 cursor-pointer"
+            sizes="100vw"
+            priority
+            onError={() => handleImageError(currentIndex)}
+          />
+        )}
+
+        {/* Tap area to open fullscreen */}
+        <div
+          className="absolute inset-0 z-10"
+          onClick={() => setLightboxOpen(true)}
+        />
+
+        {/* Prev/Next Slider Arrow Buttons */}
+        {validImages.length > 1 && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); goTo(currentIndex - 1); }}
+              className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex size-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md active:scale-95 transition-all shadow-md"
+              aria-label="Previous image"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); goTo(currentIndex + 1); }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 z-20 flex size-9 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md active:scale-95 transition-all shadow-md"
+              aria-label="Next image"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+          </>
+        )}
+
+        {/* Slide Counter Badge */}
+        {validImages.length > 1 && (
+          <div className="absolute top-3 right-3 z-20 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-[11px] font-bold text-white shadow-sm">
+            {currentIndex + 1} / {validImages.length}
+          </div>
+        )}
+
+        {/* Dot Pagination Indicators */}
+        {validImages.length > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 backdrop-blur-md">
+            {validImages.map((_, idx) => (
+              <button
+                key={`dot-${idx}`}
+                onClick={(e) => { e.stopPropagation(); goTo(idx); }}
+                className={`size-2 rounded-full transition-all ${
+                  idx === currentIndex ? "w-4 bg-white" : "bg-white/50 hover:bg-white/80"
+                }`}
+                aria-label={`Go to slide ${idx + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── DESKTOP GRID (Tablets & Desktops) ── */}
+      <div className="hidden md:grid md:grid-cols-2 gap-2 rounded-2xl overflow-hidden shadow-3d">
         {/* Primary Image */}
         <div
           className="relative aspect-[4/3] cursor-pointer md:row-span-2 group"
@@ -94,7 +190,7 @@ export function ImageGallery({ images, title }: ImageGalleryProps) {
         {validImages.slice(1, 5).map((img, i) => (
           <div
             key={`gallery-${i}`}
-            className="relative aspect-[4/3] cursor-pointer hidden md:block group"
+            className="relative aspect-[4/3] cursor-pointer group"
             onClick={() => { setCurrentIndex(i + 1); setLightboxOpen(true); }}
           >
             {failedImages.has(i + 1) ? (

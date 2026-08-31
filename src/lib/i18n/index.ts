@@ -8,6 +8,7 @@ import hi from "../../../public/locales/hi/common.json";
 import te from "../../../public/locales/te/common.json";
 import ml from "../../../public/locales/ml/common.json";
 import ta from "../../../public/locales/ta/common.json";
+import mr from "../../../public/locales/mr/common.json";
 
 export const SUPPORTED_LANGUAGES = [
   { code: "en", label: "English", nativeLabel: "English" },
@@ -16,6 +17,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: "te", label: "Telugu", nativeLabel: "తెలుగు" },
   { code: "ml", label: "Malayalam", nativeLabel: "മലയാളം" },
   { code: "ta", label: "Tamil", nativeLabel: "தமிழ்" },
+  { code: "mr", label: "Marathi", nativeLabel: "मराठी" },
 ] as const;
 
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number]["code"];
@@ -31,6 +33,7 @@ i18n
       te: { translation: te },
       ml: { translation: ml },
       ta: { translation: ta },
+      mr: { translation: mr },
     },
     fallbackLng: "en",
     interpolation: { escapeValue: false },

@@ -6,7 +6,17 @@ import Image from "next/image";
 import { Heart, MapPin, Bed, Bath, Maximize, Building2, Car, Package, Clock } from "lucide-react";
 
 import { db } from "@/lib/firebase/config";
-import { collection, query, where, getDocs, addDoc, deleteDoc, doc } from "firebase/firestore";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  addDoc,
+  deleteDoc,
+  doc,
+  updateDoc,
+  increment
+} from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
 import { getListingUrl } from "@/lib/firebase/native-auth";
 import { formatPrice } from "@/lib/constants";
@@ -100,6 +110,8 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
     setImageError(true);
   }, []);
 
+  const [likesCount, setLikesCount] = useState(listing.favorites_count || 0);
+
   useEffect(() => {
     if (!uid || !showFavorite) return;
 
@@ -128,16 +140,24 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
     try {
       if (isFavorited && favoriteDocId) {
         await deleteDoc(doc(db, "favorites", favoriteDocId));
+        await updateDoc(doc(db, "listings", listing.id), {
+          favorites_count: increment(-1)
+        });
         setIsFavorited(false);
         setFavoriteDocId(null);
+        setLikesCount(prev => Math.max(0, prev - 1));
       } else {
         const docRef = await addDoc(collection(db, "favorites"), {
           user_id: uid,
           listing_id: listing.id,
           created_at: new Date().toISOString(),
         });
+        await updateDoc(doc(db, "listings", listing.id), {
+          favorites_count: increment(1)
+        });
         setIsFavorited(true);
         setFavoriteDocId(docRef.id);
+        setLikesCount(prev => prev + 1);
       }
     } catch {
       // Silently handle error
@@ -154,7 +174,7 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
       case "house": {
         const d = details as unknown as HouseDetails;
         return (
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             {d.bedrooms != null && (
               <span className="flex items-center gap-1">
                 <Bed className="size-3.5" />
@@ -179,7 +199,7 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
       case "land": {
         const d = details as unknown as LandDetails;
         return (
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             {d.area_sqft != null && (
               <span className="flex items-center gap-1">
                 <Maximize className="size-3.5" />
@@ -198,7 +218,7 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
       case "pg": {
         const d = details as unknown as PGDetails;
         return (
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             {d.rent_per_month != null && (
               <span className="font-medium text-foreground">
                 {formatPrice(d.rent_per_month)}/mo
@@ -216,7 +236,7 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
       case "commercial": {
         const d = details as unknown as CommercialDetails;
         return (
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             {d.area_sqft != null && (
               <span className="flex items-center gap-1">
                 <Maximize className="size-3.5" />
@@ -236,7 +256,7 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
       case "vehicle": {
         const d = details as unknown as VehicleDetails;
         return (
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             {d.brand && d.model && (
               <span className="flex items-center gap-1">
                 <Car className="size-3.5" />
@@ -255,7 +275,7 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
       case "commodity": {
         const d = details as unknown as CommodityDetails;
         return (
-          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
             {d.commodity_type && (
               <span className="flex items-center gap-1">
                 <Package className="size-3.5" />
@@ -279,9 +299,9 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
       <div
         className="transition-transform duration-200 hover:scale-[1.02]"
       >
-        <Card className="group overflow-hidden p-0 transition-all duration-400 shadow-3d border-zinc-200/80 dark:border-zinc-800/80 hover:border-blue-200 dark:hover:border-blue-800/60 rounded-2xl bg-white dark:bg-zinc-900/80 backdrop-blur-sm">
+        <Card className="group flex flex-col h-full overflow-hidden p-0 transition-all duration-400 shadow-3d border-zinc-200/80 dark:border-zinc-800/80 hover:border-blue-200 dark:hover:border-blue-800/60 rounded-2xl bg-white dark:bg-zinc-900/80 backdrop-blur-sm">
           {/* Image */}
-          <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted">
+          <div className="relative aspect-[16/10] w-full overflow-hidden bg-muted shrink-0">
             {primaryImage && !imageError ? (
               primaryImage.startsWith("data:") ? (
                 <img
@@ -330,24 +350,22 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
             </div>
 
             {showFavorite && uid && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2.5 top-2.5 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md hover:bg-white dark:hover:bg-zinc-800 shadow-lg transition-transform hover:scale-110 active:scale-95"
+              <button
+                className="absolute right-2.5 top-2.5 flex items-center gap-1.5 rounded-full bg-black/40 backdrop-blur-md hover:bg-black/60 shadow-lg px-2.5 py-1.5 transition-transform hover:scale-105 active:scale-95"
                 onClick={toggleFavorite}
                 disabled={favoriteLoading}
               >
                 <Heart
                   className={`size-4 transition-colors ${
                     isFavorited
-                      ? "fill-red-500 text-red-500"
-                      : "text-muted-foreground"
+                      ? "fill-rose-500 text-rose-500"
+                      : "text-white"
                   }`}
                 />
-                <span className="sr-only">
-                  {isFavorited ? "Remove from favorites" : "Add to favorites"}
+                <span className="text-white text-[11px] font-bold">
+                  {likesCount}
                 </span>
-              </Button>
+              </button>
             )}
 
             {remainingMs !== null && effectiveStatus === "active" && (
@@ -363,7 +381,7 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
           </div>
 
           {/* Content */}
-          <CardContent className="flex flex-col gap-2 p-4">
+          <CardContent className="flex flex-col flex-grow gap-2 p-4">
             {listing.transaction_type && (
               <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/30 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300 capitalize w-fit">
                 {listing.transaction_type}
@@ -384,23 +402,25 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
             {renderDetails()}
 
             {(effectiveStatus === "active" || listing.timer_duration) && (
-              <div className="mt-1 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 dark:border-blue-900/60 dark:bg-blue-950/20">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
-                    <Clock className="size-3.5" />
-                    Visibility Timer
-                  </span>
-                  {remainingMs !== null && effectiveStatus === "active" && (
-                    <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300">
-                      {formatRemainingDuration(remainingMs)} left
+              <div className="mt-auto pt-2">
+                <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 dark:border-blue-900/60 dark:bg-blue-950/20">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">
+                      <Clock className="size-3.5" />
+                      Visibility Timer
                     </span>
+                    {remainingMs !== null && effectiveStatus === "active" && (
+                      <span className="text-[11px] font-bold text-blue-700 dark:text-blue-300">
+                        {formatRemainingDuration(remainingMs)} left
+                      </span>
+                    )}
+                  </div>
+                  {listing.timer_duration && (
+                    <p className="mt-1 text-xs text-blue-700/80 dark:text-blue-200/80">
+                      Total: {formatTimerDuration(listing.timer_duration)}
+                    </p>
                   )}
                 </div>
-                {listing.timer_duration && (
-                  <p className="mt-1 text-xs text-blue-700/80 dark:text-blue-200/80">
-                    Total: {formatTimerDuration(listing.timer_duration)}
-                  </p>
-                )}
               </div>
             )}
           </CardContent>

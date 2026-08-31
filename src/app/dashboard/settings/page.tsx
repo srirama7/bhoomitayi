@@ -58,10 +58,16 @@ export default function SettingsPage() {
   };
 
   const handleLogout = async () => {
-    await signOut(auth);
-    useAuthStore.getState().setUser(null);
-    useAuthStore.getState().setProfile(null);
-    router.push("/");
+    try {
+      useAuthStore.getState().setUser(null);
+      useAuthStore.getState().setProfile(null);
+      router.replace("/auth/login");
+      await signOut(auth);
+    } catch {
+      useAuthStore.getState().setUser(null);
+      useAuthStore.getState().setProfile(null);
+      router.replace("/auth/login");
+    }
   };
 
   const handleDeleteAccount = async () => {

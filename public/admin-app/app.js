@@ -30,24 +30,44 @@ async function sendApprovalEmail(listingId, listingTitle, ownerEmail) {
 
 let allListings = [], allProfiles = {}, currentFilter = "all", countdownIntervals = {};
 
-// // AUTH
+// AUTH
 document.getElementById("loginBtn").onclick = async () => {
-  const u = document.getElementById("username").value.trim();
-  const p = document.getElementById("password").value.trim();
-  if (u === "admin" && p === "admin") {
-    // Try to sign in anonymously just to see if we can get some auth context, but ignore if it fails
-    auth.signInAnonymously().catch(e => console.warn("Anonymous auth failed or not enabled", e));
-    
+  const u = (document.getElementById("username").value || "").trim().toLowerCase();
+  const p = (document.getElementById("password").value || "").trim();
+
+  const isPresetMatch = (u === "bhoomitayi7@gmail.com" && p === "bhoomitayi7@gmail.com");
+
+  if (isPresetMatch) {
+    try {
+      auth.signInAnonymously().catch(() => {});
+    } catch {}
     sessionStorage.setItem("adminAuth", "true");
     showDashboard();
-  } else {
-    const e = document.getElementById("loginError");
-    e.textContent = "Invalid credentials";
-    e.style.display = "block";
-    setTimeout(() => e.style.display = "none", 3000);
+    return;
   }
+
+  // Also attempt Firebase Auth with email & password
+  if (u.includes("@") && p.length >= 6) {
+    try {
+      const res = await auth.signInWithEmailAndPassword(u, p);
+      if (res && res.user) {
+        sessionStorage.setItem("adminAuth", "true");
+        showDashboard();
+        return;
+      }
+    } catch (err) {
+      console.warn("Firebase email auth check failed:", err.message);
+    }
+  }
+
+  const e = document.getElementById("loginError");
+  e.textContent = "Invalid credentials";
+  e.style.display = "block";
+  setTimeout(() => e.style.display = "none", 3000);
 };
-document.getElementById("password").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("loginBtn").click() });
+
+document.getElementById("username")?.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("loginBtn").click(); });
+document.getElementById("password")?.addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("loginBtn").click(); });
 
 function logout() {
   auth.signOut();
@@ -197,7 +217,7 @@ function renderFirebaseDetailedList() {
 document.getElementById("fbSearchInput")?.addEventListener("input", renderFirebaseDetailedList);
 
 // TABS
-const tabIds = ["tab-overview", "tab-listings", "tab-users", "tab-favorites", "tab-reports", "tab-analytics", "tab-revenue", "tab-moderation", "tab-logs", "tab-firebase", "tab-settings"];
+const tabIds = ["tab-overview", "tab-tokens", "tab-coupons", "tab-listings", "tab-users", "tab-favorites", "tab-reports", "tab-feedback", "tab-analytics", "tab-revenue", "tab-moderation", "tab-logs", "tab-firebase", "tab-settings"];
 document.querySelectorAll(".tab").forEach(t => {
   t.addEventListener("click", function () {
     document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
@@ -212,14 +232,22 @@ document.querySelectorAll(".tab").forEach(t => {
       if (this.dataset.tab === "revenue") renderRevenue();
     }
     
+    if (this.dataset.tab === "tokens") renderTokenRequests();
+    if (this.dataset.tab === "coupons") renderCoupons();
     if (this.dataset.tab === "users") renderUsers();
     if (this.dataset.tab === "favorites") renderFavorites();
     if (this.dataset.tab === "reports") renderReports();
+    if (this.dataset.tab === "feedback") renderFeedbacks();
   });
 });
 
+let allTokenRequests = [];
+let tokenFilter = "all";
+let allCoupons = [];
 let allFavorites = [];
 let allReports = [];
+let allFeedbacks = [];
+let feedbackFilter = "all";
 
 function switchTab(tabId) {
   const btn = document.querySelector(`.tab[data-tab="${tabId}"]`);
@@ -294,10 +322,33 @@ async function refreshData() {
       allLogs = snap.docs.map(d => ({id: d.id, ...d.data()}));
       renderLogs();
     });
+
+    db.collection("feedbacks").onSnapshot(snap => {
+      allFeedbacks = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      allFeedbacks.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+      renderFeedbacks();
+    }, err => {
+      console.error("Error loading feedbacks:", err);
+    });
+
+    db.collection("token_requests").orderBy("created_at", "desc").onSnapshot(snap => {
+      allTokenRequests = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      renderTokenRequests();
+      updateTokenStats();
+    }, err => {
+      console.warn("Error listening to token_requests:", err);
+    });
+
+    db.collection("coupons").orderBy("created_at", "desc").onSnapshot(snap => {
+      allCoupons = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      renderCoupons();
+    }, err => {
+      console.warn("Error listening to coupons:", err);
+    });
   }catch(e){console.error("Error:",e)}
 }
 
-function updateAll(){updateStats();renderListings();renderUsers();renderFavorites();renderReports();renderAnalytics();renderRevenue();renderModeration();drawOverviewChart();loadSettings();renderFirebaseDetailedList();}
+function updateAll(){updateStats();updateTokenStats();renderTokenRequests();renderCoupons();renderListings();renderUsers();renderFavorites();renderReports();renderFeedbacks();renderAnalytics();renderRevenue();renderModeration();drawOverviewChart();loadSettings();renderFirebaseDetailedList();}
 
 
 
@@ -312,8 +363,12 @@ function updateStats(){
   const usersToday = Object.values(allProfiles).filter(u => u.created_at && u.created_at.slice(0,10) === todayStr).length;
   const listingsToday = allListings.filter(l => l.created_at && l.created_at.slice(0,10) === todayStr).length;
 
+  const pinReqCount = allListings.filter(l => l.pin_status === "pending_approval").length;
+
   document.getElementById("statAll").textContent=t;document.getElementById("statPending").textContent=p;
   document.getElementById("statActive").textContent=a;document.getElementById("statRejected").textContent=r;
+  const pinEl = document.getElementById("statPinRequests");
+  if(pinEl) pinEl.textContent=pinReqCount;
   
   // Add today metrics to labels if they exist
   const statAllSub = document.getElementById("statAll").nextElementSibling;
@@ -326,17 +381,34 @@ function updateStats(){
     `<div class="stat-card ${currentFilter==='all'?'active':''}" onclick="setFilter('all')"><div class="stat-label"><span class="dot dot-blue"></span> All Listings</div><div class="stat-value">${t}</div></div>
     <div class="stat-card ${currentFilter==='pending'?'active':''}" onclick="setFilter('pending')"><div class="stat-label"><span class="dot dot-orange"></span> Awaiting Approval</div><div class="stat-value">${p}</div></div>
     <div class="stat-card ${currentFilter==='active'?'active':''}" onclick="setFilter('active')"><div class="stat-label"><span class="dot dot-green"></span> Live</div><div class="stat-value">${a}</div></div>
-    <div class="stat-card ${currentFilter==='rejected'?'active':''}" onclick="setFilter('rejected')"><div class="stat-label"><span class="dot dot-red"></span> Rejected</div><div class="stat-value">${r}</div></div>`;
+    <div class="stat-card ${currentFilter==='rejected'?'active':''}" onclick="setFilter('rejected')"><div class="stat-label"><span class="dot dot-red"></span> Rejected</div><div class="stat-value">${r}</div></div>
+    <div class="stat-card ${currentFilter==='pin_requests'?'active':''}" onclick="setFilter('pin_requests')" style="border-color:#f59e0b;"><div class="stat-label"><span class="dot" style="background:#f59e0b"></span> Pin Requests</div><div class="stat-value">${pinReqCount}</div></div>`;
 }
 function setFilter(f){currentFilter=f;updateStats();renderListings()}
 
 // SEARCH
 document.getElementById("searchInput").addEventListener("input",()=>renderListings());
 function getFiltered(){
-  let list=currentFilter==="all"?allListings:allListings.filter(l=>l.status===currentFilter);
+  let list;
+  if (currentFilter === "all") {
+    list = allListings;
+  } else if (currentFilter === "pin_requests") {
+    list = allListings.filter(l => l.pin_status === "pending_approval");
+  } else {
+    list = allListings.filter(l => l.status === currentFilter);
+  }
   const q=document.getElementById("searchInput").value.toLowerCase().trim();
   if(q)list=list.filter(l=>{const pr=allProfiles[l.user_id]||{};
     return[l.title,l.category,l.address,pr.full_name,pr.phone].some(v=>(v||"").toLowerCase().includes(q))});
+  
+  // Sort: pinned first, then newest first
+  list.sort((a,b) => {
+    const aPinned = a.pinned ? 1 : 0;
+    const bPinned = b.pinned ? 1 : 0;
+    if (aPinned !== bPinned) return bPinned - aPinned;
+    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+  });
+  
   return list;
 }
 
@@ -354,7 +426,12 @@ function buildCard(l){
   const img=(l.images&&l.images[0])?`<img class="listing-img" src="${l.images[0]}" onerror="this.style.display='none'">`:
     '<div class="listing-img"></div>';
   const st=l.status==="active"?"Live":l.status==="timed_out"?"Timed Out":l.status.charAt(0).toUpperCase()+l.status.slice(1);
-  const badge=`<span class="badge badge-${l.status}">${st}</span>`;
+  let badge=`<span class="badge badge-${l.status}">${st}</span>`;
+  if (l.pinned) {
+    badge += `<span class="badge" style="background-color: #ef4444; color: white; margin-left: 8px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);">📌 PINNED</span>`;
+  } else if (l.pin_status === 'pending_approval') {
+    badge += `<span class="badge animate-pulse" style="background-color: #f59e0b; color: white; margin-left: 8px; font-weight: 800; display: inline-flex; align-items: center; gap: 3px; box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);">📌 PIN REQ</span>`;
+  }
   const timer=l.expires_at?`<span id="cd-${l.id}" class="timer-countdown" style="margin-left:8px">⏱ ...</span>`:'';
   const det=l.details||{};
 
@@ -412,6 +489,50 @@ function buildCard(l){
     ${l.expires_at?`<div class="timer-current">Current expiry: ${new Date(l.expires_at).toLocaleString("en-IN")}</div>`:''}
   </div>`;
 
+  // Pin Control Section
+  let pinSection = '';
+  const pinStatus = l.pin_status || 'none';
+  const isPinned = !!l.pinned;
+
+  if (pinStatus === 'pending_approval') {
+    pinSection = `
+      <div class="pin-section" style="margin-top: 15px; padding: 12px; border-radius: 8px; border: 1px solid #fcd34d; background-color: #fffbeb; text-align: left;">
+        <div style="font-weight: bold; font-size: 13px; color: #b45309; display: flex; align-items: center; gap: 6px;">
+          📌 PENDING PIN PLACEMENT (Paid ₹499)
+        </div>
+        <div style="font-size: 12px; color: #78350f; margin-top: 4px; margin-bottom: 8px;">
+          User requested top search placement. Verify payment of ₹499.
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn" style="background-color: #10b981; color: white; border-color: #10b981; font-weight: 700; font-size: 12px;" onclick="approvePin('${l.id}')">Approve Pin</button>
+          <button class="btn" style="color: #ef4444; border-color: #fca5a5; font-size: 12px;" onclick="rejectPin('${l.id}')">Reject Request</button>
+        </div>
+      </div>
+    `;
+  } else if (isPinned) {
+    const expDate = l.pin_expires_at ? new Date(l.pin_expires_at).toLocaleString("en-IN") : 'Indefinite';
+    pinSection = `
+      <div class="pin-section" style="margin-top: 15px; padding: 12px; border-radius: 8px; border: 1px solid #10b981; background-color: #f0fdf4; text-align: left;">
+        <div style="font-weight: bold; font-size: 13px; color: #15803d; display: flex; align-items: center; gap: 6px;">
+          📌 ACTIVE PIN PLACEMENT (Live at Top)
+        </div>
+        <div style="font-size: 12px; color: #166534; margin-top: 4px; margin-bottom: 8px;">
+          Expires: ${expDate}
+        </div>
+        <button class="btn" style="color: #ef4444; border-color: #fca5a5; font-size: 12px;" onclick="removePin('${l.id}')">Unpin Listing</button>
+      </div>
+    `;
+  } else {
+    pinSection = `
+      <div class="pin-section" style="margin-top: 15px; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0; background-color: #f8fafc; display: flex; align-items: center; justify-content: space-between; gap: 10px; text-align: left;">
+        <div style="font-size: 12px; color: #64748b;">
+          No active pinning
+        </div>
+        <button class="btn" style="color: #2563eb; border-color: #bfdbfe; font-size: 11px; margin: 0;" onclick="forcePin('${l.id}')">📌 Force Pin (30 Days)</button>
+      </div>
+    `;
+  }
+
   let acts='';
   if(l.status==="pending")acts+=`<button class="btn btn-primary" onclick="doAction('${l.id}','approve')">✓ Approve</button>`;
   else if(l.status==="active")acts+=`<button class="btn" style="background-color:#10b981; color:white; border-color:#10b981;" onclick="doAction('${l.id}','approve')">✓ Approved (Re-approve)</button>`;
@@ -441,9 +562,136 @@ function buildCard(l){
     </div>
     <div class="listing-details" id="det-${l.id}">
       <div class="detail-grid">${detailItems}</div>
-      ${descHTML}${imgsHTML}${timerSection}
+      ${descHTML}${imgsHTML}${timerSection}${pinSection}
       <div class="action-btns">${acts}</div>
     </div></div>`;
+}
+
+// ── PIN ACTION FUNCTIONS ──
+async function approvePin(id) {
+  if (!confirm("Are you sure you want to approve this listing's pin placement? This will pin it at the top of listings for 30 days.")) return;
+  try {
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    await db.collection("listings").doc(id).update({
+      pinned: true,
+      pin_status: "approved",
+      pin_payment_status: "paid",
+      pin_expires_at: expiresAt,
+      updated_at: new Date().toISOString()
+    });
+    await db.collection("audit_logs").add({
+      user_id: firebase.auth().currentUser?.uid || "admin",
+      action: "Approve Pin",
+      details: `Approved pin for listing ${id} until ${expiresAt}`,
+      created_at: new Date().toISOString()
+    });
+    alert("Pin placement approved successfully!");
+    const l = allListings.find(item => item.id === id);
+    if(l) {
+      l.pinned = true;
+      l.pin_status = "approved";
+      l.pin_payment_status = "paid";
+      l.pin_expires_at = expiresAt;
+    }
+    renderListings();
+    updateStats();
+  } catch (err) {
+    console.error(err);
+    alert("Error approving pin: " + err.message);
+  }
+}
+
+async function rejectPin(id) {
+  if (!confirm("Reject this listing's pin request? This will remove the pending status.")) return;
+  try {
+    await db.collection("listings").doc(id).update({
+      pin_status: "none",
+      pin_payment_status: "none",
+      updated_at: new Date().toISOString()
+    });
+    await db.collection("audit_logs").add({
+      user_id: firebase.auth().currentUser?.uid || "admin",
+      action: "Reject Pin Request",
+      details: `Rejected pin request for listing ${id}`,
+      created_at: new Date().toISOString()
+    });
+    alert("Pin request rejected.");
+    const l = allListings.find(item => item.id === id);
+    if(l) {
+      l.pin_status = "none";
+      l.pin_payment_status = "none";
+    }
+    renderListings();
+    updateStats();
+  } catch (err) {
+    console.error(err);
+    alert("Error rejecting pin: " + err.message);
+  }
+}
+
+async function removePin(id) {
+  if (!confirm("Remove pin placement? The listing will no longer appear at the top.")) return;
+  try {
+    await db.collection("listings").doc(id).update({
+      pinned: false,
+      pin_status: "none",
+      pin_payment_status: "none",
+      pin_expires_at: null,
+      updated_at: new Date().toISOString()
+    });
+    await db.collection("audit_logs").add({
+      user_id: firebase.auth().currentUser?.uid || "admin",
+      action: "Remove Pin",
+      details: `Removed pin placement for listing ${id}`,
+      created_at: new Date().toISOString()
+    });
+    alert("Pin placement removed.");
+    const l = allListings.find(item => item.id === id);
+    if(l) {
+      l.pinned = false;
+      l.pin_status = "none";
+      l.pin_payment_status = "none";
+      l.pin_expires_at = null;
+    }
+    renderListings();
+    updateStats();
+  } catch (err) {
+    console.error(err);
+    alert("Error removing pin: " + err.message);
+  }
+}
+
+async function forcePin(id) {
+  if (!confirm("Force pin this listing for 30 days?")) return;
+  try {
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    await db.collection("listings").doc(id).update({
+      pinned: true,
+      pin_status: "approved",
+      pin_payment_status: "paid",
+      pin_expires_at: expiresAt,
+      updated_at: new Date().toISOString()
+    });
+    await db.collection("audit_logs").add({
+      user_id: firebase.auth().currentUser?.uid || "admin",
+      action: "Force Pin",
+      details: `Forced pin placement for listing ${id} until ${expiresAt}`,
+      created_at: new Date().toISOString()
+    });
+    alert("Listing forced to pinned status.");
+    const l = allListings.find(item => item.id === id);
+    if(l) {
+      l.pinned = true;
+      l.pin_status = "approved";
+      l.pin_payment_status = "paid";
+      l.pin_expires_at = expiresAt;
+    }
+    renderListings();
+    updateStats();
+  } catch (err) {
+    console.error(err);
+    alert("Error forcing pin: " + err.message);
+  }
 }
 function detField(label,val){return val!=null&&val!==''&&val!==undefined?`<div class="detail-item"><div class="detail-label">${label}</div><div class="detail-value">${val}</div></div>`:'';}
 
@@ -721,7 +969,513 @@ function formatDate(d){if(!d)return"-";return new Date(d).toLocaleDateString("en
 // Redraw charts on resize
 window.addEventListener("resize",()=>{if(allListings.length){drawOverviewChart();renderAnalytics();renderRevenue()}});
 
-// NEW SECTIONS: USERS, FAVORITES, REPORTS
+// ================= TOKEN REQUESTS LOGIC =================
+
+function setTokenFilter(f) {
+  tokenFilter = f;
+  document.querySelectorAll("#tokenStatsRow .stat-card").forEach(c => c.classList.remove("active"));
+  document.querySelectorAll("[id^='tokenBtn-']").forEach(b => {
+    b.style.background = "";
+    b.style.color = "";
+  });
+  
+  const btn = document.getElementById("tokenBtn-" + f);
+  if (btn) {
+    btn.style.background = "#3b82f6";
+    btn.style.color = "white";
+  }
+  
+  updateTokenStats();
+  renderTokenRequests();
+}
+
+function updateTokenStats() {
+  const t = allTokenRequests.length;
+  const p = allTokenRequests.filter(r => r.status === "pending").length;
+  const a = allTokenRequests.filter(r => r.status === "approved").length;
+  const r = allTokenRequests.filter(r => r.status === "rejected").length;
+  
+  const elAll = document.getElementById("statTokenAll");
+  const elPending = document.getElementById("statTokenPending");
+  const elApproved = document.getElementById("statTokenApproved");
+  const elRejected = document.getElementById("statTokenRejected");
+  
+  if (elAll) elAll.textContent = t;
+  if (elPending) elPending.textContent = p;
+  if (elApproved) elApproved.textContent = a;
+  if (elRejected) elRejected.textContent = r;
+}
+
+function renderTokenRequests() {
+  const c = document.getElementById("tokenRequestsContainer");
+  if (!c) return;
+  
+  let list = allTokenRequests.slice();
+  if (tokenFilter !== "all") {
+    list = list.filter(r => r.status === tokenFilter);
+  }
+  
+  const q = (document.getElementById("tokenSearchInput")?.value || "").toLowerCase().trim();
+  if (q) {
+    list = list.filter(r => {
+      return [r.user_name, r.user_email, r.user_phone, r.transaction_id, r.id].some(v => (v||"").toLowerCase().includes(q));
+    });
+  }
+  
+  if (!list.length) {
+    c.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:#64748b;"><p>🪙 No token requests found matching your filter.</p></div>';
+    return;
+  }
+  
+  c.innerHTML = list.map(r => {
+    const isPending = r.status === "pending";
+    const isApproved = r.status === "approved";
+    const isRejected = r.status === "rejected";
+    
+    let statusBadge = '';
+    if (isPending) {
+      statusBadge = '<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:bold;">⏳ Pending Approval</span>';
+    } else if (isApproved) {
+      statusBadge = '<span class="badge" style="background:#dcfce7; color:#166534; font-weight:bold;">✓ Approved & Credited</span>';
+    } else {
+      statusBadge = '<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight:bold;">✕ Rejected</span>';
+    }
+    
+    const userProfile = allProfiles[r.user_id] || {};
+    const curTokens = userProfile.tokens !== undefined ? userProfile.tokens : 200;
+    
+    return `
+      <div class="listing-card" style="border-left: 4px solid ${r.is_booster ? '#6366f1' : isPending ? '#f59e0b' : isApproved ? '#10b981' : '#ef4444'}; margin-bottom:12px;">
+        <div class="listing-top">
+          <div style="font-size:24px; margin-right:12px;">${r.is_booster ? '🚀' : '🪙'}</div>
+          <div class="listing-info">
+            <div class="listing-name" style="display:flex; align-items:center; gap:8px;">
+              <span>${r.is_booster ? `Booster Plan Payment (₹${r.amount})` : `${r.tokens} BhoomiTayi Tokens Plan (₹${r.amount})`}</span>
+              ${statusBadge}
+              ${r.is_booster ? '<span class="badge" style="background:#e0e7ff; color:#4338ca; font-weight:bold;">🚀 BOOSTER LISTING</span>' : ''}
+            </div>
+            <div class="listing-meta">
+              <strong>User:</strong> ${r.user_name || userProfile.full_name || 'Customer'} (${r.user_email || userProfile.email || 'No email'})
+              ${!r.is_booster ? ` · <strong>Current User Balance:</strong> 🪙 ${curTokens} Tokens` : ''}
+            </div>
+          </div>
+          <div class="listing-right">
+            <div class="listing-date">${formatDate(r.created_at)} ${new Date(r.created_at).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'})}</div>
+          </div>
+        </div>
+        
+        <div class="listing-details show" style="padding-top:10px; margin-top:10px; border-top:1px solid #f1f5f9;">
+          <div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; margin-bottom:12px;">
+            <div class="detail-item">
+              <div class="detail-label">Sender Name / Mobile</div>
+              <div class="detail-value" style="font-weight:bold; color:#1e293b; font-size:15px;">
+                ${r.is_booster ? r.user_name : (r.notes || 'Not provided')}
+              </div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">UPI ID / UTR</div>
+              <div class="detail-value" style="font-family:monospace; font-weight:bold; color:#64748b; background:#f1f5f9; padding:4px 8px; border-radius:4px; display:inline-block; font-size:12px;">
+                ${r.transaction_id || 'Not provided'}
+              </div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Amount Paid</div>
+              <div class="detail-value" style="font-weight:bold; color:#059669; font-size:15px;">₹${r.amount}</div>
+            </div>
+            ${r.is_booster ? `
+            <div class="detail-item" style="grid-column: span 2;">
+              <div class="detail-label">Booster Notes / Plan Details</div>
+              <div class="detail-value" style="font-weight:bold; color:#4338ca; font-size:14px; background:#eef2ff; padding:8px; border-radius:6px; border:1px solid #c7d2fe;">
+                ${r.notes || 'N/A'}
+              </div>
+            </div>
+            ` : `
+            <div class="detail-item">
+              <div class="detail-label">Tokens to Credit</div>
+              <div class="detail-value" style="font-weight:bold; color:#2563eb;">+${r.tokens} Tokens</div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Payment Method</div>
+              <div class="detail-value">SBI QR Code / UPI (amoghabhat7403@oksbi)</div>
+            </div>
+            `}
+          </div>
+          
+          ${r.is_booster ? `
+            <div class="action-btns">
+              <button class="btn" style="color:#64748b; border-color:#cbd5e1; font-size: 13px;" onclick="deleteTokenRequestRecord('${r.id}')">
+                🗑 Delete Booster Record
+              </button>
+            </div>
+          ` : isPending ? `
+            <div class="action-btns">
+              <button class="btn btn-primary" style="background:#059669; border-color:#059669; font-weight:bold;" onclick="approveTokenRequest('${r.id}', '${r.user_id}', ${r.tokens})">
+                ✓ Approve & Credit ${r.tokens} Tokens
+              </button>
+              <button class="btn" style="color:#dc2626; border-color:#fca5a5;" onclick="rejectTokenRequest('${r.id}')">
+                ✕ Reject Request
+              </button>
+            </div>
+          ` : `
+            <div class="action-btns">
+              <button class="btn" style="color:#64748b; border-color:#cbd5e1; font-size: 13px;" onclick="deleteTokenRequestRecord('${r.id}')">
+                🗑 Delete Record (Keep Tokens)
+              </button>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+window.deleteTokenRequestRecord = async function(reqId) {
+  if (!confirm("Are you sure you want to delete this record? This will NOT remove tokens from the user's account, it only removes this message from the admin panel.")) return;
+  try {
+    await db.collection("token_requests").doc(reqId).delete();
+    alert("Record deleted successfully.");
+  } catch (e) {
+    alert("Error deleting record: " + e.message);
+  }
+}
+
+async function approveTokenRequest(reqId, userId, tokensCount) {
+  if (!confirm(`Confirm approval? This will credit ${tokensCount} BhoomiTayi Tokens to the user profile immediately.`)) return;
+  try {
+    const batch = db.batch();
+    
+    const reqRef = db.collection("token_requests").doc(reqId);
+    batch.update(reqRef, {
+      status: "approved",
+      approved_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    
+    if (userId) {
+      const userRef = db.collection("profiles").doc(userId);
+      const userDoc = await userRef.get();
+      if (userDoc.exists) {
+        const curTokens = userDoc.data().tokens !== undefined ? Number(userDoc.data().tokens) : 200;
+        batch.update(userRef, {
+          tokens: curTokens + Number(tokensCount),
+          updated_at: new Date().toISOString()
+        });
+        if (allProfiles[userId]) {
+          allProfiles[userId].tokens = curTokens + Number(tokensCount);
+        }
+      }
+    }
+    
+    await batch.commit();
+    shootConfetti();
+    await logAction("Token Purchase Approved", `Approved request ${reqId} for ${tokensCount} tokens to user ${userId}`);
+    alert(`Successfully approved and credited ${tokensCount} BhoomiTayi Tokens!`);
+  } catch(e) {
+    alert("Error approving token request: " + e.message);
+  }
+}
+
+async function rejectTokenRequest(reqId) {
+  if (!confirm("Are you sure you want to reject this token purchase request?")) return;
+  try {
+    await db.collection("token_requests").doc(reqId).update({
+      status: "rejected",
+      updated_at: new Date().toISOString()
+    });
+    await logAction("Token Purchase Rejected", `Rejected request ${reqId}`);
+    alert("Token request rejected.");
+  } catch(e) {
+    alert("Error rejecting token request: " + e.message);
+  }
+}
+
+async function doManualGrantTokens() {
+  const email = (document.getElementById("manualGrantEmail")?.value || "").trim().toLowerCase();
+  const tokens = parseInt(document.getElementById("manualGrantTokens")?.value || "0", 10);
+  
+  if (!email) {
+    alert("Please enter a customer Gmail / email address.");
+    return;
+  }
+  if (!tokens || tokens < 1) {
+    alert("Please enter a valid token count (at least 1).");
+    return;
+  }
+  
+  try {
+    // Find profile by email
+    const snap = await db.collection("profiles").where("email", "==", email).get();
+    if (snap.empty) {
+      // Find case-insensitive in local profiles
+      const foundEntry = Object.values(allProfiles).find(p => (p.email||"").toLowerCase() === email);
+      if (!foundEntry) {
+        if (!confirm(`No existing account found with email "${email}". Do you want to create a placeholder profile and credit ${tokens} tokens?`)) {
+          return;
+        }
+        const newRef = await db.collection("profiles").add({
+          email: email,
+          full_name: email.split("@")[0],
+          tokens: 200 + tokens,
+          created_at: new Date().toISOString(),
+          unlocked_listings: []
+        });
+        allProfiles[newRef.id] = { id: newRef.id, email: email, tokens: 200 + tokens };
+        shootConfetti();
+        alert(`Created profile for ${email} with ${200 + tokens} BhoomiTayi Tokens!`);
+        document.getElementById("manualGrantEmail").value = "";
+        return;
+      }
+      
+      const pDoc = foundEntry;
+      const cur = pDoc.tokens !== undefined ? Number(pDoc.tokens) : 200;
+      await db.collection("profiles").doc(pDoc.id).update({
+        tokens: cur + tokens,
+        updated_at: new Date().toISOString()
+      });
+      pDoc.tokens = cur + tokens;
+      shootConfetti();
+      await logAction("Manual Token Grant", `Granted ${tokens} tokens to ${email}`);
+      alert(`Successfully credited ${tokens} BhoomiTayi Tokens to ${email}! New balance: ${pDoc.tokens} tokens.`);
+      document.getElementById("manualGrantEmail").value = "";
+      renderUsers();
+      return;
+    }
+    
+    const docSnap = snap.docs[0];
+    const cur = docSnap.data().tokens !== undefined ? Number(docSnap.data().tokens) : 200;
+    await db.collection("profiles").doc(docSnap.id).update({
+      tokens: cur + tokens,
+      updated_at: new Date().toISOString()
+    });
+    if (allProfiles[docSnap.id]) {
+      allProfiles[docSnap.id].tokens = cur + tokens;
+    }
+    shootConfetti();
+    await logAction("Manual Token Grant", `Granted ${tokens} tokens to ${email}`);
+    alert(`Successfully credited ${tokens} BhoomiTayi Tokens to ${email}! New balance: ${cur + tokens} tokens.`);
+    document.getElementById("manualGrantEmail").value = "";
+    renderUsers();
+  } catch(e) {
+    alert("Error granting tokens: " + e.message);
+  }
+}
+
+async function quickGrantTokensToUser(userId, userEmail) {
+  const input = prompt(`Enter number of BhoomiTayi Tokens to grant to ${userEmail}:`, "5");
+  if (!input) return;
+  const count = parseInt(input, 10);
+  if (!count || isNaN(count) || count < 1) {
+    alert("Invalid token number.");
+    return;
+  }
+  
+  try {
+    const userRef = db.collection("profiles").doc(userId);
+    const userDoc = await userRef.get();
+    const cur = userDoc.exists && userDoc.data().tokens !== undefined ? Number(userDoc.data().tokens) : 200;
+    await userRef.update({
+      tokens: cur + count,
+      updated_at: new Date().toISOString()
+    });
+    if (allProfiles[userId]) {
+      allProfiles[userId].tokens = cur + count;
+    }
+    shootConfetti();
+    await logAction("Manual Token Grant", `Granted ${count} tokens to user ${userId} (${userEmail})`);
+    alert(`Successfully granted ${count} tokens to ${userEmail}! New balance: ${cur + count} tokens.`);
+    renderUsers();
+  } catch(e) {
+    alert("Error: " + e.message);
+  }
+}
+
+function exportTokenRequestsCSV() {
+  if (!allTokenRequests.length) return alert("No token requests to export.");
+  const headers = ["ID", "User Name", "Email", "Phone", "Tokens", "Amount", "UTR / Transaction ID", "Status", "Created At"];
+  const rows = allTokenRequests.map(r => {
+    return [
+      r.id,
+      `"${(r.user_name||'').replace(/"/g, '""')}"`,
+      r.user_email || '',
+      r.user_phone || '',
+      r.tokens,
+      r.amount,
+      `"${(r.transaction_id||'').replace(/"/g, '""')}"`,
+      r.status,
+      r.created_at
+    ].join(",");
+  });
+  downloadCSV([headers.join(","), ...rows].join("\n"), "token_requests_export.csv");
+  logAction("Export", "Exported token requests data to CSV");
+}
+
+// ================= COUPON GENERATOR LOGIC =================
+
+function generateRandomCouponCode() {
+  const prefixes = ["SAVE", "BHOOMI", "DEAL", "OFFER", "SUPER", "FESTIVE"];
+  const discounts = [10, 20, 25, 30, 50, 100];
+  const p = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const d = discounts[Math.floor(Math.random() * discounts.length)];
+  const code = `${p}${d}`;
+  const input = document.getElementById("newCouponCode");
+  if (input) input.value = code;
+  const valInput = document.getElementById("newCouponValue");
+  if (valInput) valInput.value = d;
+}
+
+async function doCreateCoupon() {
+  const code = (document.getElementById("newCouponCode")?.value || "").trim().toUpperCase();
+  const type = document.getElementById("newCouponType")?.value || "percentage";
+  const val = parseFloat(document.getElementById("newCouponValue")?.value || "0");
+  const applies = document.getElementById("newCouponApplies")?.value || "all";
+  const maxUses = parseInt(document.getElementById("newCouponMaxUses")?.value || "0", 10) || null;
+  const expiry = document.getElementById("newCouponExpiry")?.value || null;
+
+  if (!code || code.length < 3) {
+    alert("Please enter a valid coupon code (at least 3 characters, e.g. SAVE50).");
+    return;
+  }
+  if (!val || val <= 0) {
+    alert("Please enter a valid discount value greater than 0.");
+    return;
+  }
+
+  try {
+    // Check if code already exists
+    const existing = allCoupons.find(c => (c.code || "").toUpperCase() === code);
+    if (existing) {
+      alert(`Coupon code "${code}" already exists.`);
+      return;
+    }
+
+    await db.collection("coupons").add({
+      code: code,
+      discount_type: type,
+      discount_value: val,
+      applicable_to: applies,
+      max_uses: maxUses,
+      expires_at: expiry ? new Date(expiry).toISOString() : null,
+      is_active: true,
+      usage_count: 0,
+      created_at: new Date().toISOString(),
+      created_by: auth.currentUser?.email || "admin",
+    });
+
+    shootConfetti();
+    await logAction("Coupon Created", `Created coupon ${code} (${val}${type==='percentage'?'%':'₹'} off)`);
+    alert(`🎉 Coupon "${code}" generated and activated successfully!`);
+
+    // Reset inputs
+    document.getElementById("newCouponCode").value = "";
+    document.getElementById("newCouponValue").value = "50";
+    if (document.getElementById("newCouponMaxUses")) document.getElementById("newCouponMaxUses").value = "";
+    if (document.getElementById("newCouponExpiry")) document.getElementById("newCouponExpiry").value = "";
+  } catch (e) {
+    alert("Error creating coupon: " + e.message);
+  }
+}
+
+async function toggleCouponStatus(couponId, currentStatus) {
+  try {
+    await db.collection("coupons").doc(couponId).update({
+      is_active: !currentStatus,
+      updated_at: new Date().toISOString(),
+    });
+    await logAction("Coupon Status Changed", `Toggled coupon ${couponId} to ${!currentStatus ? 'Active' : 'Disabled'}`);
+  } catch (e) {
+    alert("Error updating coupon: " + e.message);
+  }
+}
+
+async function deleteCoupon(couponId, code) {
+  if (!confirm(`Are you sure you want to permanently delete coupon "${code}"?`)) return;
+  try {
+    await db.collection("coupons").doc(couponId).delete();
+    await logAction("Coupon Deleted", `Deleted coupon ${code}`);
+    alert(`Coupon "${code}" deleted.`);
+  } catch (e) {
+    alert("Error deleting coupon: " + e.message);
+  }
+}
+
+function renderCoupons() {
+  const c = document.getElementById("couponsContainer");
+  if (!c) return;
+
+  let list = allCoupons.slice();
+  const q = (document.getElementById("couponSearchInput")?.value || "").toLowerCase().trim();
+  if (q) {
+    list = list.filter(cp => {
+      return (cp.code || "").toLowerCase().includes(q) || (cp.applicable_to || "").toLowerCase().includes(q);
+    });
+  }
+
+  if (!list.length) {
+    c.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:#64748b;"><p>🎟️ No coupons generated yet. Use the form above to create your first coupon!</p></div>';
+    return;
+  }
+
+  c.innerHTML = list.map(cp => {
+    const isExpired = cp.expires_at && new Date(cp.expires_at) < new Date();
+    const isMaxed = cp.max_uses && (cp.usage_count || 0) >= cp.max_uses;
+    const isActive = cp.is_active && !isExpired && !isMaxed;
+
+    let statusBadge = '';
+    if (!cp.is_active) {
+      statusBadge = '<span class="badge" style="background:#f1f5f9; color:#64748b;">Disabled</span>';
+    } else if (isExpired) {
+      statusBadge = '<span class="badge" style="background:#fee2e2; color:#991b1b;">Expired</span>';
+    } else if (isMaxed) {
+      statusBadge = '<span class="badge" style="background:#fee2e2; color:#991b1b;">Limit Reached</span>';
+    } else {
+      statusBadge = '<span class="badge" style="background:#dcfce7; color:#166534; font-weight:bold;">Active</span>';
+    }
+
+    const discountLabel = cp.discount_type === "percentage" ? `${cp.discount_value}% OFF` : `₹${cp.discount_value} OFF`;
+    const appliesLabel = cp.applicable_to === "tokens" ? "🪙 Tokens Store Only" : cp.applicable_to === "listings" ? "📋 Listing Boosters" : "✨ All Purchases";
+
+    return `
+      <div class="listing-card" style="border-left: 4px solid ${isActive ? '#10b981' : '#94a3b8'}; margin-bottom:12px;">
+        <div class="listing-top">
+          <div style="font-size:24px; margin-right:12px;">🎟️</div>
+          <div class="listing-info">
+            <div class="listing-name" style="display:flex; align-items:center; gap:8px;">
+              <span style="font-family:monospace; font-weight:900; font-size:18px; color:#1e1b4b; background:#e0e7ff; padding:2px 8px; border-radius:6px;">
+                ${cp.code}
+              </span>
+              <span class="badge" style="background:#f3e8ff; color:#6b21a8; font-weight:bold; font-size:13px;">
+                ${discountLabel}
+              </span>
+              ${statusBadge}
+            </div>
+            <div class="listing-meta">
+              <strong>Applies To:</strong> ${appliesLabel} · 
+              <strong>Used:</strong> ${cp.usage_count || 0} times ${cp.max_uses ? `/ max ${cp.max_uses}` : ''} · 
+              <strong>Expires:</strong> ${cp.expires_at ? formatDate(cp.expires_at) : 'Never'}
+            </div>
+          </div>
+          <div class="listing-right">
+            <div class="listing-date">Created: ${formatDate(cp.created_at)}</div>
+          </div>
+        </div>
+
+        <div class="listing-details show" style="padding-top:10px; margin-top:10px; border-top:1px solid #f1f5f9;">
+          <div class="action-btns">
+            <button class="btn" onclick="navigator.clipboard.writeText('${cp.code}'); alert('Copied coupon code ${cp.code}');">
+              📋 Copy Code
+            </button>
+            <button class="btn ${cp.is_active ? '' : 'btn-primary'}" onclick="toggleCouponStatus('${cp.id}', ${cp.is_active})">
+              ${cp.is_active ? '⏸ Disable Coupon' : '▶ Enable Coupon'}
+            </button>
+            <button class="btn btn-danger" onclick="deleteCoupon('${cp.id}', '${cp.code}')">
+              🗑 Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
 
 // Search Users
 document.getElementById("searchUserInput")?.addEventListener("input", () => renderUsers());
@@ -766,6 +1520,8 @@ function renderUsers() {
       }
     }
 
+    const tokenCount = u.tokens !== undefined ? u.tokens : 200;
+    const tokenBadge = `<span class="badge" style="background:#dcfce7; color:#166534; font-weight:bold; border:1px solid #bbf7d0; margin-left:4px;">🪙 ${tokenCount} Tokens</span>`;
     const statusBadge = u.status === 'suspended' ? `<span class="badge" style="background:#fecaca;color:#991b1b">Suspended</span>` : '';
     const blueTick = u.is_verified ? '<span title="Verified User" style="color:#3b82f6; margin-left:4px; font-size:16px;">☑</span>' : '';
     const roleBadge = `<span class="badge" style="background:${u.role==='admin'?'#dcfce7':'#f1f5f9'}; color:${u.role==='admin'?'#166534':'#475569'}">${u.role || 'user'}</span>`;
@@ -775,7 +1531,7 @@ function renderUsers() {
       <div class="listing-top">
         ${imgHtml}
         <div class="listing-info">
-          <div class="listing-name">${u.full_name || 'No Name'} ${blueTick} ${roleBadge} ${statusBadge}</div>
+          <div class="listing-name">${u.full_name || 'No Name'} ${blueTick} ${roleBadge} ${tokenBadge} ${statusBadge}</div>
           <div class="listing-meta">${displayEmail ? '📧 ' + displayEmail + ` <a href="mailto:${displayEmail}?subject=Regarding your Bhoomitayi Account" style="text-decoration:none;" title="Send Support Email">✉️</a>` : 'No email'} · ${displayPhone ? '📱 ' + displayPhone : 'No phone'}</div>
         </div>
         <div class="listing-right">
@@ -794,6 +1550,7 @@ function renderUsers() {
         </div>
 
         <div class="action-btns">
+          <button class="btn btn-primary" style="background:#059669; border-color:#059669;" onclick="quickGrantTokensToUser('${u.id}', '${u.email || u.full_name || u.id}')">🪙 Grant Tokens</button>
           ${u.role !== 'admin' ? `<button class="btn btn-primary" onclick="changeUserRole('${u.id}', 'admin')">Make Admin</button>` : `<button class="btn" onclick="changeUserRole('${u.id}', 'user')">Remove Admin</button>`}
           <button class="btn btn-danger" onclick="deleteUserProfile('${u.id}')">Delete Profile</button>
         </div>
@@ -814,9 +1571,18 @@ function renderUsers() {
 function renderFavorites() {
   const c = document.getElementById("favoritesContainer");
   if(!c) return;
-  if(!allFavorites.length) { c.innerHTML = ''; return; }
+  const q = (document.getElementById("searchFavoritesInput")?.value || "").toLowerCase().trim();
   
-  c.innerHTML = allFavorites.map(f => {
+  const filtered = allFavorites.filter(f => {
+    if (!q) return true;
+    const p = allProfiles[f.user_id] || {};
+    const l = allListings.find(x => x.id === f.listing_id) || {};
+    return (p.full_name || '').toLowerCase().includes(q) || (l.title || '').toLowerCase().includes(q);
+  });
+  
+  if(!filtered.length) { c.innerHTML = '<div class="empty-state"><p>No favorites found matching your search</p></div>'; return; }
+  
+  c.innerHTML = filtered.map(f => {
     const p = allProfiles[f.user_id] || {};
     const l = allListings.find(x => x.id === f.listing_id) || {title: "Unknown Listing (Deleted)"};
     return `
@@ -832,7 +1598,7 @@ function renderFavorites() {
       </div>
       <div class="listing-details show" style="padding-top: 10px; margin-top: 10px; border-top: 1px solid #f1f5f9;">
         <div class="action-btns">
-          <button class="btn btn-danger" onclick="deleteFavorite('${f.id}')">Delete Favorite</button>
+          <button class="btn btn-danger" style="background-color: white; color: #dc2626; border-color: #fca5a5;" onclick="deleteFavorite('${f.id}')">🗑 Delete Record</button>
         </div>
       </div>
     </div>
@@ -842,9 +1608,18 @@ function renderFavorites() {
 function renderReports() {
   const c = document.getElementById("reportsContainer");
   if(!c) return;
-  if(!allReports.length) { c.innerHTML = ''; return; }
+  const q = (document.getElementById("searchReportsInput")?.value || "").toLowerCase().trim();
   
-  c.innerHTML = allReports.map(r => {
+  const filtered = allReports.filter(r => {
+    if (!q) return true;
+    const p = allProfiles[r.reporter_id] || {};
+    const l = allListings.find(x => x.id === r.listing_id) || {};
+    return (r.reason || '').toLowerCase().includes(q) || (p.full_name || '').toLowerCase().includes(q) || (l.title || '').toLowerCase().includes(q);
+  });
+  
+  if(!filtered.length) { c.innerHTML = '<div class="empty-state"><p>No reports found matching your search</p></div>'; return; }
+  
+  c.innerHTML = filtered.map(r => {
     const p = allProfiles[r.reporter_id] || {};
     const l = allListings.find(x => x.id === r.listing_id) || {title: "Unknown Listing (Deleted)"};
     const angryWords = ["fake", "scam", "fraud", "angry", "abuse", "terrible", "worst", "liar", "thief"];
@@ -865,7 +1640,7 @@ function renderReports() {
         <div class="action-btns" style="margin-top: 15px;">
           <button class="btn btn-primary" onclick="switchTab('listings'); document.getElementById('searchInput').value='${l.title.replace(/'/g, "\\'")}'; renderListings();">View Listing</button>
           <button class="btn btn-danger" onclick="nukeReport('${r.id}', '${l.id}', '${l.user_id}')">Nuclear Option (Delete & Suspend)</button>
-          <button class="btn" onclick="dismissReport('${r.id}')">Dismiss Report</button>
+          <button class="btn" style="background-color: white; color: #dc2626; border-color: #fca5a5;" onclick="dismissReport('${r.id}')">🗑 Dismiss/Delete Record</button>
         </div>
       </div>
     </div>
@@ -1353,3 +2128,246 @@ async function deletePromo(id) {
 
 // Initial fetch
 fetchPromos();
+
+// ================= PHOTO DOWNLOAD FEATURES =================
+async function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector(`script[src="${src}"]`)) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load script: " + src));
+    document.head.appendChild(script);
+  });
+}
+
+async function downloadImagesAsZip(images, zipName) {
+  if (typeof JSZip === "undefined") {
+    await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+  }
+
+  const zip = new JSZip();
+  let successCount = 0;
+  let failCount = 0;
+
+  for (const img of images) {
+    try {
+      const response = await fetch(img.url, { mode: 'cors' });
+      if (!response.ok) throw new Error("Fetch failed");
+      const blob = await response.blob();
+      zip.file(img.filename, blob);
+      successCount++;
+    } catch (e) {
+      console.warn("Failed to fetch image via CORS: ", img.url, e);
+      failCount++;
+    }
+  }
+
+  if (successCount === 0) {
+    if (failCount > 0) {
+      throw new Error("Could not download any photos due to CORS restrictions on the storage bucket.");
+    }
+    throw new Error("No photos could be fetched.");
+  }
+
+  const content = await zip.generateAsync({ type: "blob" });
+  const url = URL.createObjectURL(content);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = zipName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  if (failCount > 0) {
+    alert(`Downloaded ${successCount} photos. ${failCount} photos skipped due to CORS or network errors.`);
+  }
+}
+
+async function downloadAllListingPhotos() {
+  const list = getFiltered();
+  const imageUrls = [];
+  list.forEach(l => {
+    if (l.images && Array.isArray(l.images)) {
+      l.images.forEach((img, idx) => {
+        if (img) {
+          const safeTitle = l.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+          imageUrls.push({ url: img, filename: `${l.id}_${safeTitle}_${idx}.jpg` });
+        }
+      });
+    }
+  });
+
+  if (imageUrls.length === 0) {
+    return alert("No photos found to download.");
+  }
+
+  if (!confirm(`Do you want to download ${imageUrls.length} photos as a ZIP file?`)) return;
+
+  const btn = document.querySelector("button[onclick='downloadAllListingPhotos()']");
+  const originalText = btn ? btn.textContent : "📷 Download Photos";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Processing...";
+  }
+
+  try {
+    await downloadImagesAsZip(imageUrls, "listing_photos.zip");
+    logAction("Export", `Downloaded ${imageUrls.length} listing photos in ZIP`);
+  } catch (error) {
+    alert("Error creating ZIP: " + error.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+}
+
+async function downloadAllUserPhotos() {
+  let list = Object.values(allProfiles);
+  const q = document.getElementById("searchUserInput")?.value.toLowerCase().trim();
+  if (q) {
+    list = list.filter(u => {
+      return [u.full_name, u.email, u.phone, u.role].some(v => (v||"").toLowerCase().includes(q));
+    });
+  }
+
+  const imageUrls = [];
+  list.forEach(u => {
+    const img = u.avatar_url || u.photo_url;
+    if (img) {
+      const safeName = (u.full_name || 'user').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      imageUrls.push({ url: img, filename: `${u.id}_${safeName}_avatar.jpg` });
+    }
+  });
+
+  if (imageUrls.length === 0) {
+    return alert("No user photos found to download.");
+  }
+
+  if (!confirm(`Do you want to download ${imageUrls.length} user photos as a ZIP file?`)) return;
+
+  const btn = document.querySelector("button[onclick='downloadAllUserPhotos()']");
+  const originalText = btn ? btn.textContent : "📷 Download Photos";
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "Processing...";
+  }
+
+  try {
+    await downloadImagesAsZip(imageUrls, "user_photos.zip");
+    logAction("Export", `Downloaded ${imageUrls.length} user photos in ZIP`);
+  } catch (error) {
+    alert("Error creating ZIP: " + error.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+    }
+  }
+}
+
+function filterFeedbacks(cat) {
+  feedbackFilter = cat;
+  ["all", "suggestion", "bug", "other"].forEach(id => {
+    const el = document.getElementById(`fbBtn-${id}`);
+    if (el) {
+      if (id === cat) {
+        el.style.background = "#3b82f6";
+        el.style.color = "white";
+      } else {
+        el.style.background = "";
+        el.style.color = "";
+      }
+    }
+  });
+  renderFeedbacks();
+}
+
+function renderFeedbacks() {
+  const container = document.getElementById("feedbacksContainer");
+  if (!container) return;
+
+  const searchEl = document.getElementById("feedbackSearchInput");
+  const searchVal = searchEl ? searchEl.value.toLowerCase().trim() : "";
+  
+  let list = allFeedbacks || [];
+  if (feedbackFilter !== "all") {
+    list = list.filter(f => f.category === feedbackFilter);
+  }
+
+  if (searchVal) {
+    list = list.filter(f => 
+      (f.name || "").toLowerCase().includes(searchVal) ||
+      (f.email || "").toLowerCase().includes(searchVal) ||
+      (f.message || "").toLowerCase().includes(searchVal)
+    );
+  }
+
+  if (list.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:50px; color:#64748b; background:rgba(255,255,255,0.02); border-radius:12px; border:1px dashed #cbd5e1; margin-top:20px;">
+        <p style="font-size:16px; font-weight:600; margin:0;">No feedbacks found</p>
+        <p style="font-size:13px; color:#94a3b8; margin:5px 0 0 0;">Feedback items will appear here when submitted by users.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap:20px; margin-top:20px;">
+      ${list.map(f => {
+        const catBadge = f.category === "bug" 
+          ? `<span style="background:#fecaca; color:#b91c1c; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:12px; text-transform:uppercase;">Bug</span>`
+          : f.category === "suggestion"
+          ? `<span style="background:#cffafe; color:#0e7490; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:12px; text-transform:uppercase;">Idea</span>`
+          : `<span style="background:#e2e8f0; color:#475569; font-size:10px; font-weight:bold; padding:3px 8px; border-radius:12px; text-transform:uppercase;">Other</span>`;
+
+        const dateStr = f.created_at ? new Date(f.created_at).toLocaleString("en-IN") : "Unknown date";
+        
+        return `
+          <div class="dark-mode-card" style="background:white; border:1px solid #e2e8f0; padding:20px; border-radius:16px; display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 3px rgba(0,0,0,0.05); position:relative; min-height:180px;">
+            <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom:12px;">
+              <div>
+                <h4 style="margin:0; font-size:14px; font-weight:700; color:#1e293b;" class="dark-mode-text">${escapeHtml(f.name || 'Anonymous')}</h4>
+                <p style="margin:2px 0 0 0; font-size:12px; color:#3b82f6;">${escapeHtml(f.email || 'No email')}</p>
+              </div>
+              <div>${catBadge}</div>
+            </div>
+            <div style="background:#f8fafc; padding:12px; border-radius:10px; margin-bottom:15px; border:1px solid #f1f5f9; font-size:13px; font-weight:550; color:#334155; min-height:80px; white-space:pre-wrap;" class="dark-mode-card dark-mode-text">${escapeHtml(f.message)}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#94a3b8;">
+              <span>📅 ${dateStr}</span>
+              <button class="btn btn-danger" style="padding:4px 10px; font-size:11px;" onclick="deleteFeedback('${f.id}')">Delete</button>
+            </div>
+          </div>
+        `;
+      }).join("")}
+    </div>
+  `;
+}
+
+async function deleteFeedback(id) {
+  if (!confirm("Are you sure you want to delete this feedback log?")) return;
+  try {
+    await db.collection("feedbacks").doc(id).delete();
+    if (typeof confetti === "function") confetti();
+  } catch(e) {
+    console.error("Error deleting feedback:", e);
+    alert("Failed to delete feedback.");
+  }
+}
+
+function escapeHtml(text) {
+  if (!text) return "";
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}

@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { BellaChat } from "@/components/assistants/bella-chat";
-import { TommyGuide } from "@/components/assistants/tommy-guide";
 import { SettingsWidget } from "@/components/settings/settings-widget";
 import { SettingsApplier } from "@/components/settings/settings-applier";
 import { OnboardingTour } from "@/components/onboarding/onboarding-tour";
 import { FeedbackSidebar } from "@/components/layout/feedback-sidebar";
+import { LeftNavigationSidebar } from "@/components/layout/left-navigation-sidebar";
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -41,9 +41,9 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
       <Footer />
       <SettingsApplier />
       <BellaChat />
-      <TommyGuide />
       <SettingsWidget />
       <OnboardingTour />
+      <LeftNavigationSidebar />
       <FeedbackSidebar />
     </div>
   );

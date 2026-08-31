@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/lib/firebase/config";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
+import { formatPhoneWithCountryCode } from "@/lib/utils";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -134,7 +135,7 @@ function EditListingForm() {
         address: form.address.trim(),
         pincode: form.pincode.trim(),
         owner_name: form.owner_name?.trim() || "",
-        owner_phone: form.owner_phone?.trim() || "",
+        owner_phone: formatPhoneWithCountryCode(form.owner_phone?.trim() || "") || "",
         owner_email: form.owner_email?.trim() || "",
         updated_at: new Date().toISOString(),
       };

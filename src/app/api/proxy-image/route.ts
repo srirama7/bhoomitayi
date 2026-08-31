@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 
-export async function GET(request: Request) {
+export const dynamic = "force-static";
+
+export async function GET(request?: Request) {
+  if (process.env.BUILD_TARGET === "capacitor" || !request?.url) {
+    return NextResponse.json({ status: "static_export" });
+  }
+
   const { searchParams } = new URL(request.url);
   const imageUrl = searchParams.get("url");
 

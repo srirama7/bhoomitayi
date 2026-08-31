@@ -17,12 +17,23 @@ import {
   Download,
   CheckCircle2,
   XCircle,
+  Coins,
+  Plus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Sheet,
   SheetContent,
@@ -50,6 +61,7 @@ import { useAuthStore } from "@/lib/store";
 import type { Profile, Listing } from "@/lib/types/database";
 import { formatPrice } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { adminGrantUserTokens } from "@/lib/tokens";
 
 export default function AdminUsersPage() {
   const { user, profile, loading: authLoading } = useAuthStore();
@@ -59,6 +71,9 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [userListings, setUserListings] = useState<Listing[]>([]);
   const [loadingListings, setLoadingListings] = useState(false);
+  const [tokenGrantModalUser, setTokenGrantModalUser] = useState<Profile | null>(null);
+  const [tokensToAdd, setTokensToAdd] = useState<number>(5);
+  const [grantingTokens, setGrantingTokens] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -90,6 +105,35 @@ export default function AdminUsersPage() {
       console.error("Fetch listings error:", error);
     } finally {
       setLoadingListings(false);
+    }
+  };
+
+  const handleGrantTokensToUser = async () => {
+    if (!tokenGrantModalUser) return;
+    if (tokensToAdd < 1) {
+      toast.error("Please enter at least 1 token.");
+      return;
+    }
+    setGrantingTokens(true);
+    try {
+      const res = await adminGrantUserTokens(tokenGrantModalUser.id, Number(tokensToAdd));
+      if (res.success) {
+        toast.success(`Granted ${tokensToAdd} tokens to ${tokenGrantModalUser.full_name || tokenGrantModalUser.email}! New balance: ${res.newTotal} tokens.`);
+        setUsers((prev) =>
+          prev.map((u) => (u.id === tokenGrantModalUser.id ? { ...u, tokens: res.newTotal } : u))
+        );
+        if (selectedUser?.id === tokenGrantModalUser.id) {
+          setSelectedUser((prev) => (prev ? { ...prev, tokens: res.newTotal } : null));
+        }
+        setTokenGrantModalUser(null);
+      } else {
+        toast.error(res.error || "Failed to grant tokens.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Error granting tokens");
+    } finally {
+      setGrantingTokens(false);
     }
   };
 
@@ -148,6 +192,7 @@ export default function AdminUsersPage() {
               <tr>
                 <th className="px-6 py-4 font-medium text-zinc-500 uppercase text-[11px] tracking-wider">User</th>
                 <th className="px-6 py-4 font-medium text-zinc-500 uppercase text-[11px] tracking-wider">Email</th>
+                <th className="px-6 py-4 font-medium text-zinc-500 uppercase text-[11px] tracking-wider">Tokens</th>
                 <th className="px-6 py-4 font-medium text-zinc-500 uppercase text-[11px] tracking-wider">Status</th>
                 <th className="px-6 py-4 font-medium text-zinc-500 uppercase text-[11px] tracking-wider">Role</th>
                 <th className="px-6 py-4 font-medium text-zinc-500 uppercase text-[11px] tracking-wider text-right">Actions</th>
@@ -156,7 +201,7 @@ export default function AdminUsersPage() {
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-zinc-500">No users found.</td>
+                  <td colSpan={6} className="px-6 py-10 text-center text-zinc-500">No users found.</td>
                 </tr>
               ) : (
                 filteredUsers.map((u) => (
@@ -178,6 +223,26 @@ export default function AdminUsersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-zinc-600 dark:text-zinc-400">{u.email}</td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 font-bold text-xs">
+                          <Image src="/token_icon.png" alt="Token" width={16} height={16} className="rounded-full" />
+                          <span>{u.tokens ?? 2}</span>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-[10px] font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/30"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setTokenGrantModalUser(u);
+                            setTokensToAdd(5);
+                          }}
+                        >
+                          + Add
+                        </Button>
+                      </div>
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5">
                         <div className="size-1.5 rounded-full bg-green-500" />
@@ -203,6 +268,12 @@ export default function AdminUsersPage() {
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem onClick={() => handleUserClick(u)}>View Profile</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            setTokenGrantModalUser(u);
+                            setTokensToAdd(5);
+                          }}>
+                            🪙 Grant Tokens
+                          </DropdownMenuItem>
                           <DropdownMenuItem>Edit Details</DropdownMenuItem>
                           <DropdownMenuItem className="text-red-600">Deactivate Account</DropdownMenuItem>
                         </DropdownMenuContent>
@@ -249,10 +320,10 @@ export default function AdminUsersPage() {
                 <Button variant="outline" size="sm" className="h-9 border-zinc-200">Edit Profile</Button>
               </div>
 
-              <div className="grid grid-cols-2 gap-6 pt-6 border-t border-zinc-100 dark:border-zinc-800">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 pt-6 border-t border-zinc-100 dark:border-zinc-800">
                 <div className="space-y-1">
                   <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Account ID</p>
-                  <p className="text-sm font-mono text-zinc-600 dark:text-zinc-300">{selectedUser?.id}</p>
+                  <p className="text-sm font-mono text-zinc-600 dark:text-zinc-300 truncate">{selectedUser?.id}</p>
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Phone</p>
@@ -261,13 +332,35 @@ export default function AdminUsersPage() {
                 <div className="space-y-1">
                   <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Registration Date</p>
                   <p className="text-sm text-zinc-600 dark:text-zinc-300">
-                    {selectedUser && new Date(selectedUser.created_at).toLocaleString()}
+                    {selectedUser && new Date(selectedUser.created_at).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-semibold text-zinc-400 uppercase tracking-wider">Last Active</p>
-                  <p className="text-sm text-zinc-600 dark:text-zinc-300">Just now</p>
+              </div>
+
+              {/* BhoomiTayi Tokens Management in Sheet */}
+              <div className="mt-6 p-4 rounded-2xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Image src="/token_icon.png" alt="Token" width={28} height={28} className="rounded-full" />
+                  <div>
+                    <p className="text-[11px] font-bold uppercase text-emerald-800 dark:text-emerald-300">BhoomiTayi Tokens</p>
+                    <p className="text-lg font-black text-emerald-700 dark:text-emerald-300">
+                      🪙 {selectedUser?.tokens ?? 2} Tokens
+                    </p>
+                  </div>
                 </div>
+                <Button
+                  size="sm"
+                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs gap-1 shadow-sm"
+                  onClick={() => {
+                    if (selectedUser) {
+                      setTokenGrantModalUser(selectedUser);
+                      setTokensToAdd(5);
+                    }
+                  }}
+                >
+                  <Plus className="size-3.5" />
+                  Grant Tokens
+                </Button>
               </div>
             </div>
 
@@ -334,6 +427,78 @@ export default function AdminUsersPage() {
           </div>
         </SheetContent>
       </Sheet>
+
+      {/* Grant Tokens Modal */}
+      <Dialog open={!!tokenGrantModalUser} onOpenChange={(open) => !open && setTokenGrantModalUser(null)}>
+        <DialogContent className="max-w-md bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 rounded-2xl p-6">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+              <Coins className="size-5 text-emerald-600" />
+              Grant BhoomiTayi Tokens
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Add tokens to <span className="font-bold text-foreground">{tokenGrantModalUser?.full_name || tokenGrantModalUser?.email}</span>.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <div className="p-3 bg-zinc-50 dark:bg-zinc-800/50 rounded-xl border border-zinc-200 dark:border-zinc-700 flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Current Balance:</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">🪙 {tokenGrantModalUser?.tokens ?? 2} Tokens</span>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="tokensInput" className="text-xs font-bold">
+                Tokens to Add
+              </Label>
+              <Input
+                id="tokensInput"
+                type="number"
+                min={1}
+                max={500}
+                value={tokensToAdd}
+                onChange={(e) => setTokensToAdd(Number(e.target.value))}
+                className="h-10 rounded-xl font-bold"
+              />
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {[1, 3, 7, 15, 32, 50].map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  onClick={() => setTokensToAdd(count)}
+                  className={`text-xs px-2.5 py-1 rounded-lg border font-bold ${
+                    tokensToAdd === count
+                      ? "bg-emerald-600 text-white border-emerald-600"
+                      : "bg-zinc-100 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-300"
+                  }`}
+                >
+                  +{count}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              className="rounded-xl flex-1"
+              onClick={() => setTokenGrantModalUser(null)}
+              disabled={grantingTokens}
+            >
+              Cancel
+            </Button>
+            <Button
+              className="rounded-xl flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              onClick={handleGrantTokensToUser}
+              disabled={grantingTokens}
+            >
+              {grantingTokens ? "Granting..." : "Confirm & Grant"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

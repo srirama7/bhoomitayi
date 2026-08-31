@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+﻿import { test, expect } from "@playwright/test";
 
 test.describe("Bella AI Comprehensive Query Verification Suite", () => {
   // Set test timeout to 5 minutes to verify all queries
@@ -61,7 +61,7 @@ test.describe("Bella AI Comprehensive Query Verification Suite", () => {
 
     // Define all test queries and expected answers
     const testCases = [
-      // ── Appearance & Display settings ──
+      // â”€â”€ Appearance & Display settings â”€â”€
       { query: "dark mode", expectedPattern: /dark/i },
       { query: "light mode", expectedPattern: /light/i },
       { query: "system mode", expectedPattern: /theme follows/i },
@@ -74,22 +74,22 @@ test.describe("Bella AI Comprehensive Query Verification Suite", () => {
       { query: "reduce animations", expectedPattern: /reduced/i },
       { query: "enable animations", expectedPattern: /restored/i },
 
-      // ── Font Size ──
+      // â”€â”€ Font Size â”€â”€
       { query: "font small", expectedPattern: /small/i },
       { query: "font medium", expectedPattern: /medium/i },
       { query: "font large", expectedPattern: /large/i },
       { query: "font extra large", expectedPattern: /extra large/i },
 
-      // ── Languages (resets chat history to translated welcome message) ──
+      // â”€â”€ Languages (resets chat history to translated welcome message) â”€â”€
       { query: "English", expectedPattern: /Bella|Hi/i },
-      { query: "Kannada", expectedPattern: /ಬೆಲ್ಲಾ|ನಮಸ್ಕಾರ/i },
-      { query: "Hindi", expectedPattern: /बेला|नमस्ते/i },
-      { query: "Telugu", expectedPattern: /బెల్లా|నమస్తే/i },
-      { query: "Malayalam", expectedPattern: /ബെല്ല|നമസ്കാരം/i },
-      { query: "Tamil", expectedPattern: /பெல்லா|வணக்கம்/i },
+      { query: "Kannada", expectedPattern: /à²¬à³†à²²à³à²²à²¾|à²¨à²®à²¸à³à²•à²¾à²°/i },
+      { query: "Hindi", expectedPattern: /à¤¬à¥‡à¤²à¤¾|à¤¨à¤®à¤¸à¥à¤¤à¥‡/i },
+      { query: "Telugu", expectedPattern: /à°¬à±†à°²à±à°²à°¾|à°¨à°®à°¸à±à°¤à±‡/i },
+      { query: "Malayalam", expectedPattern: /à´¬àµ†à´²àµà´²|à´¨à´®à´¸àµà´•à´¾à´°à´‚/i },
+      { query: "Tamil", expectedPattern: /à®ªà¯†à®²à¯à®²à®¾|à®µà®£à®•à¯à®•à®®à¯/i },
       { query: "English", expectedPattern: /Bella|Hi/i }, // Switch back to English to proceed with English checks
 
-      // ── Navigation ──
+      // â”€â”€ Navigation â”€â”€
       { query: "go home", expectedPattern: /homepage/i },
       { query: "go dashboard", expectedPattern: /dashboard/i },
       { query: "go sell", expectedPattern: /Register Service/i },
@@ -105,22 +105,22 @@ test.describe("Bella AI Comprehensive Query Verification Suite", () => {
       { query: "go to privacy", expectedPattern: /Privacy/i },
       { query: "go to terms", expectedPattern: /Terms/i },
 
-      // ── Notifications ──
+      // â”€â”€ Notifications â”€â”€
       { query: "notification on", expectedPattern: /enabled/i },
       { query: "notification off", expectedPattern: /disabled/i },
 
-      // ── Contact / Corporate info ──
-      { query: "how to contact support?", expectedPattern: /bhoomitayi7@gmail.com|7760200927/i },
+      // â”€â”€ Contact / Corporate info â”€â”€
+      { query: "how to contact support?", expectedPattern: /bhoomitayi7@gmail.com|6361843563/i },
       { query: "support email", expectedPattern: /bhoomitayi7@gmail.com/i },
-      { query: "phone number", expectedPattern: /7760200927/i },
+      { query: "phone number", expectedPattern: /6361843563/i },
       { query: "office address", expectedPattern: /Bangalore, Karnataka, India/i },
 
-      // ── Company details FAQ ──
+      // â”€â”€ Company details FAQ â”€â”€
       { query: "who founded this?", expectedPattern: /founded in Bangalore|team of passionate/i },
       { query: "is registration free?", expectedPattern: /free for both|charges a nominal/i },
       { query: "how much to list", expectedPattern: /charges a nominal/i },
 
-      // ── Glossary Term Q&A ──
+      // â”€â”€ Glossary Term Q&A â”€â”€
       { query: "what is A Khata?", expectedPattern: /municipal record|tax assessments|A Khata/i },
       { query: "what is RTC?", expectedPattern: /Record of Rights, Tenancy, and Crops/i },
       { query: "what is mutation?", expectedPattern: /updating or changing the title ownership/i },
@@ -130,7 +130,7 @@ test.describe("Bella AI Comprehensive Query Verification Suite", () => {
       { query: "what is NA land?", expectedPattern: /Non-Agricultural Land/i },
       { query: "what is guidance value?", expectedPattern: /minimum value of a property set/i },
 
-      // ── Smart Tools & Calculators ──
+      // â”€â”€ Smart Tools & Calculators â”€â”€
       { query: "open emi calc", expectedPattern: /EMI Calculator/i },
       { query: "open roi calc", expectedPattern: /ROI /i },
       { query: "stamp duty", expectedPattern: /Stamp Duty/i },
@@ -155,7 +155,7 @@ test.describe("Bella AI Comprehensive Query Verification Suite", () => {
       { query: "open date diff", expectedPattern: /Date/i },
       { query: "smart tools", expectedPattern: /calculators/i },
 
-      // ── Tommy's Enhanced Knowledge ──
+      // â”€â”€ Tommy's Enhanced Knowledge â”€â”€
       { query: "how to list", expectedPattern: /COMPLETE LISTING GUIDE/i },
       { query: "negotiate", expectedPattern: /NEGOTIATION PLAYBOOK/i },
       { query: "market trends", expectedPattern: /MARKET ANALYSIS/i },
@@ -163,14 +163,14 @@ test.describe("Bella AI Comprehensive Query Verification Suite", () => {
       { query: "when to sell", expectedPattern: /BEST TIME TO SELL/i },
       { query: "description guide", expectedPattern: /PERFECT DESCRIPTION/i },
 
-      // ── Original Property Help ──
+      // â”€â”€ Original Property Help â”€â”€
       { query: "sell property", expectedPattern: /Register Service/i },
       { query: "cost pricing", expectedPattern: /Pricing guidance|compare/i },
       { query: "loan guide", expectedPattern: /Home loan/i },
       { query: "deeds documents", expectedPattern: /Essential property/i },
       { query: "help", expectedPattern: /Bella/i },
 
-      // ── Conversational / Fun ──
+      // â”€â”€ Conversational / Fun â”€â”€
       { query: "hello", expectedPattern: /Bella/i },
       { query: "thanks", expectedPattern: /welcome|happy to help/i },
       { query: "bye", expectedPattern: /Come back/i },

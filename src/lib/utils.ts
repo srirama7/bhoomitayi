@@ -23,3 +23,28 @@ export function formatPhoneWithCountryCode(phone: string): string {
   // Already has +91 or unrecognized format — return as-is
   return phone;
 }
+
+/**
+ * Recursively cleans objects to remove any `undefined` values so Firestore addDoc/updateDoc never fails.
+ */
+export function cleanFirestoreData<T>(obj: T): T {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj
+      .filter((item) => item !== undefined)
+      .map((item) => cleanFirestoreData(item)) as unknown as T;
+  }
+  if (typeof obj === "object" && !(obj instanceof Date)) {
+    const cleaned: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, any>)) {
+      if (value !== undefined) {
+        cleaned[key] = cleanFirestoreData(value);
+      }
+    }
+    return cleaned as T;
+  }
+  return obj;
+}
+

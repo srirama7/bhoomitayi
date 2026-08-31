@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useAuthStore } from "@/lib/store";
+import { DEFAULT_FREE_TOKENS } from "@/lib/constants";
 
 export default function LoginPage() {
   return (
@@ -34,11 +35,8 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  const isMobile = typeof window !== "undefined" && Capacitor.isNativePlatform();
   const paramRedirect = searchParams.get("redirectTo");
-  const redirectTo = (isMobile && (paramRedirect === "/dashboard" || !paramRedirect))
-    ? "/"
-    : (paramRedirect || "/dashboard");
+  const redirectTo = paramRedirect || "/";
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,6 +64,8 @@ function LoginForm() {
                   email: user.email || "",
                   avatar_url: user.photoURL || null,
                   role: "user",
+                  tokens: DEFAULT_FREE_TOKENS,
+                  unlocked_listings: [],
                   created_at: new Date().toISOString(),
                   updated_at: new Date().toISOString(),
                 });
@@ -146,12 +146,11 @@ function LoginForm() {
     setIsGoogleLoading(true);
 
     try {
-      // Strategy: Try native Android Google Sign-In first (for APK).
-      // If not available, fall back to signInWithRedirect (for web browsers).
-      try {
+      // In native Android APK, use native Android Google Sign-In directly
+      if (isMobile || (typeof window !== "undefined" && (window as any).AndroidBridge)) {
         const userCredential = await signInWithNativeGoogle();
-        // Native sign-in succeeded
         const user = userCredential.user;
+
         try {
           if (db) {
             const profileRef = doc(db, "profiles", user.uid);
@@ -163,69 +162,76 @@ function LoginForm() {
                 email: user.email || "",
                 avatar_url: user.photoURL || null,
                 role: "user",
+                tokens: DEFAULT_FREE_TOKENS,
+                unlocked_listings: [],
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString(),
               });
             } else {
               const data = profileSnap.data();
-              if (!data.email && user.email) {
-                await updateDoc(profileRef, {
-                  email: user.email,
-                  avatar_url: data.avatar_url || user.photoURL || null
-                });
+              const updates: Record<string, unknown> = {};
+              if (!data.email && user.email) updates.email = user.email;
+              if (data.tokens === undefined || data.tokens === null) {
+                updates.tokens = DEFAULT_FREE_TOKENS;
+              }
+              if (data.unlocked_listings === undefined) updates.unlocked_listings = [];
+              if (Object.keys(updates).length > 0) {
+                await updateDoc(profileRef, updates);
               }
             }
           }
         } catch (profileError) {
           console.error("Failed to create/check profile:", profileError);
         }
+
         toast.success("Signed in successfully!");
-        if (typeof window !== "undefined" && (window as any).AndroidBridge) {
-          setTimeout(() => { window.location.href = redirectTo; }, 500);
-        } else {
-          router.push(redirectTo);
-          router.refresh();
-        }
-      } catch (nativeError) {
-        // Not in Android app — try popup first, redirect as fallback
-        console.warn("Native Google sign-in unavailable, trying popup:", nativeError);
-        const provider = new GoogleAuthProvider();
-        provider.addScope("email");
-        provider.addScope("profile");
-        provider.setCustomParameters({ prompt: "select_account" });
+        router.push(redirectTo);
+        router.refresh();
+        return;
+      }
+
+      // Web Browser Flow (only for desktop / mobile browsers, not inside native app)
+      const provider = new GoogleAuthProvider();
+      provider.addScope("email");
+      provider.addScope("profile");
+      provider.setCustomParameters({ prompt: "select_account" });
+
+      try {
+        const userCredential = await signInWithPopup(auth, provider);
+        const user = userCredential.user;
+
         try {
-          // signInWithPopup now works because browserPopupRedirectResolver is set in initializeAuth
-          const userCredential = await signInWithPopup(auth, provider);
-          const user = userCredential.user;
-          try {
-            if (db) {
-              const profileRef = doc(db, "profiles", user.uid);
-              const profileSnap = await getDoc(profileRef);
-              if (!profileSnap.exists()) {
-                await setDoc(profileRef, {
-                  id: user.uid,
-                  full_name: user.displayName || "",
-                  email: user.email || "",
-                  avatar_url: user.photoURL || null,
-                  role: "user",
-                  created_at: new Date().toISOString(),
-                  updated_at: new Date().toISOString(),
-                });
-              }
+          if (db) {
+            const profileRef = doc(db, "profiles", user.uid);
+            const profileSnap = await getDoc(profileRef);
+            if (!profileSnap.exists()) {
+              await setDoc(profileRef, {
+                id: user.uid,
+                full_name: user.displayName || "",
+                email: user.email || "",
+                avatar_url: user.photoURL || null,
+                role: "user",
+                tokens: DEFAULT_FREE_TOKENS,
+                unlocked_listings: [],
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              });
             }
-          } catch (profileError) {
-            console.error("Failed to create/check profile:", profileError);
           }
-          toast.success("Signed in with Google successfully!");
-          router.push(redirectTo);
-          router.refresh();
-        } catch (popupError: unknown) {
-          const popupErr = popupError as { code?: string };
-          if (popupErr.code === "auth/popup-blocked" || popupErr.code === "auth/popup-closed-by-user") {
-            // Popup was blocked — fall back to redirect
-            await signInWithRedirect(auth, provider);
-            return;
-          }
+        } catch (profileError) {
+          console.error("Failed to create/check profile:", profileError);
+        }
+
+        toast.success("Signed in with Google successfully!");
+        router.push(redirectTo);
+        router.refresh();
+      } catch (popupError: unknown) {
+        console.warn("Popup sign-in failed/blocked, falling back to redirect:", popupError);
+        try {
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectError) {
+          console.error("Redirect fallback failed:", redirectError);
           throw popupError;
         }
       }
@@ -237,8 +243,9 @@ function LoginForm() {
       } else if (firebaseError.code === "auth/network-request-failed") {
         toast.error("Network error. Please check your internet connection and try again.");
       } else {
-        toast.error(`Google sign-in failed. Please try again or use email login.`);
+        toast.error(firebaseError?.message || "Google sign-in failed. Please try again.");
       }
+    } finally {
       setIsGoogleLoading(false);
     }
   }

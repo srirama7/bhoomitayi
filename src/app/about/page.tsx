@@ -111,7 +111,7 @@ export default function AboutPage() {
             <h2 className="text-2xl font-bold text-foreground mb-4">Contact Us</h2>
             <div className="text-muted-foreground leading-relaxed space-y-2">
               <p><strong>Email:</strong>{" "}<a href="mailto:bhoomitayi7@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline">bhoomitayi7@gmail.com</a></p>
-              <p><strong>Phone:</strong>{" "}<a href="tel:+917760200927" className="text-blue-600 dark:text-blue-400 hover:underline">+91 7760200927</a></p>
+              <p><strong>Phone:</strong>{" "}<a href="tel:+916361843563" className="text-blue-600 dark:text-blue-400 hover:underline">+91 6361843563</a></p>
               <p><strong>Address:</strong> Bangalore, Karnataka, India</p>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from "firebase/app";
 import { initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, getAuth, browserPopupRedirectResolver } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
@@ -56,7 +56,16 @@ export const auth = app
       }
     })()
   : null as any;
-export const db = app ? getFirestore(app) : null as any;
+export const db = app
+  ? (() => {
+      try {
+        return initializeFirestore(app, { ignoreUndefinedProperties: true });
+      } catch {
+        return getFirestore(app);
+      }
+    })()
+  : (null as any);
+
 export const storage = app ? getStorage(app) : null as any;
 
 let analytics = null;

@@ -80,7 +80,7 @@ type AdminListing = Listing & {
 };
 
 type TimerMap = Record<string, TimerDuration>;
-type FilterStatus = "all" | "active" | "timed_out" | "pending_payment" | "sold";
+type FilterStatus = "all" | "active" | "pending_pin" | "pending_payment" | "timed_out" | "sold";
 
 export default function AdminListingsPage() {
   const { user, profile, loading: authLoading } = useAuthStore();
@@ -91,8 +91,79 @@ export default function AdminListingsPage() {
   const [deleting, setDeleting] = useState(false);
   const [timerInputs, setTimerInputs] = useState<TimerMap>({});
   const [filter, setFilter] = useState<FilterStatus>("all");
-  const [searchQuery, setSearchQuery] = useState("");
   const [selectedListing, setSelectedListing] = useState<AdminListing | null>(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const inspectorListing = useMemo(() => 
+    selectedListing ? listings.find(l => l.id === selectedListing.id) || selectedListing : null,
+    [selectedListing, listings]
+  );
+
+  const handleApprovePin = async (id: string) => {
+    setUpdatingId(id);
+    try {
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      await updateDoc(doc(db, "listings", id), {
+        pinned: true,
+        pin_status: "approved",
+        pin_expires_at: expiresAt,
+        updated_at: new Date().toISOString(),
+      });
+      setListings((prev) =>
+        prev.map((item) =>
+          item.id === id
+            ? { ...item, pinned: true, pin_status: "approved", pin_expires_at: expiresAt }
+            : item
+        )
+      );
+      toast.success("Pin placement approved!");
+    } catch {
+      toast.error("Failed to approve pin");
+    }
+    setUpdatingId(null);
+  };
+
+  const handleRejectPin = async (id: string) => {
+    setUpdatingId(id);
+    try {
+      await updateDoc(doc(db, "listings", id), {
+        pinned: false,
+        pin_status: "rejected",
+        updated_at: new Date().toISOString(),
+      });
+      setListings((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, pinned: false, pin_status: "rejected" } : item
+        )
+      );
+      toast.success("Pin placement rejected");
+    } catch {
+      toast.error("Failed to reject pin");
+    }
+    setUpdatingId(null);
+  };
+
+  const handleRemovePin = async (id: string) => {
+    setUpdatingId(id);
+    try {
+      await updateDoc(doc(db, "listings", id), {
+        pinned: false,
+        pin_status: "none",
+        pin_expires_at: null,
+        updated_at: new Date().toISOString(),
+      });
+      setListings((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, pinned: false, pin_status: "none", pin_expires_at: undefined } : item
+        )
+      );
+      toast.success("Pin placement removed");
+    } catch {
+      toast.error("Failed to remove pin");
+    }
+    setUpdatingId(null);
+  };
 
 
 
@@ -146,6 +217,7 @@ export default function AdminListingsPage() {
     
     if (filter !== "all") {
       result = result.filter((l) => {
+        if (filter === "pending_pin") return l.pin_status === "pending_approval";
         const effective = getEffectiveListingStatus(l);
         if (filter === "timed_out") return effective === "timed_out";
         if (filter === "active") return effective === "active";
@@ -167,13 +239,14 @@ export default function AdminListingsPage() {
 
   const stats = useMemo(() => {
     const visible = listings.filter((l) => l.status !== "archived");
-    const counts = { all: visible.length, active: 0, timed_out: 0, pending: 0, sold: 0 };
+    const counts = { all: visible.length, active: 0, timed_out: 0, pending: 0, pending_pin: 0, sold: 0 };
     visible.forEach((l) => {
       const effective = getEffectiveListingStatus(l);
       if (effective === "active") counts.active++;
       else if (effective === "timed_out") counts.timed_out++;
       if (l.status === "pending_payment") counts.pending++;
       if (l.status === "sold") counts.sold++;
+      if (l.pin_status === "pending_approval") counts.pending_pin++;
     });
     return counts;
   }, [listings]);
@@ -225,6 +298,7 @@ export default function AdminListingsPage() {
         <div className="flex items-center gap-2">
            <Badge variant="outline" className="font-bold">Total: {stats.all}</Badge>
            <Badge className="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-none font-bold">Pending: {stats.pending}</Badge>
+           <Badge className="bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border-none font-bold">Pin Requests: {stats.pending_pin}</Badge>
         </div>
       </div>
 
@@ -246,6 +320,7 @@ export default function AdminListingsPage() {
                    <TabsTrigger value="all" className="text-[10px] h-8 px-3">ALL</TabsTrigger>
                    <TabsTrigger value="active" className="text-[10px] h-8 px-3">ACTIVE</TabsTrigger>
                    <TabsTrigger value="pending_payment" className="text-[10px] h-8 px-3">PENDING</TabsTrigger>
+                   <TabsTrigger value="pending_pin" className="text-[10px] h-8 px-3">PIN REQUESTS</TabsTrigger>
                    <TabsTrigger value="timed_out" className="text-[10px] h-8 px-3">EXPIRED</TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -285,7 +360,10 @@ export default function AdminListingsPage() {
                                             {l.images?.[0] && <Image src={l.images[0]} alt="" fill className="object-cover" />}
                                          </div>
                                           <div className="min-w-0">
-                                             <p className="font-semibold text-zinc-900 dark:text-zinc-100 truncate w-48">{l.title}</p>
+                                             <p className="font-semibold text-zinc-900 dark:text-zinc-100 truncate w-48 flex items-center gap-1.5">
+                                               {l.pinned && <span className="text-amber-500 animate-bounce" title="Pinned to top">📌</span>}
+                                               {l.title}
+                                             </p>
                                              <p className="text-[10px] text-zinc-400 uppercase font-bold tracking-tighter">
                                                {l.category} • {((l as any).booster_plan) ? `${(l as any).booster_plan} (${(l as any).plan_days}D) • ₹${(l as any).payment_amount}` : "Standard Plan"}
                                              </p>
@@ -332,7 +410,7 @@ export default function AdminListingsPage() {
                  <h3 className="text-xs font-bold uppercase text-zinc-500 tracking-widest">Active Inspector</h3>
               </div>
               <CardContent className="p-0">
-                 {!selectedListing ? (
+                 {!inspectorListing ? (
                      <div className="p-6 text-center space-y-4">
                         <div className="size-16 rounded-full bg-zinc-100 dark:bg-zinc-800 border-4 border-white dark:border-zinc-900 shadow-sm flex items-center justify-center mx-auto">
                            <Tag className="size-8 text-zinc-300" />
@@ -340,89 +418,149 @@ export default function AdminListingsPage() {
                         <p className="text-xs text-zinc-400 italic px-4">Select a listing from the directory to adjust its visibility timers and platform priority.</p>
                      </div>
                   ) : (
-                     <div className="p-4 space-y-4">
-                        <div>
-                           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{selectedListing.title}</p>
-                           <p className="text-xs text-zinc-500 capitalize">{selectedListing.category} • {selectedListing.price != null ? formatPrice(selectedListing.price) : '—'}</p>
-                        </div>
-                        
-                        <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md border border-blue-100 dark:border-blue-900/30">
-                           <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Selected Plan</p>
-                           <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                              {(selectedListing as any).booster_plan || "Standard Plan"}
-                           </p>
-                           {(selectedListing as any).booster_plan && (
-                              <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
-                                 Duration: {(selectedListing as any).plan_days} Days <br/>
-                                 Paid: ₹{(selectedListing as any).payment_amount}
-                              </p>
-                           )}
-                        </div>
+                      <div className="p-4 space-y-4">
+                         <div>
+                            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{inspectorListing.title}</p>
+                            <p className="text-xs text-zinc-500 capitalize">{inspectorListing.category} • {inspectorListing.price != null ? formatPrice(inspectorListing.price) : '—'}</p>
+                         </div>
+                         
+                         <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-md border border-blue-100 dark:border-blue-900/30">
+                            <p className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">Selected Plan</p>
+                            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                               {(inspectorListing as any).booster_plan || "Standard Plan"}
+                            </p>
+                            {(inspectorListing as any).booster_plan && (
+                               <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                                  Duration: {(inspectorListing as any).plan_days} Days <br/>
+                                  Paid: ₹{(inspectorListing as any).payment_amount}
+                               </p>
+                            )}
+                         </div>
 
-                        <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Quick Actions</p>
-                           
-                           {selectedListing.status === "pending_payment" || selectedListing.status === "rejected" ? (
-                              <Button 
-                                 size="sm" 
-                                 className="w-full bg-green-600 hover:bg-green-700 text-white"
-                                 onClick={() => handleUpdateStatus(selectedListing.id, "active")}
-                                 disabled={updatingId === selectedListing.id}
-                              >
-                                 <CheckCircle2 className="size-4 mr-2" /> Approve & Make Active
-                              </Button>
-                           ) : selectedListing.status === "active" ? (
-                              <Button 
-                                 size="sm" 
-                                 variant="outline"
-                                 className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                                 onClick={() => handleUpdateStatus(selectedListing.id, "rejected")}
-                                 disabled={updatingId === selectedListing.id}
-                              >
-                                 <XCircle className="size-4 mr-2" /> Reject / Deactivate
-                              </Button>
-                           ) : selectedListing.status === "timed_out" ? (
-                              <Button 
-                                 size="sm" 
-                                 className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                 onClick={() => handleUpdateStatus(selectedListing.id, "active")}
-                                 disabled={updatingId === selectedListing.id}
-                              >
-                                 <RotateCcw className="size-4 mr-2" /> Relaunch
-                              </Button>
-                           ) : null}
-                        </div>
+                         {/* Pin Status Section */}
+                         <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-md border border-amber-100 dark:border-amber-900/30">
+                            <p className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-1">Pin Placement (₹499)</p>
+                            <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 flex items-center gap-1">
+                               {inspectorListing.pinned ? "📌 Pinned Active" : inspectorListing.pin_status === "pending_approval" ? "⏳ Pending Approval" : "Not Pinned"}
+                            </p>
+                            {inspectorListing.pinned && inspectorListing.pin_expires_at && (
+                               <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1">
+                                  Expires: {new Date(inspectorListing.pin_expires_at).toLocaleDateString()}
+                               </p>
+                            )}
+                         </div>
 
-                        <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
-                           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Timer Extension</p>
-                           <div className="flex gap-2">
-                              <select 
-                                 className="flex-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300"
-                                 value={timerInputs[selectedListing.id]?.days || 0}
-                                 onChange={(e) => setTimerInputs(prev => ({ ...prev, [selectedListing.id]: { days: parseInt(e.target.value) / (1000 * 60 * 60 * 24), months: 0, hours: 0, minutes: 0, seconds: 0 } }))}
-                              >
-                                 <option value={0}>Select days...</option>
-                                 <option value={1000 * 60 * 60 * 24 * 30}>30 Days (Basic)</option>
-                                 <option value={1000 * 60 * 60 * 24 * 100}>100 Days (Plus)</option>
-                                 <option value={1000 * 60 * 60 * 24 * 180}>180 Days (Pro)</option>
-                                 <option value={1000 * 60 * 60 * 24 * 365}>365 Days (Ultra Pro)</option>
-                              </select>
-                              <Button 
-                                 size="sm" 
-                                 onClick={() => handleSetTimer(selectedListing)}
-                                 disabled={!timerInputs[selectedListing.id]?.days || updatingId === selectedListing.id}
-                              >
-                                 Set
-                              </Button>
-                           </div>
-                        </div>
+                         <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Quick Actions</p>
+                            
+                            {inspectorListing.status === "pending_payment" || inspectorListing.status === "rejected" ? (
+                               <Button 
+                                  size="sm" 
+                                  className="w-full bg-green-600 hover:bg-green-700 text-white font-bold"
+                                  onClick={() => handleUpdateStatus(inspectorListing.id, "active")}
+                                  disabled={updatingId === inspectorListing.id}
+                               >
+                                  <CheckCircle2 className="size-4 mr-2" /> Approve & Make Active
+                               </Button>
+                            ) : inspectorListing.status === "active" ? (
+                               <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="w-full border-red-200 text-red-600 hover:bg-red-50 dark:hover:bg-red-950 font-bold"
+                                  onClick={() => handleUpdateStatus(inspectorListing.id, "rejected")}
+                                  disabled={updatingId === inspectorListing.id}
+                               >
+                                  <XCircle className="size-4 mr-2" /> Reject / Deactivate
+                               </Button>
+                            ) : inspectorListing.status === "timed_out" ? (
+                               <Button 
+                                  size="sm" 
+                                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold"
+                                  onClick={() => handleUpdateStatus(inspectorListing.id, "active")}
+                                  disabled={updatingId === inspectorListing.id}
+                               >
+                                  <RotateCcw className="size-4 mr-2" /> Relaunch
+                               </Button>
+                            ) : null}
+                         </div>
 
-                        <Link href={getListingUrl(selectedListing.id)} target="_blank" className="block mt-4">
-                           <Button variant="secondary" size="sm" className="w-full">
-                              <ExternalLink className="size-4 mr-2" /> View Public Page
-                           </Button>
-                        </Link>
-                     </div>
+                         {/* Pin Request / Control Actions */}
+                         <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Pin Placement Control</p>
+                            
+                            {inspectorListing.pin_status === "pending_approval" ? (
+                               <div className="flex gap-2">
+                                  <Button 
+                                     size="sm" 
+                                     className="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold"
+                                     onClick={() => handleApprovePin(inspectorListing.id)}
+                                     disabled={updatingId === inspectorListing.id}
+                                  >
+                                     Approve Pin
+                                  </Button>
+                                  <Button 
+                                     size="sm" 
+                                     variant="outline" 
+                                     className="flex-1 border-red-200 text-red-650 font-bold"
+                                     onClick={() => handleRejectPin(inspectorListing.id)}
+                                     disabled={updatingId === inspectorListing.id}
+                                  >
+                                     Reject
+                                  </Button>
+                               </div>
+                            ) : inspectorListing.pinned ? (
+                               <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="w-full border-zinc-300 text-zinc-750 font-bold"
+                                  onClick={() => handleRemovePin(inspectorListing.id)}
+                                  disabled={updatingId === inspectorListing.id}
+                               >
+                                  Unpin Listing
+                               </Button>
+                            ) : (
+                               <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="w-full border-amber-300 text-amber-700 hover:bg-amber-50 font-bold"
+                                  onClick={() => handleApprovePin(inspectorListing.id)}
+                                  disabled={updatingId === inspectorListing.id}
+                               >
+                                  Force Pin (30 Days)
+                               </Button>
+                            )}
+                         </div>
+
+                         <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
+                            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Timer Extension</p>
+                            <div className="flex gap-2">
+                               <select 
+                                  className="flex-1 rounded-md border border-zinc-200 dark:border-zinc-800 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-zinc-950 dark:focus-visible:ring-zinc-300"
+                                  value={timerInputs[inspectorListing.id]?.days || 0}
+                                  onChange={(e) => setTimerInputs(prev => ({ ...prev, [inspectorListing.id]: { days: parseInt(e.target.value) / (1000 * 60 * 60 * 24), months: 0, hours: 0, minutes: 0, seconds: 0 } }))}
+                               >
+                                  <option value={0}>Select days...</option>
+                                  <option value={1000 * 60 * 60 * 24 * 30}>30 Days (Basic)</option>
+                                  <option value={1000 * 60 * 60 * 24 * 100}>100 Days (Plus)</option>
+                                  <option value={1000 * 60 * 60 * 24 * 180}>180 Days (Pro)</option>
+                                  <option value={1000 * 60 * 60 * 24 * 365}>365 Days (Ultra Pro)</option>
+                               </select>
+                               <Button 
+                                  size="sm" 
+                                  onClick={() => handleSetTimer(inspectorListing)}
+                                  disabled={!timerInputs[inspectorListing.id]?.days || updatingId === inspectorListing.id}
+                               >
+                                  Set
+                               </Button>
+                            </div>
+                         </div>
+
+                         <Link href={getListingUrl(inspectorListing.id)} target="_blank" className="block mt-4">
+                            <Button variant="secondary" size="sm" className="w-full font-bold">
+                               <ExternalLink className="size-4 mr-2" /> View Public Page
+                            </Button>
+                         </Link>
+                      </div>
                   )}
               </CardContent>
            </Card>

@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { SearchBar } from "@/components/home/search-bar";
 import { HeroParticles } from "@/components/home/hero-particles";
+import { HeroVideoBackground } from "@/components/home/hero-video-background";
 import { TiltCard } from "@/components/home/tilt-card";
 import { AnimatedCounter } from "@/components/home/animated-counter";
 import { CATEGORIES } from "@/lib/constants";
@@ -34,6 +35,8 @@ import { ListingCard } from "@/components/listings/listing-card";
 import { RecentlyViewed } from "@/components/listings/recently-viewed";
 import type { Listing } from "@/lib/types/database";
 import { isNativeApp } from "@/lib/firebase/native-auth";
+import { EmberGlowBackground } from "@/components/ui/ember-glow-background";
+import { DynamicFlowBackground } from "@/components/ui/dynamic-flow-background";
 
 const CATEGORY_ICONS = [Home, Mountain, Bed, Building2, Car, Package];
 const CATEGORY_DESC_KEYS = [
@@ -96,26 +99,22 @@ export default function HomePage() {
   const [heroIndex, setHeroIndex] = useState(0);
 
   const heroWords = [
-    "Space",
-    "Home",
-    "Vehicle",
-    "Houses",
-    "PGs",
-    "Commercial",
-    "Other Commodities",
-    "Land",
-    "Vehicles"
+    t("hero.title_line2"),
+    t("nav.houses"),
+    t("nav.land"),
+    t("nav.pg"),
+    t("nav.commercial"),
+    t("nav.vehicles"),
+    t("nav.commodities"),
   ];
   const heroSubtitles = [
-    "India's trusted online marketplace — list what you offer, buy, sell & rent",
-    "Zero Mediators, Zero Commission — Keep 100% of your profits.",
-    "Free Viewing for Everyone — Browse all listings without hidden charges.",
-    "Find your perfect house without any brokerage.",
-    "Comfortable PGs and Hostels for students and professionals.",
-    "Commercial spaces for your growing business needs.",
-    "Buy and sell other commodities directly with owners.",
-    "Invest in land and plots with zero commission.",
-    "Direct communication between buyers and sellers for vehicles."
+    t("hero.subtitle"),
+    t("categories.house_desc"),
+    t("categories.land_desc"),
+    t("categories.pg_desc"),
+    t("categories.commercial_desc"),
+    t("categories.vehicle_desc"),
+    t("categories.commodity_desc"),
   ];
 
   useEffect(() => {
@@ -159,16 +158,14 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] dark:opacity-[0.06] mix-blend-overlay" />
       </div>
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-700 to-purple-800 dark:from-blue-900 dark:via-indigo-950 dark:to-purple-950 noise-overlay">
+      <section className="relative overflow-hidden bg-slate-900 dark:bg-slate-950">
+        <HeroVideoBackground isNative={isNative} />
         {!isNative && <HeroParticles />}
 
-        {/* Aurora glow orbs */}
-        <div className="absolute inset-0 overflow-hidden">
-          {/* Vibrant Aurora glow orbs */}
-          <div className="absolute -top-40 -right-40 h-[600px] w-[600px] rounded-full bg-gradient-to-r from-blue-400/30 to-purple-500/30 blur-[100px] animate-aurora animate-morph" />
-          <div className="absolute -bottom-40 -left-40 h-[700px] w-[700px] rounded-full bg-gradient-to-r from-pink-500/20 to-orange-400/20 blur-[120px] animate-aurora-delayed animate-morph" />
-          <div className="absolute top-1/3 left-1/4 h-96 w-96 rounded-full bg-indigo-500/20 blur-[90px] animate-aurora-slow" />
-          <div className="absolute top-1/2 right-1/4 h-80 w-80 rounded-full bg-cyan-400/20 blur-[80px] animate-float-slow" />
+        {/* Subtle Upper Aurora glow orbs (confined to sky area) */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-gradient-to-r from-blue-400/20 to-purple-500/20 blur-[100px] animate-aurora animate-morph pointer-events-none" />
+          <div className="absolute top-0 left-1/4 h-80 w-80 rounded-full bg-indigo-500/15 blur-[90px] animate-aurora-slow pointer-events-none" />
           
           {/* Floating Glassmorphism Elements to make UI not dull */}
           <motion.div 
@@ -216,14 +213,14 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-                className="text-5xl sm:text-7xl lg:text-[5.5rem] font-extrabold text-white tracking-tighter leading-[1.05] filter drop-shadow-sm"
+                className="text-5xl sm:text-7xl lg:text-[5.5rem] font-extrabold text-white tracking-tighter leading-[1.05] drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]"
               >
                 {t("hero.title_line1")}
                 <br />
                 <div className="h-[1.2em] relative overflow-visible flex justify-center">
                   {isNative ? (
                     <span
-                      className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 animate-text-gradient inline-block"
+                      className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 animate-text-gradient inline-block filter drop-shadow-[0_3px_12px_rgba(0,0,0,0.85)]"
                       style={{ backgroundSize: "200% auto" }}
                     >
                       {t("hero.title_line2")}
@@ -232,7 +229,7 @@ export default function HomePage() {
                     <AnimatePresence mode="wait">
                       <motion.span
                         key={heroIndex}
-                        className="absolute text-transparent bg-clip-text bg-gradient-to-r from-blue-200 via-purple-200 to-pink-200 animate-text-gradient inline-block"
+                        className="absolute text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 animate-text-gradient inline-block filter drop-shadow-[0_3px_12px_rgba(0,0,0,0.85)]"
                         style={{ backgroundSize: "200% auto" }}
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -247,7 +244,7 @@ export default function HomePage() {
               </motion.h1>
               <div className="h-[4.5rem] sm:h-[3.5rem] relative flex justify-center">
                 {isNative ? (
-                  <p className="mx-auto max-w-2xl text-lg sm:text-xl text-blue-100/80 leading-relaxed text-center">
+                  <p className="mx-auto max-w-2xl text-lg sm:text-xl font-medium text-slate-100 dark:text-white leading-relaxed text-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] px-4">
                     {t("hero.subtitle")}
                   </p>
                 ) : (
@@ -258,7 +255,7 @@ export default function HomePage() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -15 }}
                       transition={{ duration: 0.6, ease: "easeInOut" }}
-                      className="absolute mx-auto max-w-2xl text-lg sm:text-xl text-blue-100/80 leading-relaxed text-center"
+                      className="absolute mx-auto max-w-2xl text-lg sm:text-xl font-medium text-slate-100 dark:text-white leading-relaxed text-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] px-4"
                     >
                       {heroSubtitles[heroIndex]}
                     </motion.p>
@@ -322,29 +319,38 @@ export default function HomePage() {
                       {/* Subtle background glow on hover */}
                       <div className={`absolute -inset-24 rounded-full bg-gradient-to-br ${style.gradient} opacity-0 blur-3xl transition-opacity duration-700 group-hover:opacity-5 dark:group-hover:opacity-10`} />
 
-                      <CardContent className="relative pt-8 pb-8 px-6 space-y-6">
-                        <motion.div
-                          whileHover={{ scale: 1.15, rotate: 5 }}
-                          whileTap={{ scale: 0.95 }}
-                          transition={{ type: "spring", stiffness: 300 }}
-                          className={`relative inline-flex items-center justify-center size-16 rounded-2xl bg-gradient-to-br ${style.gradient} shadow-lg ring-4 ring-white dark:ring-zinc-950 group-hover:shadow-xl transition-all duration-300`}
-                        >
-                          <Icon className="size-8 text-white" />
-                        </motion.div>
-                        <div className="space-y-2.5">
-                          <div className="flex items-center gap-3">
-                            <span className="text-3xl filter drop-shadow-sm transition-transform duration-300 group-hover:scale-110" role="img" aria-label={cat.label}>{cat.emoji}</span>
-                            <h3 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-indigo-600 dark:group-hover:from-blue-400 dark:group-hover:to-indigo-400 transition-all duration-300">
-                              {t(NAV_KEYS[i])}
-                            </h3>
+                      <CardContent className="relative p-5 space-y-4">
+                        <div className="relative w-full h-44 rounded-2xl overflow-hidden shadow-md group-hover:shadow-xl transition-all">
+                          <Image
+                            src={cat.image}
+                            alt={cat.label}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                          <div className="absolute bottom-3 left-3 flex items-center gap-2">
+                            <motion.div
+                              whileHover={{ scale: 1.1, rotate: 5 }}
+                              transition={{ type: "spring", stiffness: 300 }}
+                              className={`size-10 rounded-xl bg-gradient-to-br ${style.gradient} flex items-center justify-center text-white shadow-lg ring-2 ring-white/30`}
+                            >
+                              <Icon className="size-5" />
+                            </motion.div>
+                            <span className="text-2xl filter drop-shadow" role="img" aria-label={cat.label}>{cat.emoji}</span>
                           </div>
-                          <p className="text-base text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium">
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <h3 className="text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-indigo-600 dark:group-hover:from-blue-400 dark:group-hover:to-indigo-400 transition-all duration-300">
+                            {t(NAV_KEYS[i])}
+                          </h3>
+                          <p className="text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed font-medium line-clamp-2">
                             {t(CATEGORY_DESC_KEYS[i])}
                           </p>
                         </div>
-                        <div className="pt-2 flex items-center gap-2 text-sm font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
+                        <div className="pt-1 flex items-center gap-2 text-xs font-bold text-zinc-400 dark:text-zinc-500 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-300">
                           {t("categories.browse")} {t(NAV_KEYS[i])}
-                          <ArrowRight className="size-4 transition-all duration-300 group-hover:translate-x-2" />
+                          <ArrowRight className="size-3.5 transition-all duration-300 group-hover:translate-x-2" />
                         </div>
                       </CardContent>
                     </Card>
@@ -357,32 +363,32 @@ export default function HomePage() {
       </section>
 
       {/* Featured Listings Section */}
-      <section id="featured-listings" className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-32 mb-16 overflow-hidden rounded-[3rem] bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 dark:from-blue-900/60 dark:via-indigo-900/60 dark:to-purple-900/60 shadow-inner">
+      <section id="featured-listings" className="relative mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-12 sm:py-24 mb-12 sm:mb-16 overflow-hidden rounded-2xl sm:rounded-[3rem] bg-gradient-to-br from-blue-100 via-indigo-100 to-purple-100 dark:from-blue-900/60 dark:via-indigo-900/60 dark:to-purple-900/60 shadow-inner">
         {/* Dynamic Background Overlays */}
         <div className="absolute inset-0 bg-white/40 dark:bg-black/20 backdrop-blur-3xl" />
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-500/20 dark:bg-blue-400/30 blur-[100px] rounded-full animate-float" />
-        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/20 dark:bg-purple-400/30 blur-[100px] rounded-full animate-float-delayed" />
+        <div className="absolute top-0 right-0 w-[300px] sm:w-[500px] h-[300px] sm:h-[500px] bg-blue-500/20 dark:bg-blue-400/30 blur-[100px] rounded-full animate-float" />
+        <div className="absolute bottom-0 left-0 w-[250px] sm:w-[400px] h-[250px] sm:h-[400px] bg-purple-500/20 dark:bg-purple-400/30 blur-[100px] rounded-full animate-float-delayed" />
         
         <div className="relative z-10">
           <AnimatedSection>
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-16 px-4">
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100/50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-sm font-bold tracking-widest uppercase mb-2 border border-blue-200 dark:border-blue-800 backdrop-blur-md">
-                  <Sparkles className="size-4" />
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6 mb-8 sm:mb-16 px-2 sm:px-4">
+              <div className="space-y-2 sm:space-y-4">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs sm:text-sm font-bold tracking-widest uppercase mb-1 border border-blue-200 dark:border-blue-800 backdrop-blur-md">
+                  <Sparkles className="size-3.5 sm:size-4" />
                   Premium Selection
                 </div>
-                <h2 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-foreground">
+                <h2 className="text-2xl sm:text-4xl md:text-5xl font-extrabold tracking-tight text-foreground">
                   Featured <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400">Services</span>
                 </h2>
-                <p className="text-lg text-muted-foreground font-medium max-w-2xl">
+                <p className="text-sm sm:text-lg text-muted-foreground font-medium max-w-2xl">
                   Hand-picked listings with active visibility timers and verified sellers.
                 </p>
               </div>
-              <Button size="lg" className="group bg-white dark:bg-zinc-900 text-foreground border border-zinc-200 dark:border-zinc-800 shadow-xl hover:shadow-2xl hover:scale-105 transition-all duration-300 rounded-full" asChild>
+              <Button size="default" className="self-start md:self-auto group bg-white dark:bg-zinc-900 text-foreground border border-zinc-200 dark:border-zinc-800 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300 rounded-full h-10 sm:h-12 px-4 sm:px-6" asChild>
                 <Link href="/houses">
-                  <span className="font-bold">View all services</span>
-                  <div className="ml-2 flex items-center justify-center size-8 rounded-full bg-blue-50 dark:bg-blue-900/30 group-hover:bg-blue-600 dark:group-hover:bg-blue-500 transition-colors">
-                    <ArrowRight className="size-4 text-blue-600 dark:text-blue-400 group-hover:text-white transition-colors group-hover:translate-x-0.5" />
+                  <span className="font-bold text-xs sm:text-sm">View all services</span>
+                  <div className="ml-2 flex items-center justify-center size-6 sm:size-8 rounded-full bg-blue-50 dark:bg-blue-900/30 group-hover:bg-blue-600 dark:group-hover:bg-blue-500 transition-colors">
+                    <ArrowRight className="size-3 sm:size-4 text-blue-600 dark:text-blue-400 group-hover:text-white transition-colors group-hover:translate-x-0.5" />
                   </div>
                 </Link>
               </Button>
@@ -390,13 +396,13 @@ export default function HomePage() {
           </AnimatedSection>
 
         {loadingListings ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
+          <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 px-2 sm:px-4 overflow-x-auto sm:overflow-x-visible pb-4 sm:pb-0">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="h-72 rounded-2xl bg-muted animate-pulse" />
+              <div key={i} className="min-w-[280px] sm:min-w-0 h-72 rounded-2xl bg-muted animate-pulse flex-1" />
             ))}
           </div>
         ) : listings.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
+          <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 px-2 sm:px-4 overflow-x-auto sm:overflow-x-visible pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-none">
             {listings.map((l, i) => (
               <motion.div
                 key={l.id}
@@ -404,6 +410,7 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
+                className="min-w-[280px] sm:min-w-0 snap-start flex-1"
               >
                 <ListingCard listing={l} />
               </motion.div>
@@ -418,14 +425,10 @@ export default function HomePage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="relative py-32 overflow-hidden bg-gradient-to-bl from-purple-100 via-pink-100 to-orange-100 dark:from-purple-900/60 dark:via-pink-900/60 dark:to-orange-900/60">
-        {/* Dynamic sweeping background */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-white/40 dark:bg-black/20 backdrop-blur-xl" />
-          <div className="absolute top-0 right-0 w-full h-[800px] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 mix-blend-overlay" />
-          <div className="absolute -top-[20%] -left-[10%] w-[70%] h-[70%] rounded-full bg-gradient-to-br from-indigo-500/30 to-purple-500/30 blur-[120px] animate-morph" />
-          <div className="absolute top-[40%] -right-[20%] w-[60%] h-[60%] rounded-full bg-gradient-to-tl from-blue-500/30 to-cyan-500/30 blur-[120px] animate-morph" style={{ animationDelay: '2s' }} />
-        </div>
+      <section className="relative py-32 overflow-hidden bg-zinc-950">
+        {/* Dynamic sweeping canvas motion background */}
+        <DynamicFlowBackground />
+        <div className="absolute inset-0 bg-white/5 dark:bg-black/30 backdrop-blur-[1px]" />
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <AnimatedSection>
@@ -440,7 +443,7 @@ export default function HomePage() {
                   {t("how_it_works.title_highlight")}
                 </span>
               </h2>
-              <p className="mx-auto max-w-2xl text-muted-foreground text-xl font-medium">
+              <p className="mx-auto max-w-2xl text-foreground font-semibold text-xl">
                 {t("how_it_works.subtitle")}
               </p>
             </div>
@@ -458,20 +461,8 @@ export default function HomePage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: index * 0.2 }}
-                  className="relative text-center"
+                  className="relative text-center p-6 rounded-3xl bg-white/40 dark:bg-black/40 backdrop-blur-lg border border-white/20 dark:border-white/10 shadow-xl"
                 >
-                  {index < HOW_IT_WORKS_KEYS.length - 1 && (
-                    <div className="hidden md:block absolute top-12 left-[60%] w-[80%] h-[2px]">
-                      <div className="h-full bg-gradient-to-r from-zinc-300 to-transparent dark:from-zinc-700 rounded-full" />
-                      <motion.div
-                        className={`h-full bg-gradient-to-r ${gradient} rounded-full absolute top-0 left-0`}
-                        initial={{ width: "0%" }}
-                        whileInView={{ width: "100%" }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1, delay: 0.5 + index * 0.3 }}
-                      />
-                    </div>
-                  )}
                   <div className="relative inline-flex flex-col items-center gap-5">
                     <motion.div
                       whileHover={{ scale: 1.1, rotateY: 15 }}
@@ -480,13 +471,13 @@ export default function HomePage() {
                     >
                       <Icon className="size-10 text-white" />
                     </motion.div>
-                    <span className="text-xs font-bold tracking-[0.2em] text-muted-foreground uppercase">
+                    <span className="text-xs font-black tracking-[0.2em] text-foreground uppercase">
                       {t("how_it_works.step")} {step}
                     </span>
                   </div>
                   <div className="space-y-3 mt-6">
                     <h3 className="text-2xl font-bold text-foreground">{t(item.title)}</h3>
-                    <p className="text-muted-foreground leading-relaxed max-w-sm mx-auto">{t(item.desc)}</p>
+                    <p className="text-foreground/80 font-medium leading-relaxed max-w-sm mx-auto">{t(item.desc)}</p>
                   </div>
                 </motion.div>
               );
@@ -502,14 +493,11 @@ export default function HomePage() {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, type: "spring" }}
-          className="relative rounded-[3rem] bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-10 sm:p-20 shadow-2xl overflow-hidden"
+          className="relative rounded-[3rem] bg-zinc-950 p-10 sm:p-20 shadow-2xl overflow-hidden border border-amber-500/20"
         >
-          {/* Intense neon glows inside the vibrant stats card */}
-          <div className="absolute inset-0">
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-white/20 rounded-full -translate-y-1/2 translate-x-1/3 blur-[100px] animate-aurora" />
-            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-pink-400/20 rounded-full translate-y-1/3 -translate-x-1/3 blur-[100px] animate-aurora-delayed" />
-            <div className="absolute top-1/2 left-1/2 w-[300px] h-[300px] bg-cyan-400/20 rounded-full -translate-x-1/2 -translate-y-1/2 blur-[80px]" />
-          </div>
+          {/* Custom Ember Glow Canvas Background: 0 watermark, 4K crisp, 60fps */}
+          <EmberGlowBackground intensity="medium" colorScheme="amber" />
+          <div className="absolute inset-0 bg-black/25" />
 
           <div className="relative z-10 grid grid-cols-1 sm:grid-cols-3 gap-8">
             {[

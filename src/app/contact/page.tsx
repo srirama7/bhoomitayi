@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { db } from "@/lib/firebase/config";
+import { collection, addDoc } from "firebase/firestore";
 import { Mail, Phone, MapPin, Send, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,8 +22,8 @@ const CONTACT_INFO = [
   {
     icon: Phone,
     title: "Phone",
-    value: "+91 7760200927",
-    href: "tel:+917760200927",
+    value: "+91 6361843563",
+    href: "tel:+916361843563",
     gradient: "from-emerald-500 to-teal-600",
   },
   {
@@ -50,15 +52,25 @@ export default function ContactPage() {
 
     setSending(true);
 
-    // Simulate sending (since there's no backend endpoint for contact form)
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    toast.success("Message sent! We'll get back to you soon.");
-    setName("");
-    setEmail("");
-    setSubject("");
-    setMessage("");
-    setSending(false);
+    try {
+      await addDoc(collection(db, "feedbacks"), {
+        name: name.trim(),
+        email: email.trim(),
+        subject: subject.trim(),
+        message: message.trim(),
+        category: "suggestion", // Defaulting contact forms to suggestion/other so it shows in Admin
+        created_at: new Date().toISOString(),
+      });
+      toast.success("Message sent! We'll get back to you soon.");
+      setName("");
+      setEmail("");
+      setSubject("");
+      setMessage("");
+    } catch (error) {
+      toast.error("Failed to send message. Please try again later.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -85,7 +97,7 @@ export default function ContactPage() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14">
         <div className="max-w-5xl mx-auto">
           {/* Contact Info Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             {CONTACT_INFO.map((item) => (
               <Card key={item.title} className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80 hover:-translate-y-0.5 transition-all duration-300">
                 <CardContent className="flex items-center gap-4 py-5">
@@ -105,6 +117,40 @@ export default function ContactPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+
+          {/* Official Social Media Channels */}
+          <div className="p-6 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900/80 shadow-sm mb-12 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <h3 className="font-bold text-base text-foreground">Follow Our Official Channels</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Stay updated with newly listed properties, video walkthroughs, and news</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <a
+                href="https://www.instagram.com/bhoomitayi7"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-pink-500/10 hover:bg-pink-500/20 text-pink-600 dark:text-pink-400 border border-pink-500/20 text-xs font-semibold transition-all hover:scale-105"
+              >
+                Instagram
+              </a>
+              <a
+                href="https://youtube.com/@bhoomitayi7?si=KWM9l_VAawUDaNQb"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/20 text-xs font-semibold transition-all hover:scale-105"
+              >
+                YouTube
+              </a>
+              <a
+                href="https://www.facebook.com/share/19Ht8mJf4u/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/20 text-xs font-semibold transition-all hover:scale-105"
+              >
+                Facebook
+              </a>
+            </div>
           </div>
 
           {/* Contact Form */}

@@ -15,6 +15,8 @@ import {
   ChevronDown,
   Menu,
   AlertCircle,
+  MessageSquare,
+  Coins,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,13 +31,19 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/lib/store";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth, db } from "@/lib/firebase/config";
+import { doc, getDoc } from "firebase/firestore";
+import { toast } from "sonner";
 
 const adminNavItems = [
   { label: "Dashboard", href: "/dashboard/admin", icon: LayoutDashboard },
+  { label: "Token Requests", href: "/dashboard/admin/tokens", icon: Coins },
   { label: "User Management", href: "/dashboard/admin/users", icon: Users },
   { label: "Listings Control", href: "/dashboard/admin/listings", icon: Building },
   { label: "Favorites", href: "/dashboard/admin/favorites", icon: Shield },
   { label: "Reports", href: "/dashboard/admin/reports", icon: AlertCircle },
+  { label: "User Feedback", href: "/dashboard/admin/feedback", icon: MessageSquare },
   { label: "System Settings", href: "/dashboard/admin/settings", icon: Settings },
 ];
 
@@ -56,20 +64,7 @@ export default function AdminLayout({
   if (loading) return null;
 
   if (!user || profile?.role !== "admin") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950 px-4">
-        <div className="max-w-md w-full text-center space-y-4">
-          <div className="inline-flex items-center justify-center size-16 rounded-2xl bg-red-100 text-red-600 mb-2">
-            <Shield className="size-8" />
-          </div>
-          <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Restricted Access</h1>
-          <p className="text-zinc-500">Administrator privileges are required to access this console.</p>
-          <Button className="w-full bg-zinc-900 text-zinc-100 dark:bg-zinc-100 dark:text-zinc-900" asChild>
-            <Link href="/auth/login">Go to Login</Link>
-          </Button>
-        </div>
-      </div>
-    );
+    return <AdminLoginForm />;
   }
 
   return (
@@ -191,6 +186,94 @@ export default function AdminLayout({
           {children}
         </div>
       </main>
+    </div>
+  );
+}
+
+function AdminLoginForm() {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username || !password) {
+      toast.error("Please enter both username and password");
+      return;
+    }
+    setLoading(true);
+    try {
+      const email = username.includes("@") ? username : `${username}@bhoomitayi.com`;
+      const credentials = await signInWithEmailAndPassword(auth, email, password);
+      
+      const profileSnap = await getDoc(doc(db, "profiles", credentials.user.uid));
+      const profile = profileSnap.exists() ? profileSnap.data() : null;
+      
+      if (profile?.role !== "admin") {
+        toast.error("Access Denied: This account is not an Administrator.");
+        await auth.signOut();
+      } else {
+        toast.success("Welcome back, Administrator!");
+        router.refresh();
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Authentication failed. Invalid username or password.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#0d1520] px-4 relative overflow-hidden">
+      <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-blue-900/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-teal-900/10 rounded-full blur-[120px] pointer-events-none" />
+      
+      <div className="w-full max-w-[440px] bg-[#121c2a] rounded-[2rem] border border-zinc-800/30 p-10 shadow-2xl relative overflow-hidden flex flex-col items-center">
+        <div className="absolute top-8 w-32 h-32 bg-cyan-500/15 rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="relative size-20 bg-gradient-to-tr from-[#0F766E] to-[#1D4ED8] rounded-2xl flex items-center justify-center shadow-[0_0_40px_rgba(6,182,212,0.25)] border border-cyan-450/20 mb-6 shrink-0 z-10">
+          <span className="text-white text-3xl font-black tracking-tight">B</span>
+        </div>
+
+        <div className="text-center mb-8 relative z-10">
+          <h2 className="text-2xl font-bold text-white tracking-wide">BhoomiTayi Admin</h2>
+          <p className="text-zinc-400 text-xs mt-1">Payment Verification Panel</p>
+        </div>
+
+        <form onSubmit={handleLogin} className="w-full space-y-6 relative z-10 text-left">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">USERNAME</label>
+            <input 
+              type="text" 
+              placeholder="Enter username" 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full h-12 px-4 rounded-xl bg-[#172535] border border-zinc-700/20 text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block">PASSWORD</label>
+            <input 
+              type="password" 
+              placeholder="Enter password" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full h-12 px-4 rounded-xl bg-[#172535] border border-zinc-700/20 text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500/50"
+            />
+          </div>
+
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full h-12 bg-[#1d4ed8] hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-all duration-300 shadow-lg shadow-blue-900/30 flex items-center justify-center gap-2 mt-4"
+          >
+            {loading ? "Signing In..." : "Sign In"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

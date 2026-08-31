@@ -42,6 +42,7 @@ import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { validateImage, validateImageCount } from "@/lib/image-upload";
 import { PaymentGateway } from "@/components/listings/upi-payment-dialog";
 import { LISTING_FEE } from "@/lib/listing-timer";
+import { cleanFirestoreData } from "@/lib/utils";
 
 type PropertyCategory = "house" | "land" | "pg" | "commercial" | "vehicle" | "commodity";
 type TransactionType = "sell" | "rent" | "commercial_lease";
@@ -274,7 +275,7 @@ function SellPageContent() {
 
     setSubmitting(true);
     try {
-      await addDoc(collection(db, "listings"), {
+      const payload = cleanFirestoreData({
         ...pendingListingData,
         payment_amount: plan?.price !== undefined ? plan.price : LISTING_FEE,
         booster_plan: plan?.name || "Basic",
@@ -286,6 +287,24 @@ function SellPageContent() {
         status: "pending_payment",
       });
 
+      const listingRef = await addDoc(collection(db, "listings"), payload);
+
+      if (plan?.price > 0) {
+        await addDoc(collection(db, "token_requests"), cleanFirestoreData({
+          user_id: user?.uid,
+          user_name: plan.senderName || user?.displayName || "Seller",
+          user_email: user?.email || "",
+          tokens: 0,
+          amount: plan.price,
+          transaction_id: plan.txnId || "",
+          notes: `BOOSTER PLAN: ${plan.name} (${plan.days} Days) | Listing ID: ${listingRef.id}`,
+          status: "pending",
+          is_booster: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        }));
+      }
+
       setShowPaymentDialog(false);
       setPendingListingData(null);
       toast.success(
@@ -294,9 +313,9 @@ function SellPageContent() {
           : "Listing submitted! It will go live after admin verifies your payment."
       );
       router.push("/dashboard/my-listings");
-    } catch (err) {
+    } catch (err: any) {
       console.error("Submit error:", err);
-      toast.error(err instanceof Error ? err.message : "Failed to create listing");
+      toast.error(err?.message || "Failed to create listing");
     } finally {
       setSubmitting(false);
     }

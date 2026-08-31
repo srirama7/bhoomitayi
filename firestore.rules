@@ -31,5 +31,13 @@ service cloud.firestore {
       allow create: if true;
       allow read, delete: if true;
     }
+
+    match /token_requests/{requestId} {
+      allow read, write: if true;
+    }
+
+    match /coupons/{couponId} {
+      allow read, write: if true;
+    }
   }
 }

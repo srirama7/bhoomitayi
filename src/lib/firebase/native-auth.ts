@@ -32,31 +32,33 @@ export async function signInWithNativeGoogle(): Promise<UserCredential> {
   // which calls native Google Sign-in and posts back an idToken
   if (isNativeApp() && (window as any).AndroidBridge?.startGoogleSignIn) {
     return new Promise<UserCredential>((resolve, reject) => {
-      // Set a timeout in case native sign-in hangs
-      const timeout = setTimeout(() => {
-        window.removeEventListener("message", handler);
-        reject(new Error("Native Google sign-in timed out."));
-      }, 60000);
+      let isSettled = false;
 
-      const handler = async (event: MessageEvent) => {
-        if (event.data?.type !== "GOOGLE_SIGN_IN_RESULT") return;
+      const cleanup = () => {
+        if (timeout) clearTimeout(timeout);
+        window.removeEventListener("message", messageHandler);
+        try {
+          delete (window as any).__onGoogleSignInResult;
+        } catch {}
+      };
 
-        clearTimeout(timeout);
-        window.removeEventListener("message", handler);
+      const handleResult = async (idToken: string | null, error: string | null) => {
+        if (isSettled) return;
+        isSettled = true;
+        cleanup();
 
-        if (event.data.error) {
-          reject(new Error(event.data.error));
+        if (error) {
+          reject(new Error(error));
           return;
         }
 
-        const { idToken, accessToken } = event.data;
         if (!idToken) {
           reject(new Error("No ID token received from native sign-in."));
           return;
         }
 
         try {
-          const credential = GoogleAuthProvider.credential(idToken, accessToken);
+          const credential = GoogleAuthProvider.credential(idToken);
           const result = await signInWithCredential(auth!, credential);
           resolve(result);
         } catch (err) {
@@ -64,10 +66,29 @@ export async function signInWithNativeGoogle(): Promise<UserCredential> {
         }
       };
 
-      window.addEventListener("message", handler);
+      // Set a timeout in case native sign-in hangs
+      const timeout = setTimeout(() => {
+        handleResult(null, "Native Google sign-in timed out. Please try again.");
+      }, 60000);
+
+      const messageHandler = (event: MessageEvent) => {
+        if (event.data?.type !== "GOOGLE_SIGN_IN_RESULT") return;
+        handleResult(event.data.idToken || null, event.data.error || null);
+      };
+
+      // Direct callback function for Android WebView
+      (window as any).__onGoogleSignInResult = (idToken: string | null, error: string | null) => {
+        handleResult(idToken, error);
+      };
+
+      window.addEventListener("message", messageHandler);
 
       // Tell Android to start Google Sign-in
-      (window as any).AndroidBridge.startGoogleSignIn();
+      try {
+        (window as any).AndroidBridge.startGoogleSignIn();
+      } catch (bridgeErr: any) {
+        handleResult(null, bridgeErr?.message || "Failed to start Google sign-in");
+      }
     });
   }
 

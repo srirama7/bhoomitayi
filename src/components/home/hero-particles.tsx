@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 const particles = Array.from({ length: 30 }, (_, i) => ({
@@ -22,6 +23,15 @@ const floatingShapes = Array.from({ length: 6 }, (_, i) => ({
 }));
 
 export function HeroParticles() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return <div className="absolute inset-0 overflow-hidden pointer-events-none" />;
+  }
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {/* Floating geometric shapes */}

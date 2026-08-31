@@ -855,8 +855,25 @@ function createBellaEngine(
       responseKey: "_pricing_fees",
     },
     {
-      patterns: [/how.*contact/i, /support\s*email/i, /phone\s*number/i, /support\s*phone/i, /office\s*address/i, /where.*office/i],
+      patterns: [/how.*contact/i, /support\s*email/i, /phone\s*number/i, /support\s*phone/i, /office\s*address/i, /where.*office/i, /help\b/i, /email\b/i, /reach\s*you/i],
       responseKey: "_contact_info",
+    },
+    // ── Social Media Channels ──
+    {
+      patterns: [/social(\s*media)?/i, /follow(\s*us)?/i, /socials/i, /instagram.*youtube/i, /channel.*page/i],
+      responseKey: "_social_media",
+    },
+    {
+      patterns: [/instagram/i, /insta\b/i, /ig\b/i],
+      responseKey: "_instagram",
+    },
+    {
+      patterns: [/youtube/i, /\byt\b/i, /video\s*channel/i, /youtube\s*link/i],
+      responseKey: "_youtube",
+    },
+    {
+      patterns: [/facebook/i, /\bfb\b/i, /facebook\s*page/i],
+      responseKey: "_facebook",
     },
 
     // ── Glossary Jargon Answers ──
@@ -1004,8 +1021,12 @@ const KNOWLEDGE_RESPONSES: Record<string, string> = {
   _bye: "Bye! Come back anytime. Happy property hunting!",
   _about_bella: "I'm Bella - your AI real estate assistant built right into BhoomiTayi! I've absorbed all of Tommy's knowledge to become even smarter.\n\nI can:\n- Give detailed step-by-step selling guides\n- Analyze market trends and pricing\n- Control ALL website settings via chat\n- Guide you through buying/selling\n- Speak in your language!",
   _founder: "BhoomiTayi was founded in Bangalore, India in 2026. We are a team of passionate technologists and real estate experts committed to making buying, selling, and renting properties completely transparent and fee-free!",
-  _pricing_fees: "Registration is free for both buyers and sellers! For verification and platform maintenance, BhoomiTayi charges a nominal listing fee when posting properties. Listings go live immediately upon submission.",
-  _contact_info: "You can contact BhoomiTayi support via:\n\n📧 Email: bhoomitayi7@gmail.com\n📞 Phone: +91 7760200927\n📍 Office: Bangalore, Karnataka, India\n\nYou can also open the Contact Us page to send us a direct message!",
+  _pricing_fees: "Browsing and registration are completely free for buyers! For sellers and providers, BhoomiTayi offers affordable listing plans starting at just ₹199/month (with booster packs for extended reach). Listings go live after admin approval.",
+  _contact_info: "For help and support, you can reach BhoomiTayi directly:\n\n📧 Email: [bhoomitayi7@gmail.com](mailto:bhoomitayi7@gmail.com)\n📞 Phone: [+91 6361843563](tel:+916361843563)\n📍 Office: Bangalore, Karnataka, India\n\nOfficial Social Media Channels:\n📸 Instagram: [Instagram @bhoomitayi7](https://www.instagram.com/bhoomitayi7)\n📺 YouTube: [YouTube @bhoomitayi7](https://youtube.com/@bhoomitayi7?si=KWM9l_VAawUDaNQb)\n📘 Facebook: [Facebook BhoomiTayi](https://www.facebook.com/share/19Ht8mJf4u/)\n\nYou can also visit our [Contact Us](/contact) page!",
+  _social_media: "Connect with BhoomiTayi on all our official social media channels:\n\n📸 Instagram: [Instagram @bhoomitayi7](https://www.instagram.com/bhoomitayi7)\n📺 YouTube: [YouTube @bhoomitayi7](https://youtube.com/@bhoomitayi7?si=KWM9l_VAawUDaNQb)\n📘 Facebook: [Facebook BhoomiTayi](https://www.facebook.com/share/19Ht8mJf4u/)\n📧 Help & Support: [bhoomitayi7@gmail.com](mailto:bhoomitayi7@gmail.com)\n\nClick any link above to open and follow us for the latest real estate updates!",
+  _instagram: "Follow our official Instagram for property highlights, virtual walkthroughs, and updates:\n\n📸 [Open Instagram @bhoomitayi7](https://www.instagram.com/bhoomitayi7)",
+  _youtube: "Subscribe to our official YouTube channel for video tours, property guides, and insights:\n\n📺 [Open YouTube @bhoomitayi7](https://youtube.com/@bhoomitayi7?si=KWM9l_VAawUDaNQb)",
+  _facebook: "Check out our official Facebook page for the latest announcements and listings:\n\n📘 [Open Facebook Page](https://www.facebook.com/share/19Ht8mJf4u/)",
   _khata: "A Khata is a municipal record that details property tax assessments.\n\n- A Khata indicates the property has all necessary legal approvals, complies with building bylaws, and is fully authorized.\n- B Khata is a temporary register for properties that are unauthorized, deviate from building plans, or lack proper approvals, allowing the municipality to collect tax without granting full legal status.",
   _rtc: "RTC (Pahani) stands for Record of Rights, Tenancy, and Crops. It is a crucial land record in Karnataka containing details of land ownership, area, soil type, and crop history.",
   _ec: "An Encumbrance Certificate (EC) is a legal document that provides evidence that a property is free from any monetary or legal liabilities (such as unpaid mortgages or pending legal disputes).",
@@ -1321,10 +1342,20 @@ export function BellaChat() {
       {open && (
         <div
           style={getChatBoxStyle()}
-          className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
+          className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-transparent shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 relative"
         >
+          {/* Background Video */}
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover scale-110 z-0 opacity-80 dark:opacity-60 mix-blend-screen dark:mix-blend-lighten filter brightness-110 contrast-125"
+            src="/videos/ember-glow.mp4"
+          />
+
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-pink-500 to-rose-600 text-white">
+          <div className="relative z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-r from-pink-500/90 to-rose-600/90 backdrop-blur-md text-white border-b border-white/20">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <div className="size-10 rounded-full overflow-hidden ring-2 ring-white/30">
@@ -1333,22 +1364,22 @@ export function BellaChat() {
                 <span className="absolute bottom-0 right-0 size-3 rounded-full bg-green-400 border-2 border-rose-600" />
               </div>
               <div>
-                <h3 className="font-bold text-sm">{t("bella.name")}</h3>
-                <p className="text-xs text-white/80">{t("bella.subtitle")}</p>
+                <h3 className="font-bold text-sm drop-shadow-md">{t("bella.name")}</h3>
+                <p className="text-xs text-white/90 drop-shadow-sm">{t("bella.subtitle")}</p>
               </div>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setOpen(false)}
-              className="size-8 rounded-full text-white hover:bg-white/20"
+              className="size-8 rounded-full text-white hover:bg-white/30 transition-colors backdrop-blur-md"
             >
               <X className="size-4" />
             </Button>
           </div>
 
           {/* Quick Commands */}
-          <div className="flex gap-1.5 px-3 py-2 border-b border-zinc-100 dark:border-zinc-800 overflow-x-auto">
+          <div className="relative z-10 flex gap-1.5 px-3 py-2 border-b border-zinc-200/50 dark:border-zinc-700/50 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-md overflow-x-auto">
             {[
               "What can you do?",
               "EMI Calculator",
@@ -1376,7 +1407,7 @@ export function BellaChat() {
               <button
                 key={cmd}
                 onClick={() => handleQuickCmd(cmd)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium bg-pink-50 dark:bg-pink-950/30 text-pink-700 dark:text-pink-300 hover:bg-pink-100 dark:hover:bg-pink-950/50 transition-colors border border-pink-200 dark:border-pink-800"
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-bold bg-white/70 dark:bg-zinc-800/70 text-pink-700 dark:text-pink-300 hover:bg-white dark:hover:bg-zinc-700 transition-colors border border-pink-200/50 dark:border-pink-800/50 shadow-sm backdrop-blur-sm drop-shadow-sm"
               >
                 {cmd}
               </button>
@@ -1384,7 +1415,7 @@ export function BellaChat() {
           </div>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
+          <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto p-4 bg-white/40 dark:bg-zinc-950/40 backdrop-blur-sm">
             <div className="space-y-4">
               {messages.map((msg) => (
                 <div
@@ -1392,21 +1423,21 @@ export function BellaChat() {
                   className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"} animate-in fade-in slide-in-from-bottom-2 duration-200`}
                 >
                   {msg.role === "assistant" && (
-                    <div className="flex-shrink-0 size-7 rounded-full overflow-hidden">
+                    <div className="flex-shrink-0 size-7 rounded-full overflow-hidden shadow-md">
                       <Image src={BELLA_AVATAR} alt="Bella" width={28} height={28} className="size-full object-cover" />
                     </div>
                   )}
                   <div
-                    className={`max-w-[75%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-line ${
+                    className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm leading-relaxed whitespace-pre-line shadow-md backdrop-blur-md font-medium ${
                       msg.role === "user"
-                        ? "bg-gradient-to-r from-pink-500 to-rose-600 text-white rounded-br-md"
-                        : "bg-zinc-100 dark:bg-zinc-800 text-foreground rounded-bl-md"
+                        ? "bg-gradient-to-r from-pink-500/90 to-rose-600/90 text-white rounded-br-md border border-pink-400/30"
+                        : "bg-white/80 dark:bg-zinc-800/80 text-zinc-900 dark:text-zinc-100 rounded-bl-md border border-white/40 dark:border-zinc-700/50"
                     }`}
                   >
                     {renderMessageContent(msg.content)}
                   </div>
                   {msg.role === "user" && (
-                    <div className="flex-shrink-0 size-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
+                    <div className="flex-shrink-0 size-7 rounded-full bg-gradient-to-br from-blue-500/90 to-indigo-600/90 flex items-center justify-center shadow-md">
                       <User className="size-4 text-white" />
                     </div>
                   )}
@@ -1414,14 +1445,14 @@ export function BellaChat() {
               ))}
               {isTyping && (
                 <div className="flex gap-2 items-center animate-in fade-in duration-200">
-                  <div className="flex-shrink-0 size-7 rounded-full overflow-hidden">
+                  <div className="flex-shrink-0 size-7 rounded-full overflow-hidden shadow-md">
                     <Image src={BELLA_AVATAR} alt="Bella" width={28} height={28} className="size-full object-cover" />
                   </div>
-                  <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl rounded-bl-md px-4 py-3">
+                  <div className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-md rounded-2xl rounded-bl-md px-4 py-3 border border-white/40 dark:border-zinc-700/50 shadow-md">
                     <div className="flex gap-1">
-                      <span className="size-2 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                      <span className="size-2 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                      <span className="size-2 rounded-full bg-zinc-400 animate-bounce" style={{ animationDelay: "300ms" }} />
+                      <span className="size-2 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="size-2 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="size-2 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: "300ms" }} />
                     </div>
                   </div>
                 </div>
@@ -1430,7 +1461,7 @@ export function BellaChat() {
           </div>
 
           {/* Input + Exit Button */}
-          <div className="border-t border-zinc-200 dark:border-zinc-800 p-3 space-y-2">
+          <div className="relative z-10 border-t border-zinc-200/50 dark:border-zinc-700/50 p-3 space-y-2 bg-white/70 dark:bg-zinc-900/70 backdrop-blur-md">
             <form
               onSubmit={(e) => {
                 e.preventDefault();

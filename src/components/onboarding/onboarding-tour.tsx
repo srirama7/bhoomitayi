@@ -80,6 +80,16 @@ const TOUR_STEPS: TourStep[] = [
     avatarSrc: BELLA_AVATAR,
   },
   {
+    id: "quick-categories-left",
+    targetId: "quick-nav-left-bar",
+    title: "👈 Left Quick Category Bar",
+    description:
+      "Instant 1-tap category access on the left edge of your screen!\n\n🏠 Houses – Buy, sell, or rent houses\n🏞️ Land – Residential & agricultural plots\n🛏️ PG – Hostels & paying guest accommodations\n🏢 Commercial – Offices, shops & showrooms\n🚗 Vehicles – Cars, bikes & commercial vehicles\n📦 Other Commodities – Marketplace goods\n\nTap any icon on the left bar anytime for rapid navigation!",
+    icon: <Navigation className="size-7 text-indigo-500" />,
+    preferredPosition: "right",
+    highlight: true,
+  },
+  {
     id: "navigation",
     targetId: "nav-categories",
     title: "🏠 Top Navigation Bar",
@@ -522,7 +532,13 @@ export function OnboardingTour() {
   const [showHelpMenu, setShowHelpMenu] = useState(false);
   const [windowSize, setWindowSize] = useState({ w: 1024, h: 768 });
 
-  const helpButtonRef = useRef<HTMLButtonElement>(null);
+  // Draggable Help Button State
+  const [helpPos, setHelpPos] = useState({ x: 900, y: 600 });
+  const [isHelpDragging, setIsHelpDragging] = useState(false);
+  const helpDragStart = useRef({ x: 0, y: 0 });
+  const helpDragOffset = useRef({ x: 0, y: 0 });
+
+  const helpButtonRef = useRef<HTMLDivElement>(null);
   const helpMenuRef = useRef<HTMLDivElement>(null);
 
   const observerRef = useRef<ResizeObserver | null>(null);
@@ -550,7 +566,10 @@ export function OnboardingTour() {
   // ── Mount & window size ──
   useEffect(() => {
     setMounted(true);
-    setWindowSize({ w: window.innerWidth, h: window.innerHeight });
+    const ww = window.innerWidth;
+    const wh = window.innerHeight;
+    setWindowSize({ w: ww, h: wh });
+    setHelpPos({ x: ww - (ww < 640 ? 45 : 70), y: wh - (ww < 640 ? 140 : 160) });
 
     const handleResize = () => {
       setWindowSize({ w: window.innerWidth, h: window.innerHeight });
@@ -558,6 +577,24 @@ export function OnboardingTour() {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // ── Help Button Drag Handlers ──
+  const handleHelpPointerDown = useCallback((e: React.PointerEvent) => {
+    setIsHelpDragging(true);
+    helpDragStart.current = { x: e.clientX, y: e.clientY };
+    helpDragOffset.current = {
+      x: e.clientX - helpPos.x,
+      y: e.clientY - helpPos.y,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }, [helpPos]);
+
+  const handleHelpPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isHelpDragging) return;
+    const newX = Math.max(24, Math.min(window.innerWidth - 24, e.clientX - helpDragOffset.current.x));
+    const newY = Math.max(24, Math.min(window.innerHeight - 24, e.clientY - helpDragOffset.current.y));
+    setHelpPos({ x: newX, y: newY });
+  }, [isHelpDragging]);
 
   // ── Auto-show tour on initial homepage load ──
   useEffect(() => {
@@ -586,27 +623,18 @@ export function OnboardingTour() {
       if (el) {
         const rect = el.getBoundingClientRect();
         setTargetRect(rect);
-        // Scroll element into view if not visible
-        if (rect.top < 0 || rect.bottom > window.innerHeight) {
-          el.scrollIntoView({ behavior: "smooth", block: "center" });
-          setTimeout(() => {
-            setTargetRect(el.getBoundingClientRect());
-          }, 400);
-        }
       } else {
         setTargetRect(null);
       }
     };
 
-    const initTimer = setTimeout(updateRect, 100);
-    // Also re-check after DOM settles (some elements take time to render)
-    const settleTimer = setTimeout(updateRect, 500);
+    updateRect();
+    const initTimer = setTimeout(updateRect, 50);
     window.addEventListener("resize", updateRect);
     window.addEventListener("scroll", updateRect, true);
 
     return () => {
       clearTimeout(initTimer);
-      clearTimeout(settleTimer);
       window.removeEventListener("resize", updateRect);
       window.removeEventListener("scroll", updateRect, true);
     };
@@ -727,36 +755,33 @@ export function OnboardingTour() {
               onClick={handleSkip}
             />
 
-            {/* Spotlight cutout — element stays fully clear and visible, NO blur */}
-            <AnimatePresence mode="wait">
-              {targetRect && stepData.highlight && (
-                <motion.div
-                  key={`spotlight-${currentStep}`}
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 1.1 }}
-                  transition={{ type: "spring", damping: 25, stiffness: 250 }}
-                  className="absolute rounded-xl pointer-events-none"
-                  style={{
-                    left: targetRect.left - 8,
-                    top: targetRect.top - 8,
-                    width: targetRect.width + 16,
-                    height: targetRect.height + 16,
-                    boxShadow: "0 0 0 9999px rgba(0,0,0,0.50)",
-                    border: "2.5px solid rgba(255,255,255,0.8)",
-                    background: "transparent",
-                    zIndex: 9999,
-                  }}
-                >
-                  {/* Animated glow ring */}
-                  <div className="absolute -inset-1.5 rounded-xl border-2 border-blue-400/50 animate-pulse" />
-                  <div className="absolute -inset-3 rounded-2xl border border-blue-300/20 animate-pulse" style={{ animationDelay: "0.5s" }} />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* Spotlight cutout — smoothly glides between target elements without flickering */}
+            {targetRect && stepData.highlight && (
+              <motion.div
+                key="tour-spotlight"
+                initial={false}
+                animate={{
+                  left: targetRect.left - 6,
+                  top: targetRect.top - 6,
+                  width: targetRect.width + 12,
+                  height: targetRect.height + 12,
+                }}
+                transition={{ type: "spring", damping: 30, stiffness: 350 }}
+                className="absolute rounded-xl pointer-events-none"
+                style={{
+                  boxShadow: "0 0 0 9999px rgba(0,0,0,0.52)",
+                  border: "2px solid rgba(96,165,250,0.9)",
+                  background: "transparent",
+                  zIndex: 9999,
+                }}
+              >
+                {/* Animated glow ring */}
+                <div className="absolute -inset-1 rounded-xl border border-blue-400/50 animate-pulse" />
+              </motion.div>
+            )}
 
             {/* Animated Arrow from Card to Target */}
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
               {pos && targetRect && stepData.highlight && (
                 <AnimatedArrowToTarget
                   key={`arrow-${currentStep}`}
@@ -773,7 +798,7 @@ export function OnboardingTour() {
             </AnimatePresence>
 
             {/* Tooltip Card with Arrow */}
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
               {pos && (
                 pos.left === -1 ? (
                   /* Centered card — use flex wrapper so framer-motion can't break centering */
@@ -1116,33 +1141,36 @@ export function OnboardingTour() {
         )}
       </AnimatePresence>
 
-      {/* ─── Floating Help Button — right side, middle-right above Bella AI ─── */}
+      {/* ─── Draggable Floating Help Button (?) ─── */}
       {!isTourActive && (
         <div
-          className="fixed z-[55]"
+          onPointerDown={handleHelpPointerDown}
+          onPointerMove={handleHelpPointerMove}
+          onPointerUp={(e) => {
+            if (!isHelpDragging) return;
+            setIsHelpDragging(false);
+            const dx = Math.abs(e.clientX - helpDragStart.current.x);
+            const dy = Math.abs(e.clientY - helpDragStart.current.y);
+            if (dx < 6 && dy < 6) {
+              handleStartTour();
+            }
+          }}
+          className="fixed z-[55] touch-none select-none"
           style={{
-            right: isMobile ? "70px" : "85px",
-            // Position in middle-right area, shifted left to avoid overlapping with daily news
-            bottom: isMobile ? "120px" : "140px",
+            left: `${helpPos.x - 22}px`,
+            top: `${helpPos.y - 22}px`,
+            cursor: isHelpDragging ? "grabbing" : "grab",
           }}
           id="onboarding-help-btn"
         >
-          {/* Restart Tour FAB */}
-          <motion.button
+          <div
             ref={helpButtonRef}
-            onClick={handleStartTour}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className="relative size-11 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 flex items-center justify-center transition-shadow duration-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 dark:focus:ring-offset-zinc-900"
+            className="size-11 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-600/30 hover:shadow-blue-600/50 flex items-center justify-center transition-transform hover:scale-105 active:scale-95 cursor-pointer pointer-events-none"
             aria-label="Restart onboarding tour"
             title="Restart Tour"
           >
             <HelpCircle className="size-5" />
-            {/* Tooltip label */}
-            <span className="pointer-events-none absolute right-full mr-2 whitespace-nowrap rounded-lg bg-zinc-900 dark:bg-white px-2 py-1 text-[10px] font-semibold text-white dark:text-zinc-900 opacity-0 group-hover:opacity-100 transition-opacity hidden group-hover:block shadow-lg">
-              Restart Tour
-            </span>
-          </motion.button>
+          </div>
         </div>
       )}
     </>

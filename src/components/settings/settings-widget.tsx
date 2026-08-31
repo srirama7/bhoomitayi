@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Settings,
@@ -241,6 +241,39 @@ export function SettingsWidget() {
   const { i18n } = useTranslation();
   const [mounted, setMounted] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
+
+  // Draggable position state
+  const [position, setPosition] = useState({ x: 50, y: 120 });
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
+  const dragOffset = useRef({ x: 0, y: 0 });
+
+  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+    setIsDragging(true);
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    dragOffset.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }, [position]);
+
+  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const newX = Math.max(28, Math.min(window.innerWidth - 28, e.clientX - dragOffset.current.x));
+    const newY = Math.max(28, Math.min(window.innerHeight - 28, e.clientY - dragOffset.current.y));
+    setPosition({ x: newX, y: newY });
+  }, [isDragging]);
+
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const dx = Math.abs(e.clientX - dragStartPos.current.x);
+    const dy = Math.abs(e.clientY - dragStartPos.current.y);
+    if (dx < 6 && dy < 6) {
+      setOpen(true);
+    }
+  }, [isDragging, setOpen]);
 
   // Calculator States
   const [emiData, setEmiData] = useState({ principal: 5000000, down: 20, interest: 8.5, years: 20 });
@@ -548,16 +581,20 @@ export function SettingsWidget() {
 
       <AnimatePresence>
         {!open && (
-          <motion.div
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            className="fixed top-24 left-6 z-50"
+          <div
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            className="fixed z-50 touch-none select-none"
+            style={{
+              left: `${position.x - 24}px`,
+              top: `${position.y - 24}px`,
+              cursor: isDragging ? "grabbing" : "grab",
+            }}
           >
             <Button
               id="settings-widget"
-              onClick={() => setOpen(true)}
-              className="size-12 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 dark:from-zinc-600 dark:to-zinc-800 hover:from-zinc-800 hover:to-zinc-950 shadow-xl shadow-black/20 hover:shadow-black/40 transition-all duration-300"
+              className="size-12 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 dark:from-zinc-600 dark:to-zinc-800 hover:from-zinc-800 hover:to-zinc-950 shadow-xl shadow-black/20 hover:shadow-black/40 transition-all duration-300 pointer-events-none"
             >
               <motion.div
                 animate={{ rotate: open ? 0 : 360 }}
@@ -566,7 +603,7 @@ export function SettingsWidget() {
                 <Settings className="size-5 text-white" />
               </motion.div>
             </Button>
-          </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
@@ -574,13 +611,17 @@ export function SettingsWidget() {
         initial={false}
         animate={{ 
           opacity: open ? 1 : 0, 
-          x: open ? 0 : -20, 
           scale: open ? 1 : 0.95,
           pointerEvents: open ? "auto" : "none"
         }}
         transition={{ duration: 0.2 }}
-        className="fixed top-24 left-6 z-50 w-[320px] max-w-[calc(100vw-48px)] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden flex flex-col"
-        style={{ height: "600px", maxHeight: "calc(100vh - 120px)" }}
+        className="fixed z-50 w-[320px] max-w-[calc(100vw-32px)] rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xl overflow-hidden flex flex-col"
+        style={{
+          left: `${Math.max(16, Math.min(typeof window !== "undefined" ? window.innerWidth - 336 : 700, position.x - 160))}px`,
+          top: `${Math.max(16, Math.min(typeof window !== "undefined" ? window.innerHeight - 560 : 200, position.y + 32))}px`,
+          height: "560px",
+          maxHeight: "calc(100vh - 80px)",
+        }}
       >
             <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-zinc-700 to-zinc-900 text-white">
               <div className="flex items-center gap-2">

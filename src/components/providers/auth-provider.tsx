@@ -2,9 +2,10 @@
 
 import { useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
 import { useAuthStore } from "@/lib/store";
+import { DEFAULT_FREE_TOKENS } from "@/lib/constants";
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { setUser, setProfile, setLoading } = useAuthStore();
@@ -16,25 +17,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    let profileUnsub: (() => void) | null = null;
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
 
-      if (user && db) {
-        const profileRef = doc(db, "profiles", user.uid);
-        const profileSnap = await getDoc(profileRef);
-        if (profileSnap.exists()) {
-          setProfile({ id: profileSnap.id, ...profileSnap.data() } as import("@/lib/types/database").Profile);
-        } else {
-          setProfile(null);
-        }
-      } else {
-        setProfile(null);
+      if (profileUnsub) {
+        profileUnsub();
+        profileUnsub = null;
       }
 
-      setLoading(false);
+      if (user && db) {
+        const profileRef = doc(db, "profiles", user.uid);
+        profileUnsub = onSnapshot(profileRef, async (profileSnap) => {
+          if (profileSnap.exists()) {
+            const data = profileSnap.data();
+            let tokens = data.tokens;
+            const unlockedListings = data.unlocked_listings || [];
+
+            if (tokens === undefined || tokens === null) {
+              tokens = DEFAULT_FREE_TOKENS;
+              try {
+                await updateDoc(profileRef, {
+                  tokens: DEFAULT_FREE_TOKENS,
+                  unlocked_listings: unlockedListings,
+                });
+              } catch (e) {
+                console.error("Error setting default tokens:", e);
+              }
+            }
+
+            setProfile({
+              id: profileSnap.id,
+              ...data,
+              tokens: tokens ?? DEFAULT_FREE_TOKENS,
+              unlocked_listings: unlockedListings,
+            } as import("@/lib/types/database").Profile);
+          } else {
+            setProfile(null);
+          }
+          setLoading(false);
+        }, (err) => {
+          console.error("Profile snapshot error:", err);
+          setLoading(false);
+        });
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      if (profileUnsub) profileUnsub();
+      unsubscribe();
+    };
   }, [setUser, setProfile, setLoading]);
 
   return <>{children}</>;

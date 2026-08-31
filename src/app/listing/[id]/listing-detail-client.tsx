@@ -30,8 +30,9 @@ import {
   Wind, ShowerHead, Building2, Fence, Compass,
   Users, UtensilsCrossed, Home, ChevronRight, Flag,
   Gauge, Fuel, Settings2, Package, ShieldCheck, Trash2,
-  Phone, Mail, Copy,
+  Phone, Mail, Copy, Lock, Sparkles, Coins, Eye,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import type { Listing } from "@/lib/types/database";
 import { ReportButton } from "@/components/listings/report-button";
@@ -44,6 +45,8 @@ import { useAuthStore } from "@/lib/store";
 import { toast } from "sonner";
 import { formatPhoneWithCountryCode } from "@/lib/utils";
 import { QRCodeSVG } from "qrcode.react";
+import { BuyTokensDialog } from "@/components/tokens/buy-tokens-dialog";
+import { unlockListingWithToken } from "@/lib/tokens";
 
 export default function ListingDetailClient() {
   const params = useParams();
@@ -51,7 +54,7 @@ export default function ListingDetailClient() {
   const searchParams = useSearchParams();
   const queryId = searchParams.get("id");
   const id = (queryId || params.id) as string;
-  const { user } = useAuthStore();
+  const { user, profile: authProfile, setProfile: setAuthProfile } = useAuthStore();
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [profile, setProfile] = useState<{ full_name: string; phone: string | null; avatar_url: string | null; email?: string | null } | null>(null);
@@ -61,6 +64,8 @@ export default function ListingDetailClient() {
   const [deleting, setDeleting] = useState(false);
   const [showPinDialog, setShowPinDialog] = useState(false);
   const [submittingPin, setSubmittingPin] = useState(false);
+  const [showBuyTokensDialog, setShowBuyTokensDialog] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
 
   // Auto-translate states
   const [translatedTitle, setTranslatedTitle] = useState("");
@@ -110,7 +115,79 @@ export default function ListingDetailClient() {
     }
   };
 
+  const [unlockedLocally, setUnlockedLocally] = useState<boolean>(() => {
+    if (typeof window !== "undefined" && user && listing) {
+      try {
+        const stored = localStorage.getItem(`unlocked_${user.uid}`);
+        if (stored) {
+          const list = JSON.parse(stored);
+          return Array.isArray(list) && (list.includes(listing.id) || list.includes(String(id)));
+        }
+      } catch {}
+    }
+    return false;
+  });
+
   const isOwner = user && listing && user.uid === listing.user_id;
+  const isAdmin = authProfile?.role === "admin";
+  const isUnlocked = Boolean(
+    unlockedLocally ||
+    (listing && (
+      authProfile?.unlocked_listings?.includes(listing.id) ||
+      authProfile?.unlocked_listings?.includes(String(id))
+    ))
+  );
+
+  const handleUnlockContact = async () => {
+    if (!user) {
+      const currentUrl = typeof window !== "undefined" ? window.location.pathname + window.location.search : `/listing/${id}`;
+      router.push(`/auth/login?redirectTo=${encodeURIComponent(currentUrl)}`);
+      return;
+    }
+    if (!listing) return;
+
+    const currentTokens = authProfile?.tokens ?? 0;
+    if (currentTokens < 100) {
+      toast.info("You need 100 BhoomiTayi Tokens to view contact details. Please buy tokens.");
+      setShowBuyTokensDialog(true);
+      return;
+    }
+
+    setUnlocking(true);
+    try {
+      const res = await unlockListingWithToken(user.uid, listing.id);
+      if (res.success) {
+        setUnlockedLocally(true);
+        if (typeof window !== "undefined" && user) {
+          try {
+            const stored = localStorage.getItem(`unlocked_${user.uid}`);
+            const list = stored ? JSON.parse(stored) : [];
+            if (!list.includes(listing.id)) list.push(listing.id);
+            localStorage.setItem(`unlocked_${user.uid}`, JSON.stringify(list));
+          } catch {}
+        }
+        if (authProfile) {
+          const currentUnlocked = authProfile.unlocked_listings || [];
+          setAuthProfile({
+            ...authProfile,
+            tokens: res.remainingTokens ?? Math.max(0, currentTokens - 100),
+            unlocked_listings: currentUnlocked.includes(listing.id) ? currentUnlocked : [...currentUnlocked, listing.id],
+          });
+        }
+        toast.success("🎉 Contact details unlocked! 100 BhoomiTayi Tokens used.");
+      } else {
+        toast.error(res.error || "Failed to unlock contact details.");
+        if (res.error?.includes("Insufficient") || res.error?.includes("tokens")) {
+          setShowBuyTokensDialog(true);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to unlock contact details.");
+    } finally {
+      setUnlocking(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!listing) return;
@@ -249,15 +326,15 @@ export default function ListingDetailClient() {
           <ImageGallery images={listing.images ?? []} title={listing.title} />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 mt-6 sm:mt-10">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-6 sm:space-y-8 min-w-0">
             {/* Header */}
-            <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl rounded-[2.5rem] border border-white/40 dark:border-white/10 p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)]">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="flex flex-wrap items-center gap-4 mb-3">
-                    <div className="flex items-center gap-2">
+            <div className="bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl rounded-2xl sm:rounded-[2.5rem] border border-white/40 dark:border-white/10 p-4 sm:p-6 md:p-8 shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.08)] overflow-hidden">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-col gap-2.5 mb-3">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="secondary" className="capitalize rounded-lg bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border-blue-200 dark:border-blue-800">{listing.category}</Badge>
                       {listing.transaction_type && (
                         <Badge className="capitalize rounded-lg">{listing.transaction_type}</Badge>
@@ -267,27 +344,29 @@ export default function ListingDetailClient() {
                       )}
                     </div>
 
-                    {/* Translation Dropdown Bar */}
-                    <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 px-3 py-1.5 rounded-xl border border-zinc-200/40 dark:border-zinc-700/40 shrink-0">
-                      <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 flex items-center gap-1">
-                        🌐 Translation:
+                    {/* Translation Horizontal Scroll Bar */}
+                    <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800/80 p-1.5 rounded-xl border border-zinc-200/40 dark:border-zinc-700/40 max-w-full overflow-x-auto scrollbar-none">
+                      <span className="text-[11px] font-bold text-zinc-500 dark:text-zinc-400 flex items-center gap-1 shrink-0 pl-1">
+                        🌐 Translate:
                       </span>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 shrink-0">
                         {[
                           { code: "", label: "Original" },
                           { code: "en", label: "English" },
                           { code: "kn", label: "ಕನ್ನಡ" },
                           { code: "hi", label: "हिन्दी" },
                           { code: "ta", label: "தமிழ்" },
-                          { code: "te", label: "తెలుగు" }
+                          { code: "te", label: "తెలుగు" },
+                          { code: "ml", label: "മലയാളം" },
+                          { code: "mr", label: "मराठी" }
                         ].map((lang) => (
                           <button
                             key={lang.code}
                             disabled={translating}
                             onClick={() => handleTranslate(lang.code)}
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-all ${
+                            className={`text-[10px] font-bold px-2 py-1 rounded-md transition-all shrink-0 ${
                               translationLang === lang.code
-                                ? "bg-blue-600 text-white"
+                                ? "bg-blue-600 text-white shadow-sm"
                                 : "bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
                             } disabled:opacity-50`}
                           >
@@ -296,14 +375,14 @@ export default function ListingDetailClient() {
                         ))}
                       </div>
                       {translating && (
-                        <span className="text-[10px] text-blue-500 animate-pulse ml-1">Translating...</span>
+                        <span className="text-[10px] text-blue-500 animate-pulse ml-1 shrink-0">Translating...</span>
                       )}
                     </div>
                   </div>
-                  <h1 className="text-2xl md:text-3xl font-bold text-foreground">{translatedTitle || listing.title}</h1>
-                  <p className="flex items-center gap-1.5 text-muted-foreground mt-2">
-                    <MapPin className="h-4 w-4 text-blue-500" />
-                    {translatedAddress || listing.address}{listing.pincode ? ` - ${listing.pincode}` : ""}
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-foreground break-words">{translatedTitle || listing.title}</h1>
+                  <p className="flex items-start sm:items-center gap-1.5 text-xs sm:text-sm text-muted-foreground mt-2 break-words">
+                    <MapPin className="h-4 w-4 text-blue-500 shrink-0 mt-0.5 sm:mt-0" />
+                    <span>{translatedAddress || listing.address}{listing.pincode ? ` - ${listing.pincode}` : ""}</span>
                   </p>
                   <div className="mt-4">
                     <ListingCountdown
@@ -313,13 +392,13 @@ export default function ListingDetailClient() {
                     />
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  {listing.transaction_type && (
-                    <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-3 py-1 text-sm font-semibold text-blue-700 dark:text-blue-300 capitalize">
+                {listing.transaction_type && (
+                  <div className="self-start sm:self-auto shrink-0">
+                    <span className="inline-flex items-center rounded-full bg-blue-100 dark:bg-blue-900/40 px-3 py-1 text-xs sm:text-sm font-semibold text-blue-700 dark:text-blue-300 capitalize">
                       {listing.transaction_type}
                     </span>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -453,7 +532,7 @@ export default function ListingDetailClient() {
 
           {/* Sidebar */}
           <div className="space-y-4">
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <FavoriteButton listingId={listing.id} size="default" variant="outline" />
               <ShareButton title={listing.title} />
               <QrButton title={listing.title} />
@@ -497,52 +576,240 @@ export default function ListingDetailClient() {
               )}
             </div>
 
-            {profile && (
-              <Card className="rounded-[2.5rem] border-0 shadow-2xl bg-gradient-to-br from-white/80 to-white/40 dark:from-zinc-900/80 dark:to-zinc-900/40 backdrop-blur-3xl overflow-hidden relative group">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" />
-                <CardContent className="p-8 space-y-6 relative z-10">
-                  <div>
-                    <h3 className="font-bold text-xl text-foreground flex items-center gap-2 mb-4">
-                      Contact Details
+            {/* Contact Details Card with BhoomiTayi Token Blockade */}
+            <Card className="rounded-2xl sm:rounded-[2.5rem] border-0 shadow-2xl bg-gradient-to-br from-white/80 to-white/40 dark:from-zinc-900/80 dark:to-zinc-900/40 backdrop-blur-3xl overflow-hidden relative group">
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+              <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-emerald-500 via-blue-500 to-indigo-500" />
+              
+              <CardContent className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6 relative z-10">
+                <div>
+                  <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    <h3 className="font-bold text-lg sm:text-xl text-foreground flex items-center gap-2">
+                      <Image src="/contact_icon.png" alt="Contact Icon" width={24} height={24} className="rounded-lg object-cover" />
+                      <span>Contact Details</span>
                     </h3>
-                    
-                    <div className="flex items-center gap-4 p-3 rounded-xl bg-muted/30 border border-zinc-100 dark:border-zinc-800/50 mb-6">
-                      {profile.avatar_url ? (
-                        <img src={profile.avatar_url} alt={profile.full_name} className="w-14 h-14 rounded-full object-cover shadow-sm ring-2 ring-background" />
-                      ) : (
-                        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-2xl shadow-sm border border-blue-200/50 dark:border-blue-800/50">
-                          {profile.full_name.charAt(0)}
+                    {isUnlocked && (
+                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800 font-bold text-[10px] gap-1">
+                        <Sparkles className="size-3" /> Unlocked
+                      </Badge>
+                    )}
+                  </div>
+
+                  {/* Seller Header */}
+                  <div className="flex items-center gap-3 sm:gap-4 p-2.5 sm:p-3 rounded-xl bg-muted/30 border border-zinc-100 dark:border-zinc-800/50 mb-4 sm:mb-6">
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt={profile.full_name} className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-cover shadow-sm ring-2 ring-background shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xl sm:text-2xl shadow-sm border border-blue-200/50 dark:border-blue-800/50 shrink-0">
+                        {(profile?.full_name || listing.owner_name || "S").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="font-bold text-base sm:text-lg text-foreground leading-tight truncate">
+                        {profile?.full_name || listing.owner_name || "Verified Seller"}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5 uppercase tracking-wider font-medium">
+                        Verified Seller
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* CASE 1: NOT LOGGED IN - BLOCKADE */}
+                  {!user ? (
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50/80 via-indigo-50/50 to-purple-50/80 dark:from-zinc-800/60 dark:via-zinc-800/40 dark:to-zinc-800/60 border border-blue-200/60 dark:border-blue-900/40 text-center space-y-3 shadow-inner">
+                        <div className="size-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center mx-auto shadow-md">
+                          <Lock className="size-6" />
                         </div>
-                      )}
-                      <div>
-                        <p className="font-bold text-lg text-foreground leading-tight">{profile.full_name}</p>
-                        <p className="text-xs text-muted-foreground mt-1 uppercase tracking-wider font-medium">Verified Seller</p>
+                        <div>
+                          <h4 className="font-extrabold text-foreground text-sm">
+                            Contact Details Locked
+                          </h4>
+                          <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto leading-relaxed">
+                            Sign in to access verified phone numbers, direct calls, and WhatsApp chat.
+                          </p>
+                        </div>
+
+                        {/* Free tokens perk badge */}
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-100/80 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-800 text-[11px] font-bold shadow-sm">
+                          <Image src="/token_icon.png" alt="Token" width={18} height={18} className="rounded-full" />
+                          <span>Get 200 Free BhoomiTayi Tokens on Sign Up!</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          <Button
+                            className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold h-10 text-xs shadow-md"
+                            onClick={() => {
+                              const curr = typeof window !== "undefined" ? window.location.pathname + window.location.search : `/listing/${id}`;
+                              router.push(`/auth/login?redirectTo=${encodeURIComponent(curr)}`);
+                            }}
+                          >
+                            Sign In
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="w-full rounded-xl border-blue-300 dark:border-blue-800 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:hover:bg-zinc-800 font-bold h-10 text-xs"
+                            onClick={() => {
+                              const curr = typeof window !== "undefined" ? window.location.pathname + window.location.search : `/listing/${id}`;
+                              router.push(`/auth/signup?redirectTo=${encodeURIComponent(curr)}`);
+                            }}
+                          >
+                            Create Account
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Location and Posted date always visible */}
+                      <div className="space-y-3 pt-1 border-t border-zinc-100 dark:border-zinc-800">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50">
+                            <MapPin className="size-4" />
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Location</p>
+                            <p className="text-sm font-semibold text-foreground leading-snug">{translatedAddress || listing.address}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/50">
+                            <Calendar className="size-4" />
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Posted On</p>
+                            <p className="text-sm font-semibold text-foreground">{(() => { const d = new Date(listing.created_at); return `${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })} ${d.getFullYear()}`; })()}</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
-
+                  ) : !isUnlocked ? (
+                    /* CASE 2: LOGGED IN, BUT NOT UNLOCKED - REQUIRES 1 TOKEN */
                     <div className="space-y-4">
-                      {(profile.phone || listing.owner_phone) && (
+                      {/* Masked Info */}
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50">
+                            <Phone className="size-4" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Phone Number</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-sm font-semibold text-zinc-400 select-none blur-[3px]">
+                                +91 98765 43210
+                              </span>
+                              <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50">
+                                🔒 Hidden
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50">
+                            <Mail className="size-4" />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Email Address</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <span className="text-sm font-semibold text-zinc-400 select-none blur-[3px]">
+                                seller@bhoomitayi.com
+                              </span>
+                              <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50">
+                                🔒 Hidden
+                              </Badge>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/50">
+                            <MapPin className="size-4" />
+                          </div>
+                          <div>
+                            <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Location</p>
+                            <p className="text-sm font-semibold text-foreground leading-snug">{translatedAddress || listing.address}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Unlock Action Container */}
+                      <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-50 via-teal-50 to-blue-50 dark:from-emerald-950/30 dark:via-zinc-900 dark:to-teal-950/30 border border-emerald-200 dark:border-emerald-800/60 space-y-3 shadow-md">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Image src="/token_icon.png" alt="Token" width={24} height={24} className="rounded-full" />
+                            <span className="text-xs font-black text-foreground">Spend 100 Tokens</span>
+                          </div>
+                          <div className="flex items-center gap-1 bg-white dark:bg-zinc-800 px-2 py-0.5 rounded-lg border border-emerald-200 dark:border-emerald-800 text-[11px] font-bold text-foreground">
+                            <span>Balance:</span>
+                            <span className="text-emerald-600 dark:text-emerald-400">🪙 {authProfile?.tokens ?? 0}</span>
+                          </div>
+                        </div>
+
+                        <p className="text-xs text-muted-foreground leading-relaxed">
+                          Unlock full phone number, direct phone calling & WhatsApp chat with 100 BhoomiTayi Tokens.
+                        </p>
+
+                        <Button
+                          className="w-full rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-blue-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold h-11 text-sm shadow-md gap-2"
+                          onClick={handleUnlockContact}
+                          disabled={unlocking}
+                        >
+                          <Image src="/token_icon.png" alt="" width={18} height={18} className="rounded-full" />
+                          <span>{unlocking ? "Unlocking..." : "Unlock Contact Details (100 Tokens)"}</span>
+                        </Button>
+
+                        <button
+                          type="button"
+                          onClick={() => setShowBuyTokensDialog(true)}
+                          className="w-full text-center text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline pt-0.5"
+                        >
+                          + Need more tokens? Buy BhoomiTayi Tokens (from ₹49)
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 mt-4">
+                        <Button 
+                          className="w-full rounded-xl bg-gradient-to-r from-blue-600/70 to-indigo-600/70 hover:from-blue-600 hover:to-indigo-600 text-white shadow-md font-bold h-11 text-xs gap-1.5"
+                          onClick={handleUnlockContact}
+                        >
+                          <Lock className="size-3.5" />
+                          <span>Unlock to Call</span>
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="w-full rounded-xl border-emerald-500/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-bold h-11 text-xs gap-1.5"
+                          onClick={handleUnlockContact}
+                        >
+                          <Lock className="size-3.5" />
+                          <span>Unlock to Chat</span>
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    /* CASE 3: FULLY UNLOCKED */
+                    <div className="space-y-4">
+                      {(profile?.phone || listing.owner_phone) && (
                         <div className="flex items-start gap-3">
                           <div className="mt-0.5 p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50">
                             <Phone className="size-4" />
                           </div>
                           <div>
                             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Phone Number</p>
-                            <a href={`tel:${formatPhoneWithCountryCode(profile.phone || listing.owner_phone || "")}`} className="text-sm font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{formatPhoneWithCountryCode(profile.phone || listing.owner_phone || "")}</a>
+                            <a href={`tel:${formatPhoneWithCountryCode(profile?.phone || listing.owner_phone || "")}`} className="text-sm font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                              {formatPhoneWithCountryCode(profile?.phone || listing.owner_phone || "")}
+                            </a>
                           </div>
                         </div>
                       )}
 
-                      {(profile.email || listing.owner_email) && (
+                      {(profile?.email || listing.owner_email) && (
                         <div className="flex items-start gap-3">
                           <div className="mt-0.5 p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/50">
                             <Mail className="size-4" />
                           </div>
                           <div>
                             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Email Address</p>
-                            <a href={`mailto:${profile.email || listing.owner_email}`} className="text-sm font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate block max-w-[180px]">
-                              {profile.email || listing.owner_email}
+                            <a href={`mailto:${profile?.email || listing.owner_email}`} className="text-sm font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors truncate block max-w-[180px]">
+                              {profile?.email || listing.owner_email}
                             </a>
                           </div>
                         </div>
@@ -567,38 +834,38 @@ export default function ListingDetailClient() {
                           <p className="text-sm font-semibold text-foreground">{(() => { const d = new Date(listing.created_at); return `${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'long' })} ${d.getFullYear()}`; })()}</p>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-3 mt-8">
-                      {(profile.phone || listing.owner_phone) && (
-                        <>
-                          <Button 
-                            className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md font-bold h-11"
-                            onClick={() => window.location.href = `tel:${formatPhoneWithCountryCode(profile.phone || listing.owner_phone || "")}`}
-                          >
-                            <Phone className="mr-2 size-4" />
-                            Call
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            className="w-full rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-bold h-11"
-                            onClick={() => {
-                              const ph = formatPhoneWithCountryCode(profile.phone || listing.owner_phone || "");
-                              if (ph) window.open(`https://wa.me/${ph.replace(/\D/g, '')}`, '_blank');
-                            }}
-                          >
-                            <svg className="mr-2 size-4 fill-current" viewBox="0 0 24 24">
-                              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                            </svg>
-                            Chat
-                          </Button>
-                        </>
-                      )}
+                      <div className="grid grid-cols-2 gap-3 mt-8">
+                        {(profile?.phone || listing.owner_phone) && (
+                          <>
+                            <Button 
+                              className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md font-bold h-11"
+                              onClick={() => window.location.href = `tel:${formatPhoneWithCountryCode(profile?.phone || listing.owner_phone || "")}`}
+                            >
+                              <Phone className="mr-2 size-4" />
+                              Call
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              className="w-full rounded-xl border-emerald-200 dark:border-emerald-800 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 font-bold h-11"
+                              onClick={() => {
+                                const ph = formatPhoneWithCountryCode(profile?.phone || listing.owner_phone || "");
+                                if (ph) window.open(`https://wa.me/${ph.replace(/\D/g, '')}`, '_blank');
+                              }}
+                            >
+                              <svg className="mr-2 size-4 fill-current" viewBox="0 0 24 24">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                              </svg>
+                              Chat
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                  )}
+                </div>
+              </CardContent>
+            </Card>
 
             {!canReceiveInquiries && (
               <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80">
@@ -613,13 +880,15 @@ export default function ListingDetailClient() {
           </div>
         </div>
 
-        {/* Similar Listings */}
+        {/* Similar Listings with Mobile Slider */}
         {similar.length > 0 && (
-          <div className="mt-16">
-            <h2 className="text-2xl font-bold mb-6 text-foreground">Similar Properties</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mt-10 sm:mt-16">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-foreground">Similar Properties</h2>
+            <div className="flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 overflow-x-auto sm:overflow-x-visible pb-4 sm:pb-0 snap-x snap-mandatory scrollbar-none">
               {similar.map((item) => (
-                <ListingCard key={item.id} listing={item} />
+                <div key={item.id} className="min-w-[280px] sm:min-w-0 snap-start flex-1">
+                  <ListingCard listing={item} />
+                </div>
               ))}
             </div>
           </div>
@@ -699,6 +968,12 @@ export default function ListingDetailClient() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Buy Tokens Dialog */}
+      <BuyTokensDialog
+        open={showBuyTokensDialog}
+        onOpenChange={setShowBuyTokensDialog}
+      />
     </div>
   );
 }

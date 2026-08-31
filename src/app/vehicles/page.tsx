@@ -7,6 +7,7 @@ import { Filters } from "@/components/listings/filters";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
+import Image from "next/image";
 import { Car } from "lucide-react";
 import { getListings } from "@/lib/queries";
 import type { Listing } from "@/lib/types/database";
@@ -46,23 +47,39 @@ function VehiclesContent() {
   }, [txn, page, sort, minPrice, maxPrice, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50/50 via-white to-rose-50/50 dark:from-zinc-950 dark:via-zinc-900/90 dark:to-zinc-950 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-red-200 via-red-100 to-rose-200 dark:from-red-800 dark:via-rose-900 dark:to-red-700 relative overflow-hidden">
       {/* Decorative bright mesh background */}
       <div className="absolute top-0 right-0 w-[50vw] h-[50vw] bg-red-400/20 dark:bg-red-600/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
       <div className="absolute bottom-0 left-0 w-[40vw] h-[40vw] bg-rose-400/20 dark:bg-rose-600/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen" />
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] dark:opacity-[0.05] mix-blend-overlay pointer-events-none" />
 
-      <div className="relative overflow-hidden bg-gradient-to-br from-red-500 to-rose-600 dark:from-red-900/80 dark:to-rose-900/80 shadow-2xl">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-red-300/40 blur-3xl mix-blend-overlay" />
-          <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-rose-300/40 blur-3xl mix-blend-overlay" />
+      <div className="relative overflow-hidden shadow-2xl min-h-[280px] sm:min-h-[340px] flex items-center justify-center">
+        {/* Background Image */}
+        <Image
+          src="/categories/vehicles.png"
+          alt="Vehicles"
+          fill
+          priority
+          className="object-cover object-center pointer-events-none"
+        />
+        {/* Semi-transparent theme overlay to maintain text readability while showing the image */}
+        <div className="absolute inset-0 bg-gradient-to-r from-red-950/60 via-slate-900/40 to-rose-950/60" />
+        <div className="absolute inset-0 bg-black/20" />
+        
+        {/* Glowing aura blobs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-red-400/25 blur-3xl mix-blend-screen" />
+          <div className="absolute -bottom-20 -left-20 h-64 w-64 rounded-full bg-rose-500/25 blur-3xl mix-blend-screen" />
         </div>
-        <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 flex flex-col items-center text-center">
-          <div className="flex items-center justify-center size-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 shadow-xl mb-6">
+
+        <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 flex flex-col items-center text-center">
+          <div className="flex items-center justify-center size-16 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 shadow-xl mb-6 ring-1 ring-white/20">
             <Car className="size-8 text-white drop-shadow-md" />
           </div>
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white drop-shadow-md mb-4">Vehicles</h1>
-          <p className="text-red-50 text-xl max-w-2xl font-medium">
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white drop-shadow-[0_4px_16px_rgba(0,0,0,0.85)] mb-4">
+            Vehicles
+          </h1>
+          <p className="text-red-100 text-xl max-w-2xl font-medium drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
             Buy and sell cars, bikes, scooters, trucks, and more.
           </p>
         </div>
@@ -84,11 +101,7 @@ function VehiclesContent() {
         </Tabs>
 
         <div className="flex flex-col lg:flex-row gap-6">
-          <div className="w-full lg:w-64 shrink-0">
-            <div className="sticky top-24 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl border border-black/5 dark:border-white/10 rounded-2xl p-4 shadow-xl">
-              <Filters category="vehicle" />
-            </div>
-          </div>
+          <Filters category="vehicle" />
           {loading ? (
             <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
@@ -96,7 +109,7 @@ function VehiclesContent() {
               ))}
             </div>
           ) : (
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <ListingGrid listings={listings} totalCount={count} currentPage={page} />
             </div>
           )}

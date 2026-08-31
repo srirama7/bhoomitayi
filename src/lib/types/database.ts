@@ -13,8 +13,26 @@ export interface Profile {
   phone: string | null;
   avatar_url: string | null;
   role: "user" | "admin";
+  tokens?: number;
+  unlocked_listings?: string[];
   created_at: string;
   updated_at: string;
+}
+
+export interface TokenRequest {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_email?: string | null;
+  user_phone?: string | null;
+  tokens: number;
+  amount: number;
+  transaction_id?: string | null;
+  payment_proof?: string | null;
+  status: "pending" | "approved" | "rejected";
+  notes?: string | null;
+  created_at: string;
+  updated_at?: string | null;
 }
 
 export interface Listing {
@@ -50,6 +68,13 @@ export interface Listing {
   details?: Json;
   created_at: string;
   updated_at: string;
+  pinned?: boolean;
+  pin_status?: "none" | "pending_approval" | "approved" | "rejected";
+  pin_payment_status?: "pending" | "approved";
+  pin_payment_amount?: number;
+  pin_requested_at?: string;
+  pin_expires_at?: string | null;
+  favorites_count?: number;
 }
 
 export interface Favorite {
@@ -138,4 +163,20 @@ export interface CommodityDetails {
   condition: string;
   warranty?: boolean;
   age_months?: number;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  discount_type: "percentage" | "fixed";
+  discount_value: number; // e.g. 50 (for 50%) or 20 (for ₹20 off)
+  min_order_value?: number;
+  max_discount_amount?: number;
+  expires_at?: string | null;
+  applicable_to: "all" | "tokens" | "listings";
+  is_active: boolean;
+  usage_count?: number;
+  max_uses?: number | null;
+  created_at: string;
+  created_by?: string;
 }

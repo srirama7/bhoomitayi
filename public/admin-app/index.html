@@ -39,7 +39,7 @@
       <div class="login-title">BhoomiTayi Admin</div>
       <div class="login-sub">Payment Verification Panel</div>
       <label class="login-label">Username</label>
-      <input id="username" class="login-input" placeholder="Enter username">
+      <input id="username" class="login-input" placeholder="Enter username" autofocus>
       <label class="login-label">Password</label>
       <input id="password" class="login-input" type="password" placeholder="Enter password">
       <button id="loginBtn" class="login-btn">Sign In</button>
@@ -74,11 +74,16 @@
       </div>
     </div>
     <div class="tabs">
-      <button class="tab active" data-tab="overview">Overview</button>
-      <button class="tab" data-tab="listings">Listings</button>
-      <button class="tab" data-tab="users">Users</button>
-      <button class="tab" data-tab="favorites">Favorites</button>
-      <button class="tab" data-tab="reports">Reports</button>
+      <div class="nav-links">
+        <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+        <button class="tab" data-tab="tokens">🪙 Tokens & Boosters</button>
+        <button class="tab" data-tab="coupons">🎟️ Promo Codes</button>
+        <button class="tab" data-tab="listings">🏡 Listings</button>
+        <button class="tab" data-tab="users">👥 Users</button>
+        <button class="tab" data-tab="favorites">❤️ Favorites</button>
+        <button class="tab" data-tab="reports">🚩 Reports</button>
+        <button class="tab" data-tab="feedback">💬 Feedback</button>
+      </div>
       <button class="tab" data-tab="analytics">Analytics</button>
       <button class="tab" data-tab="revenue">Revenue</button>
       <button class="tab" data-tab="moderation">Moderation</button>
@@ -94,7 +99,9 @@
         <div class="stat-card"><div class="stat-label"><span class="dot dot-orange"></span> Awaiting Approval</div><div class="stat-value" id="statPending">0</div></div>
         <div class="stat-card"><div class="stat-label"><span class="dot dot-green"></span> Live</div><div class="stat-value" id="statActive">0</div></div>
         <div class="stat-card"><div class="stat-label"><span class="dot dot-red"></span> Rejected</div><div class="stat-value" id="statRejected">0</div></div>
+        <div class="stat-card hover-bg" onclick="switchTab('listings'); setFilter('pin_requests');" style="border-color:#f59e0b; cursor:pointer;"><div class="stat-label"><span class="dot" style="background:#f59e0b"></span> Pin Requests</div><div class="stat-value" id="statPinRequests" style="color:#f59e0b;">0</div></div>
       </div>
+
       <div class="revenue-cards">
         <div class="revenue-card rev-green"><div class="rev-label">Total Listing Value</div><div class="rev-value" id="revTotal">₹0</div><div class="rev-sub" id="revTotalSub">Across 0 listings</div></div>
         <div class="revenue-card rev-yellow"><div class="rev-label">Active Timers</div><div class="rev-value" id="revTimers">0</div><div class="rev-sub">Listings with active timers</div></div>
@@ -121,14 +128,156 @@
       </div>
     </div>
 
+    <!-- TOKEN REQUESTS & BOOSTERS -->
+    <div id="tab-tokens" class="content hidden">
+      
+      <div class="header-actions">
+        <div>
+          <h2 style="font-size:20px; color:#0f172a; margin:0; display:flex; align-items:center; gap:8px;">
+            <span>🪙 BhoomiTayi Tokens & Boosters</span>
+          </h2>
+          <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">Verify QR code payments, approve token packages, booster listing payments, or manually grant tokens to any Gmail account.</p>
+        </div>
+        <button class="btn btn-primary" onclick="exportTokenRequestsCSV()">⬇ Export CSV</button>
+      </div>
+
+      <div class="stats-row" id="tokenStatsRow">
+        <div class="stat-card active" onclick="setTokenFilter('all')"><div class="stat-label"><span class="dot dot-blue"></span> All Requests</div><div class="stat-value" id="statTokenAll">0</div></div>
+        <div class="stat-card" onclick="setTokenFilter('pending')"><div class="stat-label"><span class="dot dot-orange"></span> Pending Approval</div><div class="stat-value" id="statTokenPending" style="color:#d97706;">0</div></div>
+        <div class="stat-card" onclick="setTokenFilter('approved')"><div class="stat-label"><span class="dot dot-green"></span> Approved & Credited</div><div class="stat-value" id="statTokenApproved" style="color:#16a34a;">0</div></div>
+        <div class="stat-card" onclick="setTokenFilter('rejected')"><div class="stat-label"><span class="dot dot-red"></span> Rejected</div><div class="stat-value" id="statTokenRejected">0</div></div>
+      </div>
+
+      <!-- Manual Grant Card -->
+      <div class="chart-card" style="margin-bottom:20px; background:linear-gradient(135deg, rgba(16,185,129,0.05), rgba(59,130,246,0.05)); border:1px solid #a7f3d0;">
+        <h3 class="chart-title" style="color:#065f46; display:flex; align-items:center; gap:6px;">
+          <span>✍️ Manual Token Grant to Any Gmail Account</span>
+        </h3>
+        <p style="font-size:12px; color:#64748b; margin-bottom:12px;">Directly add tokens to any customer (e.g. if they paid via cash or offline SBI QR code).</p>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:flex-end;">
+          <div style="flex:2; min-width:240px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:#334155; margin-bottom:4px;">Customer Gmail / Email *</label>
+            <input type="email" id="manualGrantEmail" class="search-bar" style="margin:0; padding:10px 12px; border-radius:8px; width:100%; border:1px solid #cbd5e1;" placeholder="e.g. customer@gmail.com">
+          </div>
+          <div style="flex:1; min-width:130px;">
+            <label style="display:block; font-size:11px; font-weight:700; color:#334155; margin-bottom:4px;">Tokens Count *</label>
+            <input type="number" id="manualGrantTokens" min="1" max="100000" class="search-bar" style="margin:0; padding:10px 12px; border-radius:8px; width:100%; border:1px solid #cbd5e1; font-weight:bold;" value="300">
+          </div>
+          <button class="btn btn-primary" style="background:#059669; border-color:#059669; padding:10px 18px; font-weight:bold;" onclick="doManualGrantTokens()">+ Grant Tokens Now</button>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center; margin-top:10px;">
+          <span style="font-size:11px; color:#64748b; font-weight:600;">Presets:</span>
+          <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="document.getElementById('manualGrantTokens').value=100">+100 Tokens</button>
+          <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="document.getElementById('manualGrantTokens').value=300">+300 Tokens</button>
+          <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="document.getElementById('manualGrantTokens').value=700">+700 Tokens</button>
+          <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="document.getElementById('manualGrantTokens').value=1500">+1500 Tokens</button>
+          <button class="btn" style="padding:2px 8px; font-size:11px;" onclick="document.getElementById('manualGrantTokens').value=3200">+3200 Tokens</button>
+        </div>
+      </div>
+
+      <!-- Search and Filters -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; gap:10px;">
+        <div class="search-bar" style="margin:0; flex:1; max-width:500px;">
+          <input type="text" id="tokenSearchInput" placeholder="Search requests by user name, email, or transaction UTR..." style="width:100%" oninput="renderTokenRequests()">
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" onclick="setTokenFilter('all')" id="tokenBtn-all" style="background:#3b82f6; color:white;">All</button>
+          <button class="btn" onclick="setTokenFilter('pending')" id="tokenBtn-pending">Pending</button>
+          <button class="btn" onclick="setTokenFilter('approved')" id="tokenBtn-approved">Approved</button>
+          <button class="btn" onclick="setTokenFilter('rejected')" id="tokenBtn-rejected">Rejected</button>
+        </div>
+      </div>
+
+      <!-- Token Requests List Container -->
+      <div id="tokenRequestsContainer"></div>
+    </div>
+
+    <!-- COUPON GENERATOR -->
+    <div id="tab-coupons" class="content hidden">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <div>
+          <h2 class="section-title" style="margin:0; display:flex; align-items:center; gap:8px;">
+            <span>🎟️ Custom Coupon & Promo Code Generator</span>
+          </h2>
+          <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">Create discount codes to reduce BhoomiTayi Token package prices and listing booster pack fees.</p>
+        </div>
+      </div>
+
+      <!-- Coupon Generator Card -->
+      <div class="chart-card" style="margin-bottom:20px; background:linear-gradient(135deg, rgba(99,102,241,0.05), rgba(168,85,247,0.05)); border:1px solid #c7d2fe;">
+        <h3 class="chart-title" style="color:#4338ca; display:flex; align-items:center; gap:6px;">
+          <span>✨ Create New Custom Coupon</span>
+        </h3>
+        
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:14px; margin-top:12px;">
+          <div>
+            <label style="display:block; font-size:11px; font-weight:700; color:#334155; margin-bottom:4px;">Coupon Code * (e.g. DISCOUNT50)</label>
+            <input type="text" id="newCouponCode" class="search-bar" style="margin:0; padding:9px 12px; border-radius:8px; width:100%; border:1px solid #cbd5e1; font-family:monospace; font-weight:bold; text-transform:uppercase;" placeholder="SAVE50">
+          </div>
+
+          <div>
+            <label style="display:block; font-size:11px; font-weight:700; color:#334155; margin-bottom:4px;">Discount Type *</label>
+            <select id="newCouponType" class="search-bar" style="margin:0; padding:9px 12px; border-radius:8px; width:100%; border:1px solid #cbd5e1; background:white; font-weight:600;">
+              <option value="percentage">Percentage Off (%)</option>
+              <option value="fixed">Fixed Amount Off (₹)</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block; font-size:11px; font-weight:700; color:#334155; margin-bottom:4px;">Discount Value * (% or ₹)</label>
+            <input type="number" id="newCouponValue" min="1" max="10000" class="search-bar" style="margin:0; padding:9px 12px; border-radius:8px; width:100%; border:1px solid #cbd5e1; font-weight:bold;" value="50" placeholder="e.g. 50">
+          </div>
+
+          <div>
+            <label style="display:block; font-size:11px; font-weight:700; color:#334155; margin-bottom:4px;">Applies To *</label>
+            <select id="newCouponApplies" class="search-bar" style="margin:0; padding:9px 12px; border-radius:8px; width:100%; border:1px solid #cbd5e1; background:white; font-weight:600;">
+              <option value="all">All (Tokens & Listing Fees)</option>
+              <option value="tokens">🪙 Tokens Store Only</option>
+              <option value="listings">📋 Listing Booster Fees Only</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="display:block; font-size:11px; font-weight:700; color:#334155; margin-bottom:4px;">Max Uses / Limit (Optional)</label>
+            <input type="number" id="newCouponMaxUses" min="1" class="search-bar" style="margin:0; padding:9px 12px; border-radius:8px; width:100%; border:1px solid #cbd5e1;" placeholder="Unlimited if empty">
+          </div>
+
+          <div>
+            <label style="display:block; font-size:11px; font-weight:700; color:#334155; margin-bottom:4px;">Expiry Date (Optional)</label>
+            <input type="date" id="newCouponExpiry" class="search-bar" style="margin:0; padding:9px 12px; border-radius:8px; width:100%; border:1px solid #cbd5e1; background:white;">
+          </div>
+        </div>
+
+        <div style="margin-top:14px; display:flex; justify-content:flex-end; gap:10px;">
+          <button class="btn" onclick="generateRandomCouponCode()">🎲 Suggest Random Code</button>
+          <button class="btn btn-primary" style="background:#4f46e5; border-color:#4f46e5; font-weight:bold; padding:10px 20px;" onclick="doCreateCoupon()">+ Create & Activate Coupon</button>
+        </div>
+      </div>
+
+      <!-- Live Coupons List -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 class="chart-title" style="margin:0;">Active & Generated Coupons</h3>
+        <div class="search-bar" style="margin:0; max-width:300px;">
+          <input type="text" id="couponSearchInput" placeholder="Search coupons..." style="width:100%" oninput="renderCoupons()">
+        </div>
+      </div>
+
+      <div id="couponsContainer"></div>
+    </div>
+
     <!-- LISTINGS -->
     <div id="tab-listings" class="content hidden">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <div class="search-bar" style="margin:0; flex:1; max-width:500px;"><input type="text" id="searchInput" placeholder="Search listings by title, user name, phone..." style="width:100%"></div>
-        <button class="btn btn-primary" onclick="exportListingsCSV()">⬇ Export CSV</button>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" onclick="exportListingsCSV()">⬇ Export CSV</button>
+          <button class="btn btn-primary" onclick="downloadAllListingPhotos()" style="background-color:#8b5cf6; border-color:#8b5cf6; color:white;">📷 Download Photos</button>
+        </div>
       </div>
       <div class="stats-row" id="listingStats"></div>
-      <input class="search-bar" id="searchInput" placeholder="Search by title, name, phone, category, address...">
+      <div class="search-bar" style="margin:0; width:100%; max-width:100%; margin-bottom:15px;">
+        <input type="text" id="searchInput" placeholder="Search by title, name, phone, category, address..." style="width:100%; padding: 12px; font-size: 15px;" oninput="renderListings()">
+      </div>
       <div id="listingsContainer"></div>
 
       <!-- Bulk Actions Bar -->
@@ -145,23 +294,52 @@
     <div id="tab-users" class="content hidden">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
         <h2 class="section-title" style="margin:0;">User Management</h2>
-        <button class="btn btn-primary" onclick="exportUsersCSV()">⬇ Export CSV</button>
+        <div style="display:flex; gap:10px;">
+          <button class="btn btn-primary" onclick="exportUsersCSV()">⬇ Export CSV</button>
+          <button class="btn btn-primary" onclick="downloadAllUserPhotos()" style="background-color:#8b5cf6; border-color:#8b5cf6; color:white;">📷 Download Photos</button>
+        </div>
       </div>
       <div class="stats-row" id="userStats"></div>
-      <input class="search-bar" id="searchUserInput" placeholder="Search by name, email, phone, role...">
+      
+      <div class="search-bar" style="margin:0; width:100%; max-width:100%; margin-bottom:15px;">
+        <input type="text" id="searchUserInput" placeholder="Search by name, email, phone, role..." style="width:100%; padding: 12px; font-size: 15px;" oninput="renderUsers()">
+      </div>
       <div id="usersContainer"></div>
     </div>
 
     <!-- FAVORITES -->
     <div id="tab-favorites" class="content hidden">
       <h2 class="section-title">User Favorites</h2>
+      <div class="search-bar" style="margin:0; width:100%; max-width:100%; margin-bottom:15px;">
+        <input type="text" id="searchFavoritesInput" placeholder="Search favorites by listing title or user name..." style="width:100%; padding: 12px; font-size: 15px;" oninput="renderFavorites()">
+      </div>
       <div id="favoritesContainer"></div>
     </div>
 
     <!-- REPORTS -->
     <div id="tab-reports" class="content hidden">
       <h2 class="section-title">Listing Reports</h2>
+      <div class="search-bar" style="margin:0; width:100%; max-width:100%; margin-bottom:15px;">
+        <input type="text" id="searchReportsInput" placeholder="Search reports by reason, listing title or reporter name..." style="width:100%; padding: 12px; font-size: 15px;" oninput="renderReports()">
+      </div>
       <div id="reportsContainer"></div>
+    </div>
+
+    <!-- FEEDBACK -->
+    <div id="tab-feedback" class="content hidden">
+      <h2 class="section-title">User Feedback Suggestions</h2>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; gap:10px;">
+        <div class="search-bar" style="margin:0; flex:1; max-width:500px;">
+          <input type="text" id="feedbackSearchInput" placeholder="Search feedback by name, email, message..." style="width:100%" oninput="renderFeedbacks()">
+        </div>
+        <div style="display:flex; gap:10px;">
+          <button class="btn" onclick="filterFeedbacks('all')" id="fbBtn-all" style="background:#3b82f6; color:white;">All</button>
+          <button class="btn" onclick="filterFeedbacks('suggestion')" id="fbBtn-suggestion">Ideas</button>
+          <button class="btn" onclick="filterFeedbacks('bug')" id="fbBtn-bug">Bugs</button>
+          <button class="btn" onclick="filterFeedbacks('other')" id="fbBtn-other">Other</button>
+        </div>
+      </div>
+      <div id="feedbacksContainer"></div>
     </div>
 
     <!-- ANALYTICS -->

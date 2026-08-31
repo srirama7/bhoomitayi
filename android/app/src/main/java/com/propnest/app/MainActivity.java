@@ -64,9 +64,10 @@ public class MainActivity extends BridgeActivity {
 
             Log.d(TAG, "Google Sign-In successful, sending token to WebView");
 
-            // Post result back to WebView via JavaScript
+            // Post result back to WebView via direct callback and postMessage
             String js = String.format(
-                "window.postMessage({type:'GOOGLE_SIGN_IN_RESULT', idToken:'%s', accessToken:null}, '*');",
+                "try { if (window.__onGoogleSignInResult) { window.__onGoogleSignInResult('%s', null); } window.postMessage({type:'GOOGLE_SIGN_IN_RESULT', idToken:'%s', accessToken:null}, '*'); } catch(e) { console.error(e); }",
+                idToken != null ? idToken : "",
                 idToken != null ? idToken : ""
             );
             this.bridge.getWebView().post(() -> {
@@ -76,7 +77,8 @@ public class MainActivity extends BridgeActivity {
         } catch (ApiException e) {
             Log.e(TAG, "Google Sign-In failed: " + e.getStatusCode());
             String errorJs = String.format(
-                "window.postMessage({type:'GOOGLE_SIGN_IN_RESULT', error:'Google Sign-In failed (code %d)'}, '*');",
+                "try { if (window.__onGoogleSignInResult) { window.__onGoogleSignInResult(null, 'Google Sign-In failed (code %d)'); } window.postMessage({type:'GOOGLE_SIGN_IN_RESULT', error:'Google Sign-In failed (code %d)'}, '*'); } catch(e) { console.error(e); }",
+                e.getStatusCode(),
                 e.getStatusCode()
             );
             this.bridge.getWebView().post(() -> {

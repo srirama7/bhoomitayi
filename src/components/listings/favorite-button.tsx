@@ -2,15 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase/config";
-import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  deleteDoc,
-  doc,
-} from "firebase/firestore";
+import { collection, addDoc, query, where, getDocs, deleteDoc, doc, updateDoc, increment } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
@@ -58,6 +50,9 @@ export function FavoriteButton({ listingId, size = "icon", variant = "ghost" }: 
     try {
       if (isFavorite && favoriteDocId) {
         await deleteDoc(doc(db, "favorites", favoriteDocId));
+        await updateDoc(doc(db, "listings", listingId), {
+          favorites_count: increment(-1)
+        });
         setIsFavorite(false);
         setFavoriteDocId(null);
         toast.success("Removed from favorites");
@@ -66,6 +61,9 @@ export function FavoriteButton({ listingId, size = "icon", variant = "ghost" }: 
           user_id: user.uid,
           listing_id: listingId,
           created_at: new Date().toISOString(),
+        });
+        await updateDoc(doc(db, "listings", listingId), {
+          favorites_count: increment(1)
         });
         setIsFavorite(true);
         setFavoriteDocId(docRef.id);

@@ -41,5 +41,14 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+.vercel_backup
 .netlify/
 .env*.local
+
+# android / builds
+*.apk
+*.aab
+*.zip
+*.jks
+*.spec
+v7_extracted/

@@ -17,7 +17,8 @@ export function LanguageSelector({ variant = "desktop" }: { variant?: "desktop" 
   const { i18n } = useTranslation();
   const [open, setOpen] = useState(false);
 
-  const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === i18n.language) || SUPPORTED_LANGUAGES[0];
+  const langCode = (i18n.language || "en").split("-")[0];
+  const currentLang = SUPPORTED_LANGUAGES.find((l) => l.code === langCode) || SUPPORTED_LANGUAGES[0];
 
   const handleChange = (code: LanguageCode) => {
     i18n.changeLanguage(code);
@@ -33,24 +34,27 @@ export function LanguageSelector({ variant = "desktop" }: { variant?: "desktop" 
           <Globe className="inline size-3 mr-1" />
           {currentLang.nativeLabel}
         </p>
-        {SUPPORTED_LANGUAGES.map((lang) => (
-          <Button
-            key={lang.code}
-            variant="ghost"
-            className={`w-full justify-start gap-2 rounded-xl text-sm ${
-              i18n.language === lang.code
-                ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
-                : ""
-            }`}
-            onClick={() => handleChange(lang.code)}
-          >
-            {i18n.language === lang.code && <Check className="size-3.5" />}
-            <span>{lang.nativeLabel}</span>
-            {lang.code !== "en" && (
-              <span className="text-muted-foreground text-xs">({lang.label})</span>
-            )}
-          </Button>
-        ))}
+        {SUPPORTED_LANGUAGES.map((lang) => {
+          const isSelected = langCode === lang.code;
+          return (
+            <Button
+              key={lang.code}
+              variant="ghost"
+              className={`w-full justify-start gap-2 rounded-xl text-sm ${
+                isSelected
+                  ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold"
+                  : ""
+              }`}
+              onClick={() => handleChange(lang.code)}
+            >
+              {isSelected && <Check className="size-3.5" />}
+              <span>{lang.nativeLabel}</span>
+              {lang.code !== "en" && (
+                <span className="text-muted-foreground text-xs">({lang.label})</span>
+              )}
+            </Button>
+          );
+        })}
       </div>
     );
   }
@@ -84,14 +88,14 @@ export function LanguageSelector({ variant = "desktop" }: { variant?: "desktop" 
               <DropdownMenuItem
                 onClick={() => handleChange(lang.code)}
                 className={`rounded-lg mx-1 cursor-pointer ${
-                  i18n.language === lang.code
-                    ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400"
+                  langCode === lang.code
+                    ? "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold"
                     : ""
                 }`}
               >
                 <div className="flex items-center justify-between w-full">
                   <div className="flex items-center gap-2">
-                    {i18n.language === lang.code && <Check className="size-3.5" />}
+                    {langCode === lang.code && <Check className="size-3.5" />}
                     <span className="font-medium">{lang.nativeLabel}</span>
                   </div>
                   {lang.code !== "en" && (

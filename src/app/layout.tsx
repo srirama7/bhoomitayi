@@ -1,4 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+  ],
+};
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/providers/auth-provider";
@@ -7,10 +19,6 @@ import { I18nProvider } from "@/components/providers/i18n-provider";
 import { LayoutWrapper } from "@/components/layout/layout-wrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BellaChat } from "@/components/assistants/bella-chat";
-import { TommyGuide } from "@/components/assistants/tommy-guide";
-import { SettingsWidget } from "@/components/settings/settings-widget";
-import { SettingsApplier } from "@/components/settings/settings-applier";
 
 const geistSans = Inter({
   variable: "--font-geist-sans",

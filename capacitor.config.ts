@@ -5,19 +5,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.bhoomitayi.app',
   appName: 'BhoomiTayi',
-  webDir: 'www',
-  server: {
-    url: 'https://bhoomitayiversion2.vercel.app',
-    cleartext: true,
-    allowNavigation: [
-      'bhoomitayiversion2.vercel.app',
-      '*.bhoomitayiversion2.vercel.app',
-      'real-estate-4a9f1.firebaseapp.com',
-      '*.firebaseapp.com',
-      'accounts.google.com',
-      '*.google.com',
-    ]
-  },
+  webDir: 'out',
   android: {
     allowMixedContent: true,
   },
@@ -37,8 +25,8 @@ const config: CapacitorConfig = {
       androidSpinnerStyle: "large",
       iosSpinnerStyle: "small",
       spinnerColor: "#999999",
-      splashFullScreen: true,
-      splashImmersive: true,
+      splashFullScreen: false,
+      splashImmersive: false,
       layoutName: "launch_screen",
       useDialog: true,
     },

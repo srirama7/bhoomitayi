@@ -1,10 +1,10 @@
 export const CATEGORIES = [
-  { value: "house" as const, label: "Houses", icon: "Home", emoji: "🏡", href: "/houses" },
-  { value: "land" as const, label: "Land", icon: "Mountain", emoji: "🌍", href: "/land" },
-  { value: "pg" as const, label: "PG", icon: "Bed", emoji: "🛏️", href: "/pg" },
-  { value: "commercial" as const, label: "Commercial", icon: "Building2", emoji: "🏢", href: "/commercial" },
-  { value: "vehicle" as const, label: "Vehicles", icon: "Car", emoji: "🚗", href: "/vehicles" },
-  { value: "commodity" as const, label: "Other Commodities", icon: "Package", emoji: "📦", href: "/commodities" },
+  { value: "house" as const, label: "Houses", icon: "Home", image: "/categories/houses.jpg", emoji: "🏡", href: "/houses" },
+  { value: "land" as const, label: "Land", icon: "Mountain", image: "/categories/land.avif", emoji: "🌍", href: "/land" },
+  { value: "pg" as const, label: "PG", icon: "Bed", image: "/categories/pg.png", emoji: "🛏️", href: "/pg" },
+  { value: "commercial" as const, label: "Commercial", icon: "Building2", image: "/categories/commercial.png", emoji: "🏢", href: "/commercial" },
+  { value: "vehicle" as const, label: "Vehicles", icon: "Car", image: "/categories/vehicles.jpeg", emoji: "🚗", href: "/vehicles" },
+  { value: "commodity" as const, label: "Other Commodities", icon: "Package", image: "/categories/commodities.png", emoji: "📦", href: "/commodities" },
 ] as const;
 
 export const TRANSACTION_TYPES = {
@@ -132,3 +132,23 @@ export function formatArea(sqft: number | undefined | null): string {
   if (sqft == null || isNaN(sqft)) return "N/A sq.ft";
   return `${sqft.toLocaleString("en-IN")} sq.ft`;
 }
+
+export const DEFAULT_FREE_TOKENS = 200;
+export const TOKEN_UNLOCK_COST = 100;
+
+export const TOKEN_PACKAGES = [
+  { id: "pack_100", tokens: 100, price: 149, label: "100 Tokens", tag: "Starter (1 View)", popular: false },
+  { id: "pack_300", tokens: 300, price: 199, label: "300 Tokens", tag: "Popular (3 Views)", popular: true },
+  { id: "pack_700", tokens: 700, price: 299, label: "700 Tokens", tag: "Best Value (7 Views)", popular: false },
+  { id: "pack_1500", tokens: 1500, price: 499, label: "1500 Tokens", tag: "Super Saver (15 Views)", popular: false },
+  { id: "pack_3200", tokens: 3200, price: 899, label: "3200 Tokens", tag: "Mega Value (32 Views)", popular: false },
+] as const;
+
+export const UPI_PAYMENT_CONFIG = {
+  vpa: "amoghabhat7403@oksbi",
+  name: "BhoomiTayi",
+  qrImage: "/new_qr.png",
+  tokenIcon: "/token_icon.png",
+  contactIcon: "/contact_icon.png",
+};
+

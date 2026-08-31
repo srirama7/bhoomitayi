@@ -16,14 +16,17 @@ import {
   DialogContent,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import { validateCouponCode } from "@/lib/tokens";
+import type { Coupon } from "@/lib/types/database";
 
 interface PaymentGatewayProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onPaymentConfirmed: (plan?: typeof PLANS[0]) => void;
+  onPaymentConfirmed: (plan?: typeof PLANS[0] & { finalPrice?: number; couponCode?: string }) => void;
   submitting: boolean;
   flowLabel?: string;
   reviewMessage?: string;
@@ -36,39 +39,39 @@ const PLANS = [
   {
     id: "basic",
     name: "Basic",
-    price: 249,
+    price: 199,
     days: 30,
-    badge: null,
-    badgeColor: "",
+    badge: "STARTER (₹199/mo)",
+    badgeColor: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
     bonus: null,
+  },
+  {
+    id: "standard",
+    name: "Standard",
+    price: 299,
+    days: 60,
+    badge: "SMART CHOICE",
+    badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
+    bonus: "+5%",
   },
   {
     id: "plus",
     name: "Plus",
-    price: 499,
+    price: 599,
     days: 100,
     badge: "BEGINNER PICK",
-    badgeColor: "bg-blue-500/20 text-blue-400 border border-blue-500/30",
+    badgeColor: "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30",
     bonus: "+15%",
   },
   {
     id: "pro",
     name: "Pro",
-    price: 749,
+    price: 849,
     days: 180,
     badge: "MOST POPULAR",
     badgeColor: "bg-orange-500/20 text-orange-400 border border-orange-500/30",
     bonus: "+25%",
-  },
-  {
-    id: "ultramax",
-    name: "Ultra Max Pro",
-    price: 999,
-    days: 365,
-    badge: "BEST VALUE",
-    badgeColor: "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30",
-    bonus: "+40%",
-  },
+  }
 ];
 
 export function PaymentGateway({
@@ -80,8 +83,49 @@ export function PaymentGateway({
   submitLabel = "Already Paid? Submit",
 }: PaymentGatewayProps) {
   const [step, setStep] = useState<GatewayStep>("qr");
-  const [selectedPlanId, setSelectedPlanId] = useState("pro");
+  const [selectedPlanId, setSelectedPlanId] = useState("basic");
   const [mobileStep, setMobileStep] = useState<"plans" | "payment">("plans");
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<Coupon | null>(null);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [verifyingCoupon, setVerifyingCoupon] = useState(false);
+
+  const selectedPlan = PLANS.find((p) => p.id === selectedPlanId) || PLANS[0];
+  const payablePrice = Math.max(0, selectedPlan.price - couponDiscount);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error("Please enter a coupon code");
+      return;
+    }
+    setVerifyingCoupon(true);
+    try {
+      const res = await validateCouponCode(couponCode, "listings", selectedPlan.price);
+      if (res.valid && res.coupon) {
+        setAppliedCoupon(res.coupon);
+        setCouponDiscount(res.discountAmount);
+        toast.success(res.message || `Coupon "${res.coupon.code}" applied!`);
+      } else {
+        setAppliedCoupon(null);
+        setCouponDiscount(0);
+        toast.error(res.message || "Invalid coupon code");
+      }
+    } catch (e) {
+      console.error(e);
+      toast.error("Error verifying coupon");
+    } finally {
+      setVerifyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponDiscount(0);
+    setCouponCode("");
+    toast.info("Coupon removed");
+  };
 
   function handleClose() {
     if (submitting) return;
@@ -109,7 +153,11 @@ export function PaymentGateway({
 
   function handleSubmitListing() {
     const selectedPlan = PLANS.find((p) => p.id === selectedPlanId) || PLANS[0];
-    onPaymentConfirmed(selectedPlan);
+    onPaymentConfirmed({
+      ...selectedPlan,
+      finalPrice: payablePrice,
+      couponCode: appliedCoupon?.code,
+    });
   }
 
   const copyUpi = () => {
@@ -117,13 +165,11 @@ export function PaymentGateway({
     toast.success("UPI ID copied to clipboard!");
   }
 
-  const selectedPlan = PLANS.find((p) => p.id === selectedPlanId) || PLANS[0];
-
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
         showCloseButton={false}
-        className="gap-0 overflow-hidden p-0 sm:max-w-[1000px] h-[90vh] max-h-[700px] bg-[#111111] border-zinc-800 text-zinc-100 flex flex-col shadow-2xl"
+        className="gap-0 overflow-hidden p-0 w-full max-w-[96vw] sm:max-w-[1000px] h-[92vh] max-h-[720px] bg-[#111111] border-zinc-800 text-zinc-100 flex flex-col shadow-2xl rounded-2xl"
       >
         {/* Top Navigation */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800/80 bg-[#161616]">
@@ -185,7 +231,9 @@ export function PaymentGateway({
                       
                       <div className="mt-2">
                         <div className="flex items-baseline gap-1">
-                          <span className="text-2xl font-bold text-white">₹{plan.price}</span>
+                          <span className="text-2xl font-bold text-white">
+                            {plan.price === 0 ? "Free" : `₹${plan.price}`}
+                          </span>
                         </div>
                         <div className="text-blue-400 font-medium mt-1">Get {plan.days} Days</div>
                         {plan.bonus && (
@@ -194,7 +242,7 @@ export function PaymentGateway({
                           </div>
                         )}
                         <div className="text-zinc-500 text-[11px] mt-3 font-medium">
-                          ≈ ₹{(plan.price / plan.days).toFixed(1)} / day
+                          {plan.price === 0 ? "No cost to list" : `≈ ₹${(plan.price / plan.days).toFixed(1)} / day`}
                         </div>
                       </div>
 
@@ -209,10 +257,52 @@ export function PaymentGateway({
                 })}
               </div>
 
-              {/* Custom Input Mockup */}
-              <div className="mt-8 flex items-center bg-[#1A1A1A] border border-zinc-800 rounded-xl p-4">
-                <span className="text-zinc-400 font-medium mr-4">Custom ₹</span>
-                <span className="text-zinc-600 text-sm">Min ₹249</span>
+              {/* Coupon Code Section */}
+              <div className="mt-6 bg-[#1A1A1A] border border-zinc-800 rounded-xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                    <span>🎟️ Have a Coupon Code?</span>
+                  </span>
+                  {appliedCoupon && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveCoupon}
+                      className="text-[10px] text-red-400 hover:underline font-bold"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                {!appliedCoupon ? (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter code"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      className="h-9 text-xs uppercase font-mono tracking-wider bg-zinc-900 border-zinc-700 text-white"
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="h-9 px-3 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shrink-0"
+                      onClick={handleApplyCoupon}
+                      disabled={verifyingCoupon || !couponCode.trim()}
+                    >
+                      {verifyingCoupon ? "..." : "Apply"}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between p-2 bg-emerald-950/40 border border-emerald-800 rounded-lg text-xs">
+                    <div className="flex items-center gap-1.5 text-emerald-300 font-bold font-mono">
+                      <span>✓ {appliedCoupon.code}</span>
+                      <span className="text-[10px] font-sans font-normal text-emerald-400">(-₹{couponDiscount})</span>
+                    </div>
+                    <span className="text-[11px] font-extrabold text-emerald-400">
+                      Saved ₹{couponDiscount}!
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Mobile-only Proceed Button */}
@@ -221,7 +311,7 @@ export function PaymentGateway({
                   onClick={() => setMobileStep("payment")}
                   className="h-12 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-900/20 transition-all active:scale-95 animate-pulse"
                 >
-                  Proceed to Payment (₹{selectedPlan.price})
+                  Proceed to Payment ({couponDiscount > 0 ? `₹${payablePrice}` : `₹${selectedPlan.price}`})
                 </Button>
               </div>
             </div>
@@ -234,7 +324,7 @@ export function PaymentGateway({
                 className="md:hidden mb-4 self-start flex items-center gap-1.5 text-xs text-blue-400 font-semibold hover:text-blue-300"
               >
                 <ArrowLeft className="size-3" />
-                Change Plan (Selected: {selectedPlan.name})
+                Change Plan (Selected: {selectedPlan.name} - ₹{payablePrice})
               </button>
 
               <div className="bg-[#1C1C1E] rounded-3xl border border-zinc-800/50 p-6 flex flex-col items-center relative overflow-hidden shadow-2xl">
@@ -246,22 +336,34 @@ export function PaymentGateway({
                   <span className="font-semibold text-sm">Secure UPI Payment</span>
                 </div>
 
-                <div className="bg-white p-3 rounded-2xl shadow-inner w-[240px] h-[240px] relative z-10">
+                <div className="bg-white p-2 rounded-xl shadow-inner w-full max-w-[280px] aspect-square relative z-10 mx-auto border-4 border-white">
                   <Image
-                    src="/qr_code.jpeg"
+                    src={UPI_PAYMENT_CONFIG.qrImage}
                     alt="UPI QR Code"
                     fill
-                    className="object-contain p-2"
+                    className="object-cover rounded-lg"
                     priority
                   />
                 </div>
                 
-                <p className="mt-6 text-2xl font-bold text-white tracking-tight">
-                  Pay ₹{selectedPlan.price}
-                </p>
+                <div className="mt-6 text-center">
+                  {couponDiscount > 0 && (
+                    <span className="line-through text-zinc-500 text-sm mr-2">
+                      ₹{selectedPlan.price}
+                    </span>
+                  )}
+                  <span className="text-2xl font-bold text-white tracking-tight">
+                    Pay ₹{payablePrice}
+                  </span>
+                  {appliedCoupon && (
+                    <p className="text-[11px] text-emerald-400 font-medium mt-0.5">
+                      Coupon {appliedCoupon.code} applied (-₹{couponDiscount})
+                    </p>
+                  )}
+                </div>
                 <div className="flex items-center gap-1.5 mt-2 text-xs text-zinc-400">
                   <Smartphone className="size-3.5" />
-                  Scan with GPay, PhonePe, Paytm
+                  Scan with GPay, PhonePe, Paytm, BHIM
                 </div>
 
                 <button 
@@ -269,12 +371,12 @@ export function PaymentGateway({
                   className="mt-6 flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 transition-colors text-sm font-medium text-zinc-300 hover:text-white"
                 >
                   <Copy className="size-4" />
-                  Copy UPI ID: amoghabhat7403@oksbi
+                  Copy UPI ID: {UPI_PAYMENT_CONFIG.vpa}
                 </button>
               </div>
 
               <p className="text-center text-[11px] text-zinc-500 mt-6 mb-4">
-                By proceeding, you agree to our Terms & Conditions. Payment is strictly non-refundable.
+                By proceeding, you agree to our Terms & Conditions. Payment is verified by our admin.
               </p>
 
               <Button
@@ -289,51 +391,82 @@ export function PaymentGateway({
 
         {/* Confirmation Step */}
         {step === "confirmed" && (
-          <div className="flex-1 flex flex-col items-center md:justify-center p-8 bg-[#111111] overflow-y-auto custom-scrollbar">
+          <div className="flex-1 flex flex-col items-center md:justify-start p-8 bg-[#111111] overflow-y-auto custom-scrollbar">
             <motion.div
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="flex size-24 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/20 relative"
+              className="flex size-20 items-center justify-center rounded-full bg-amber-500/10 border border-amber-500/20 relative mt-4"
             >
               <div className="absolute inset-0 bg-amber-500/20 blur-xl rounded-full" />
               <Clock className="size-10 text-amber-500 relative z-10" />
             </motion.div>
             
-            <h3 className="mt-8 text-2xl font-bold text-white">
-              Payment Under Review
+            <h3 className="mt-6 text-xl font-bold text-white text-center">
+              Payment Details
             </h3>
-            <p className="mt-3 text-zinc-400 text-center max-w-md leading-relaxed">
-              {reviewMessage}
+            <p className="mt-2 text-zinc-400 text-center max-w-md text-sm leading-relaxed mb-6">
+              Please enter your details below so our admin can quickly verify your payment.
             </p>
 
-            <div className="mt-8 bg-[#1A1A1A] border border-zinc-800 rounded-2xl p-5 w-full max-w-sm flex justify-between items-center shadow-lg">
-              <div>
-                <p className="text-xs text-zinc-500 font-medium">Selected Plan</p>
-                <p className="text-white font-bold text-lg">{selectedPlan.name} ({selectedPlan.days} Days)</p>
+            <div className="w-full max-w-sm space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300 ml-1">Name / Mobile No <span className="text-red-400">*</span></label>
+                <Input 
+                  id="senderName"
+                  placeholder="Enter name or mobile number" 
+                  className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 h-12"
+                />
               </div>
-              <div className="text-right">
-                <p className="text-xs text-zinc-500 font-medium">Amount Paid</p>
-                <p className="text-blue-400 font-bold text-lg">₹{selectedPlan.price}</p>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300 ml-1">UPI ID or UTR / Ref No <span className="text-zinc-500 font-normal">(Optional but recommended)</span></label>
+                <Input 
+                  id="txnId"
+                  placeholder="e.g. user@okicici or 123456789012" 
+                  className="bg-zinc-900/80 border-zinc-700 text-white placeholder:text-zinc-500 h-12"
+                />
               </div>
-            </div>
 
-            <Button
-              onClick={handleSubmitListing}
-              disabled={submitting}
-              className="mt-8 h-14 w-full max-w-sm bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg rounded-xl shadow-lg shadow-blue-900/20 transition-all hover:scale-[1.02]"
-            >
-              {submitting ? (
-                <div className="flex items-center gap-2">
-                  <div className="size-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Submitting...
+              <div className="mt-4 bg-[#1A1A1A] border border-zinc-800 rounded-2xl p-4 flex justify-between items-center shadow-lg">
+                <div>
+                  <p className="text-xs text-zinc-500 font-medium">Selected Plan</p>
+                  <p className="text-white font-bold">{selectedPlan.name} ({selectedPlan.days} Days)</p>
                 </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="size-5" />
-                  Submit to Admin
+                <div className="text-right">
+                  <p className="text-xs text-zinc-500 font-medium">Amount Paid</p>
+                  <p className="text-blue-400 font-bold">₹{payablePrice}</p>
                 </div>
-              )}
-            </Button>
+              </div>
+
+              <Button
+                onClick={() => {
+                  const senderName = (document.getElementById("senderName") as HTMLInputElement)?.value.trim();
+                  const txnId = (document.getElementById("txnId") as HTMLInputElement)?.value.trim();
+                  if (!senderName) {
+                    toast.error("Please enter your Name or Mobile number so we can verify payment.");
+                    return;
+                  }
+                  
+                  onPaymentConfirmed({
+                    ...selectedPlan,
+                    finalPrice: payablePrice,
+                    couponCode: appliedCoupon?.code,
+                    senderName,
+                    txnId,
+                  } as any);
+                }}
+                disabled={submitting}
+                className="mt-6 h-14 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg rounded-xl shadow-lg shadow-blue-900/20 transition-all hover:scale-[1.02]"
+              >
+                {submitting ? (
+                  <div className="flex items-center gap-2">
+                    <div className="size-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Submitting...
+                  </div>
+                ) : (
+                  "Submit Details"
+                )}
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>

@@ -12,7 +12,9 @@ import {
   Loader2,
   Search,
   Calendar,
+  Copy,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +71,44 @@ export default function MyListingsPage() {
   const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
   const [reactivatingListing, setReactivatingListing] = useState<Listing | null>(null);
   const [reactivating, setReactivating] = useState(false);
+  const [pinningListing, setPinningListing] = useState<Listing | null>(null);
+  const [submittingPin, setSubmittingPin] = useState(false);
+
+  const handleRequestPin = async () => {
+    if (!pinningListing) return;
+    setSubmittingPin(true);
+    try {
+      const pinReqTime = new Date().toISOString();
+      await updateDoc(doc(db, "listings", pinningListing.id), {
+        pin_status: "pending_approval",
+        pin_payment_status: "pending",
+        pin_payment_amount: 499,
+        pin_requested_at: pinReqTime,
+        updated_at: pinReqTime,
+      });
+      setListings((prev) =>
+        prev.map((item) =>
+          item.id === pinningListing.id
+            ? {
+                ...item,
+                pin_status: "pending_approval",
+                pin_payment_status: "pending",
+                pin_payment_amount: 499,
+                pin_requested_at: pinReqTime,
+                updated_at: pinReqTime,
+              }
+            : item
+        )
+      );
+      toast.success("Pin request submitted! Admin will verify and pin your listing.");
+      setPinningListing(null);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to submit pin request");
+    } finally {
+      setSubmittingPin(false);
+    }
+  };
 
 
 
@@ -404,6 +444,24 @@ export default function MyListingsPage() {
                     )}
 
                     <Button
+                      variant="outline"
+                      className="col-span-2 rounded-xl font-semibold border-amber-300 text-amber-700 bg-amber-50 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950/20 dark:text-amber-400 dark:hover:bg-amber-950/50 mt-1"
+                      onClick={() => {
+                        if (listing.pinned) {
+                          toast.info("Your listing is already pinned!");
+                        } else if (listing.pin_status === "pending_approval") {
+                          toast.info("Your pin request is pending admin verification.");
+                        } else {
+                          setPinningListing(listing);
+                        }
+                      }}
+                    >
+                      <span>
+                        {listing.pinned ? "📌 Active" : listing.pin_status === "pending_approval" ? "⏳ Pending" : "📌 Pin"}
+                      </span>
+                    </Button>
+
+                    <Button
                       variant="destructive"
                       className="col-span-2 rounded-xl font-semibold mt-1"
                       onClick={() => setDeleteId(listing.id)}
@@ -453,6 +511,60 @@ export default function MyListingsPage() {
         reviewMessage="Your restart payment has been submitted. Admin will verify it and restart the listing timer."
         submitLabel="Submit Restart Request"
       />
+
+      {/* Pin confirmation payment dialog */}
+      <Dialog open={!!pinningListing} onOpenChange={() => setPinningListing(null)}>
+        <DialogContent className="max-w-[450px] bg-[#111111] border-zinc-800 text-zinc-100 rounded-2xl shadow-2xl p-6">
+          <DialogHeader className="text-left">
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-white">
+              <span>📌</span> Pin Listing to Top
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs mt-1">
+              Boost your listing to appear at the very top of search results and the homepage for 30 days.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* QR Scan Details */}
+          <div className="space-y-6 py-6 flex flex-col items-center">
+            <div className="text-center">
+              <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest mb-1">PROMOTION PLAN</p>
+              <h3 className="text-2xl font-black text-white">1-Month Pin Placement</h3>
+              <p className="text-4xl font-black text-amber-400 mt-2">₹499</p>
+            </div>
+
+            {/* QR Code */}
+            <div className="bg-white p-4 rounded-3xl w-56 h-56 flex items-center justify-center shadow-lg border-4 border-amber-500">
+              <QRCodeSVG
+                value="upi://pay?pa=amoghabhat7403@oksbi&pn=BhoomiTayi&am=499&cu=INR"
+                size={190}
+                level="Q"
+              />
+            </div>
+
+            <div className="text-center space-y-2">
+              <p className="text-xs text-zinc-400">Scan QR Code with any UPI app (GPay, PhonePe, Paytm)</p>
+              <div className="flex items-center justify-center gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-xl max-w-xs mx-auto">
+                <span className="text-xs font-mono select-all truncate max-w-[200px]">amoghabhat7403@oksbi</span>
+                <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-400" onClick={() => {
+                  navigator.clipboard.writeText("amoghabhat7403@oksbi");
+                  toast.success("UPI ID copied!");
+                }}>
+                  <Copy className="size-3.5" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" className="flex-1 rounded-xl border-zinc-800 bg-transparent text-zinc-300 hover:bg-zinc-900" onClick={() => setPinningListing(null)}>
+              Cancel
+            </Button>
+            <Button className="flex-1 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl" onClick={handleRequestPin} disabled={submittingPin}>
+              {submittingPin ? "Submitting..." : "I've Paid, Submit Request"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

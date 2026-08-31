@@ -153,7 +153,7 @@ export default function DashboardLayout({
       </nav>
 
       {/* Main content */}
-      <main className="md:ml-64">
+      <main className="md:ml-64 pt-[env(safe-area-inset-top,0px)]">
         <div className="container mx-auto max-w-6xl px-4 py-8 pb-24 md:pb-8">
           {children}
         </div>

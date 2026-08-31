@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -16,8 +17,18 @@ import { CATEGORIES, TRANSACTION_TYPES } from "@/lib/constants";
 
 type CategoryValue = (typeof CATEGORIES)[number]["value"];
 
+const categoryI18nKeys: Record<string, string> = {
+  house: "nav.houses",
+  land: "nav.land",
+  pg: "nav.pg",
+  commercial: "nav.commercial",
+  vehicle: "nav.vehicles",
+  commodity: "nav.commodities",
+};
+
 export function SearchBar() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [category, setCategory] = useState<CategoryValue>("house");
   const [transactionType, setTransactionType] = useState<string>("buy");
 
@@ -54,13 +65,13 @@ export function SearchBar() {
           {/* Category Select */}
           <Select value={category} onValueChange={handleCategoryChange}>
             <SelectTrigger className="h-12 w-full sm:w-[180px] border-0 bg-zinc-50 dark:bg-zinc-800/80 rounded-xl">
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder={t("search.category")} />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
               {CATEGORIES.map((cat) => (
                 <SelectItem key={cat.value} value={cat.value} className="rounded-lg">
                   <span className="mr-1.5">{cat.emoji}</span>
-                  {cat.label}
+                  {t(categoryI18nKeys[cat.value]) || cat.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -69,12 +80,12 @@ export function SearchBar() {
           {/* Transaction Type Select */}
           <Select value={transactionType} onValueChange={setTransactionType}>
             <SelectTrigger className="h-12 w-full sm:w-[160px] border-0 bg-zinc-50 dark:bg-zinc-800/80 rounded-xl">
-              <SelectValue placeholder="Type" />
+              <SelectValue placeholder={t("form.transaction_type")} />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
               {availableTransactions.map((type) => (
                 <SelectItem key={type} value={type} className="rounded-lg">
-                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                  {t("form." + type) || (type.charAt(0).toUpperCase() + type.slice(1))}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -88,7 +99,7 @@ export function SearchBar() {
               className="h-12 w-full sm:w-auto px-8 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold shadow-lg shadow-blue-600/25 transition-all hover:shadow-xl hover:shadow-blue-600/40"
             >
               <Search className="size-5" />
-              <span>Search</span>
+              <span>{t("search.search")}</span>
             </Button>
           </motion.div>
         </div>

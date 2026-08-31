@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+export const dynamic = "force-static";
+export const revalidate = 1800;
+
 export async function GET() {
   try {
     // Google News RSS query for Indian real estate, property, stocks, and investments
