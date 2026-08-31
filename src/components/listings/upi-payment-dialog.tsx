@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import { validateCouponCode } from "@/lib/tokens";
 import type { Coupon } from "@/lib/types/database";
+import { UPI_PAYMENT_CONFIG } from "@/lib/constants";
 
 interface PaymentGatewayProps {
   open: boolean;

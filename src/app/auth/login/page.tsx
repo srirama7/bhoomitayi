@@ -7,7 +7,7 @@ import Image from "next/image";
 import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, getRedirectResult, GoogleAuthProvider } from "firebase/auth";
 import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
-import { signInWithNativeGoogle } from "@/lib/firebase/native-auth";
+import { signInWithNativeGoogle, isNativeApp } from "@/lib/firebase/native-auth";
 import { toast } from "sonner";
 import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
@@ -147,7 +147,7 @@ function LoginForm() {
 
     try {
       // In native Android APK, use native Android Google Sign-In directly
-      if (isMobile || (typeof window !== "undefined" && (window as any).AndroidBridge)) {
+      if (isNativeApp() || Capacitor.isNativePlatform() || (typeof window !== "undefined" && (window as any).AndroidBridge)) {
         const userCredential = await signInWithNativeGoogle();
         const user = userCredential.user;
 
