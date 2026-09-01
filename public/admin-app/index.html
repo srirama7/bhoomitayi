@@ -6,11 +6,10 @@
   <style>
     /* DARK MODE */
     body.dark-mode { background-color: #0f172a; color: #f1f5f9; }
-    body.dark-mode .sidebar { background-color: #1e293b; border-right: 1px solid #334155; }
-    body.dark-mode .sidebar h1 { color: #f8fafc; }
-    body.dark-mode .tab { color: #94a3b8; }
-    body.dark-mode .tab:hover { background-color: #334155; color: #f1f5f9; }
-    body.dark-mode .tab.active { background-color: #3b82f6; color: white; }
+    body.dark-mode .tabs { background: #0f172a; border-bottom: 1px solid #1e293b; }
+    body.dark-mode .tab { color: #94a3b8; background: #1e293b; border-color: #334155; }
+    body.dark-mode .tab:hover { background-color: #334155; color: #f1f5f9; border-color: #475569; }
+    body.dark-mode .tab.active { background: linear-gradient(135deg, #3b82f6, #2563eb) !important; color: white !important; border-color: #3b82f6 !important; }
     body.dark-mode .content { background-color: #0f172a; color: #f1f5f9; }
     body.dark-mode .stat-card, body.dark-mode .listing-card, body.dark-mode .revenue-card, body.dark-mode .chart-card { background: #1e293b; border-color: #334155; }
     body.dark-mode .stat-value, body.dark-mode .rev-value, body.dark-mode .listing-name { color: #f8fafc; }
@@ -29,7 +28,7 @@
     .hover-bg:hover { background-color: #f1f5f9; }
   </style>
   <title>BhoomiTayi Admin</title>
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=10">
 </head>
 <body>
   <!-- LOGIN -->
@@ -74,23 +73,21 @@
       </div>
     </div>
     <div class="tabs">
-      <div class="nav-links">
-        <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
-        <button class="tab" data-tab="tokens">🪙 Token Requests</button>
-        <button class="tab" data-tab="boosters">🚀 Booster Requests</button>
-        <button class="tab" data-tab="coupons">🎟️ Promo Codes</button>
-        <button class="tab" data-tab="listings">🏡 Listings</button>
-        <button class="tab" data-tab="users">👥 Users</button>
-        <button class="tab" data-tab="favorites">❤️ Favorites</button>
-        <button class="tab" data-tab="reports">🚩 Reports</button>
-        <button class="tab" data-tab="feedback">💬 Feedback</button>
-      </div>
-      <button class="tab" data-tab="analytics">Analytics</button>
-      <button class="tab" data-tab="revenue">Revenue</button>
-      <button class="tab" data-tab="moderation">Moderation</button>
-      <button class="tab" data-tab="logs">Activity Logs</button>
-      <button class="tab" data-tab="firebase">Firebase Info</button>
-      <button class="tab" data-tab="settings">Settings</button>
+      <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
+      <button class="tab" data-tab="tokens">🪙 Token Requests</button>
+      <button class="tab" data-tab="boosters">🚀 Booster Requests</button>
+      <button class="tab" data-tab="coupons">🎟️ Promo Codes</button>
+      <button class="tab" data-tab="listings">🏡 Listings</button>
+      <button class="tab" data-tab="users">👥 Users</button>
+      <button class="tab" data-tab="favorites">❤️ Favorites</button>
+      <button class="tab" data-tab="reports">🚩 Reports</button>
+      <button class="tab" data-tab="feedback">💬 Feedback</button>
+      <button class="tab" data-tab="analytics">📈 Analytics</button>
+      <button class="tab" data-tab="revenue">💰 Revenue</button>
+      <button class="tab" data-tab="moderation">🛡️ Moderation</button>
+      <button class="tab" data-tab="logs">📜 Activity Logs</button>
+      <button class="tab" data-tab="firebase">🔥 Firebase Info</button>
+      <button class="tab" data-tab="settings">⚙️ Settings</button>
     </div>
 
     <!-- OVERVIEW -->
