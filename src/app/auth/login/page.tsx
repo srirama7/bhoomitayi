@@ -189,9 +189,15 @@ function LoginForm() {
           router.push(redirectTo);
           router.refresh();
           return;
-        } catch (nativeError) {
-          console.warn("Native Google sign-in encountered an issue, trying web auth fallback:", nativeError);
-          // Fall through to web provider sign-in
+        } catch (nativeError: any) {
+          console.warn("Native Google sign-in issue:", nativeError);
+          const msg = nativeError?.message || "";
+          if (msg.includes("cancelled") || msg.includes("12501")) {
+            toast.error("Google sign-in was cancelled.");
+          } else {
+            toast.error(msg || "Google sign-in failed. Please try again.");
+          }
+          return;
         }
       }
 

@@ -300,13 +300,15 @@ export default function SellPGPage() {
       const listingRef = await addDoc(collection(db, "listings"), payload);
 
       if (plan?.price > 0) {
-        await addDoc(collection(db, "token_requests"), cleanFirestoreData({
+        await addDoc(collection(db, "booster_requests"), cleanFirestoreData({
           user_id: user?.uid,
           user_name: plan.senderName || user?.displayName || "Seller",
           user_email: user?.email || "",
-          tokens: 0,
+          plan_name: plan.name || "Booster",
+          plan_days: plan.days || 30,
           amount: plan.price,
           transaction_id: plan.txnId || "",
+          listing_id: listingRef.id,
           notes: `BOOSTER PLAN: ${plan.name} (${plan.days} Days) | Listing ID: ${listingRef.id}`,
           status: "pending",
           is_booster: true,

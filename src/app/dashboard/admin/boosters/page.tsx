@@ -2,67 +2,50 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
-  Coins,
+  Zap,
   CheckCircle2,
   XCircle,
   Clock,
   Search,
-  Filter,
-  RefreshCw,
   Copy,
-  PlusCircle,
-  UserCheck,
-  ShieldAlert,
-  ArrowUpRight,
   TrendingUp,
+  ExternalLink,
+  ShieldCheck,
+  Rocket,
+  Pin,
+  Building,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { db } from "@/lib/firebase/config";
 import {
   collection,
-  getDocs,
   orderBy,
   query,
   onSnapshot,
 } from "firebase/firestore";
 import { useAuthStore } from "@/lib/store";
-import type { TokenRequest, Profile } from "@/lib/types/database";
+import type { BoosterRequest } from "@/lib/types/database";
 import {
-  approveTokenPurchase,
-  rejectTokenPurchase,
-  adminGrantTokensByEmail,
-  adminGrantUserTokens,
+  approveBoosterRequest,
+  rejectBoosterRequest,
 } from "@/lib/tokens";
 
-export default function AdminTokensPage() {
+export default function AdminBoostersPage() {
   const { user, profile, loading: authLoading } = useAuthStore();
-  const [requests, setRequests] = useState<TokenRequest[]>([]);
+  const [requests, setRequests] = useState<(BoosterRequest & { _colSource?: "booster_requests" | "token_requests" })[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
 
-  // Manual Grant Form State
-  const [manualEmail, setManualEmail] = useState("");
-  const [manualTokens, setManualTokens] = useState<number>(3);
-  const [grantingTokens, setGrantingTokens] = useState(false);
-
-  // Load token requests with real-time updates
+  // Real-time updates for booster_requests and booster token_requests
   useEffect(() => {
     if (authLoading) return;
     if (!user || profile?.role !== "admin") {
@@ -75,101 +58,118 @@ export default function AdminTokensPage() {
       return;
     }
 
-    const q = query(
+    // Subscribe to booster_requests collection
+    const qBoosters = query(
+      collection(db, "booster_requests"),
+      orderBy("created_at", "desc")
+    );
+
+    // Subscribe to token_requests collection for legacy booster entries
+    const qTokens = query(
       collection(db, "token_requests"),
       orderBy("created_at", "desc")
     );
 
-    const unsubscribe = onSnapshot(
-      q,
+    let boostersData: (BoosterRequest & { _colSource?: "booster_requests" | "token_requests" })[] = [];
+    let tokenBoostersData: (BoosterRequest & { _colSource?: "booster_requests" | "token_requests" })[] = [];
+
+    const unsubBoosters = onSnapshot(
+      qBoosters,
       (snapshot) => {
-        const reqs = snapshot.docs
-          .map((d) => ({
-            id: d.id,
-            ...d.data(),
-          })) as TokenRequest[];
-        // Filter out booster requests - they belong in Booster Requests folder
-        const tokenOnlyReqs = reqs.filter(
-          (r) =>
-            !r.is_booster &&
-            (r.tokens > 0 || !r.notes?.includes("BOOSTER PLAN"))
-        );
-        setRequests(tokenOnlyReqs);
-        setLoading(false);
+        boostersData = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+          _colSource: "booster_requests" as const,
+        })) as any;
+        combineAndSet();
       },
-      (error) => {
-        console.error("Error fetching token requests:", error);
-        setLoading(false);
+      (err) => {
+        console.warn("Booster requests snapshot note:", err);
+        combineAndSet();
       }
     );
 
-    return () => unsubscribe();
+    const unsubTokens = onSnapshot(
+      qTokens,
+      (snapshot) => {
+        tokenBoostersData = snapshot.docs
+          .map((d) => ({
+            id: d.id,
+            ...d.data(),
+            _colSource: "token_requests" as const,
+          }))
+          .filter(
+            (r: any) =>
+              r.is_booster ||
+              r.notes?.includes("BOOSTER PLAN") ||
+              r.notes?.includes("PIN REQUEST")
+          ) as any;
+        combineAndSet();
+      },
+      (err) => {
+        console.warn("Token booster snapshot note:", err);
+        combineAndSet();
+      }
+    );
+
+    function combineAndSet() {
+      // Merge unique by id
+      const map = new Map<string, BoosterRequest & { _colSource?: "booster_requests" | "token_requests" }>();
+      boostersData.forEach((item) => map.set(item.id, item));
+      tokenBoostersData.forEach((item) => {
+        if (!map.has(item.id)) map.set(item.id, item);
+      });
+      const combined = Array.from(map.values()).sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+      setRequests(combined);
+      setLoading(false);
+    }
+
+    return () => {
+      unsubBoosters();
+      unsubTokens();
+    };
   }, [user, profile, authLoading]);
 
   // Handle Approve
-  const handleApprove = async (req: TokenRequest) => {
+  const handleApprove = async (req: BoosterRequest & { _colSource?: "booster_requests" | "token_requests" }) => {
     setActionLoadingId(req.id);
     try {
-      const res = await approveTokenPurchase(req.id, req.user_id, req.tokens);
+      const res = await approveBoosterRequest(
+        req.id,
+        req._colSource || "booster_requests",
+        req.listing_id,
+        req.plan_days
+      );
       if (res.success) {
-        toast.success(`Approved! Credited ${req.tokens} tokens to ${req.user_name || req.user_email}.`);
+        toast.success(`Approved! Booster activated for ${req.user_name || req.user_email || "Seller"}.`);
       } else {
-        toast.error(res.error || "Failed to approve request");
+        toast.error(res.error || "Failed to approve booster request");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Error approving request");
+      toast.error("Error approving booster request");
     } finally {
       setActionLoadingId(null);
     }
   };
 
   // Handle Reject
-  const handleReject = async (req: TokenRequest) => {
+  const handleReject = async (req: BoosterRequest & { _colSource?: "booster_requests" | "token_requests" }) => {
     setActionLoadingId(req.id);
     try {
-      const res = await rejectTokenPurchase(req.id);
+      const res = await rejectBoosterRequest(req.id, req._colSource || "booster_requests");
       if (res.success) {
-        toast.success(`Request ${req.id.slice(0, 6)} marked as rejected.`);
+        toast.success(`Booster request marked as rejected.`);
       } else {
         toast.error(res.error || "Failed to reject request");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Error rejecting request");
+      toast.error("Error rejecting booster request");
     } finally {
       setActionLoadingId(null);
-    }
-  };
-
-  // Handle Manual Grant by Email
-  const handleManualGrant = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!manualEmail.trim()) {
-      toast.error("Please enter a user email address.");
-      return;
-    }
-
-    if (manualTokens < 1) {
-      toast.error("Please enter at least 1 token.");
-      return;
-    }
-
-    setGrantingTokens(true);
-    try {
-      const res = await adminGrantTokensByEmail(manualEmail.trim(), Number(manualTokens));
-      if (res.success) {
-        toast.success(`Successfully granted ${manualTokens} BhoomiTayi Tokens to ${manualEmail.trim()}! New balance: ${res.user?.tokens} tokens.`);
-        setManualEmail("");
-        setManualTokens(3);
-      } else {
-        toast.error(res.error || "Failed to grant tokens.");
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Error granting tokens");
-    } finally {
-      setGrantingTokens(false);
     }
   };
 
@@ -182,7 +182,6 @@ export default function AdminTokensPage() {
   const pendingRequests = requests.filter((r) => r.status === "pending");
   const approvedRequests = requests.filter((r) => r.status === "approved");
   const totalRevenue = approvedRequests.reduce((sum, r) => sum + (r.amount || 0), 0);
-  const totalTokensIssued = approvedRequests.reduce((sum, r) => sum + (r.tokens || 0), 0);
 
   const filteredRequests = requests.filter((r) => {
     const matchesStatus = statusFilter === "all" || r.status === statusFilter;
@@ -192,6 +191,8 @@ export default function AdminTokensPage() {
       r.user_name?.toLowerCase().includes(qLower) ||
       r.user_email?.toLowerCase().includes(qLower) ||
       r.transaction_id?.toLowerCase().includes(qLower) ||
+      r.plan_name?.toLowerCase().includes(qLower) ||
+      r.notes?.toLowerCase().includes(qLower) ||
       r.id.toLowerCase().includes(qLower);
     return matchesStatus && matchesSearch;
   });
@@ -216,15 +217,15 @@ export default function AdminTokensPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-6">
         <div className="flex items-center gap-3">
-          <div className="size-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center p-2 shadow-sm border border-emerald-200 dark:border-emerald-800">
-            <Image src="/token_icon.png" alt="Token" width={32} height={32} className="rounded-full object-cover" />
+          <div className="size-12 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center p-2 shadow-sm border border-blue-200 dark:border-blue-800">
+            <Rocket className="size-6 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
-              BhoomiTayi Token Management
+              Listing Booster & Pin Requests
             </h1>
             <p className="text-sm text-zinc-500">
-              Verify QR code payments, approve token purchase requests, and grant tokens manually.
+              Verify listing visibility packages (Basic, Standard, Plus, Pro) and Pin placement payments.
             </p>
           </div>
         </div>
@@ -250,11 +251,11 @@ export default function AdminTokensPage() {
         <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Total Approved Requests</p>
+              <p className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Approved Boosters</p>
               <h3 className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
                 {approvedRequests.length}
               </h3>
-              <p className="text-[11px] text-zinc-400 mt-0.5">Verified & credited</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">Verified & active</p>
             </div>
             <div className="size-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-900/50">
               <CheckCircle2 className="size-6" />
@@ -265,11 +266,11 @@ export default function AdminTokensPage() {
         <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Revenue Collected</p>
+              <p className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Booster Revenue</p>
               <h3 className="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1">
                 ₹{totalRevenue.toLocaleString("en-IN")}
               </h3>
-              <p className="text-[11px] text-zinc-400 mt-0.5">From token purchases</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">From booster & pin sales</p>
             </div>
             <div className="size-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-200 dark:border-blue-900/50">
               <TrendingUp className="size-6" />
@@ -280,107 +281,25 @@ export default function AdminTokensPage() {
         <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-sm">
           <CardContent className="p-5 flex items-center justify-between">
             <div>
-              <p className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Tokens Credited</p>
-              <h3 className="text-2xl font-black text-indigo-600 dark:text-indigo-400 mt-1">
-                🪙 {totalTokensIssued}
+              <p className="text-xs font-bold uppercase text-zinc-400 tracking-wider">Total Requests</p>
+              <h3 className="text-2xl font-black text-purple-600 dark:text-purple-400 mt-1">
+                {requests.length}
               </h3>
-              <p className="text-[11px] text-zinc-400 mt-0.5">Total sold to buyers</p>
+              <p className="text-[11px] text-zinc-400 mt-0.5">All time submissions</p>
             </div>
-            <div className="size-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-900/50">
-              <Coins className="size-6" />
+            <div className="size-12 rounded-2xl bg-purple-50 dark:bg-purple-950/40 text-purple-600 dark:text-purple-400 flex items-center justify-center border border-purple-200 dark:border-purple-900/50">
+              <Zap className="size-6" />
             </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Manual Grant Section */}
-      <Card className="rounded-2xl border-zinc-200 dark:border-zinc-800 bg-gradient-to-br from-emerald-500/5 via-transparent to-blue-500/5 dark:bg-zinc-900 shadow-sm overflow-hidden">
-        <CardHeader className="border-b border-zinc-200 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-800/30 px-6 py-4">
-          <div className="flex items-center gap-2">
-            <PlusCircle className="size-5 text-emerald-600" />
-            <div>
-              <CardTitle className="text-base font-bold text-foreground">
-                Manual Token Grant for Any Account / Gmail
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Directly add tokens to any customer email (e.g. if they paid via cash or offline UPI).
-              </CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="p-6">
-          <form onSubmit={handleManualGrant} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <div className="md:col-span-6 space-y-1.5">
-              <Label htmlFor="manualEmail" className="text-xs font-bold">
-                Customer Gmail / Account Email Address *
-              </Label>
-              <Input
-                id="manualEmail"
-                type="email"
-                placeholder="customer@gmail.com"
-                value={manualEmail}
-                onChange={(e) => setManualEmail(e.target.value)}
-                className="h-10 rounded-xl bg-white dark:bg-zinc-950"
-                required
-              />
-            </div>
-
-            <div className="md:col-span-3 space-y-1.5">
-              <Label htmlFor="manualTokens" className="text-xs font-bold">
-                Tokens to Grant *
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  id="manualTokens"
-                  type="number"
-                  min={1}
-                  max={1000}
-                  value={manualTokens}
-                  onChange={(e) => setManualTokens(Number(e.target.value))}
-                  className="h-10 rounded-xl bg-white dark:bg-zinc-950 font-bold"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="md:col-span-3">
-              <Button
-                type="submit"
-                className="w-full h-10 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold gap-2 shadow-sm"
-                disabled={grantingTokens}
-              >
-                <Coins className="size-4" />
-                {grantingTokens ? "Granting..." : "Grant Tokens Now"}
-              </Button>
-            </div>
-          </form>
-
-          <div className="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-            <span className="text-xs font-semibold text-zinc-400">Quick Token Presets:</span>
-            {[1, 3, 7, 15, 32, 50, 100].map((num) => (
-              <button
-                key={num}
-                type="button"
-                onClick={() => setManualTokens(num)}
-                className={`text-xs px-2.5 py-1 rounded-lg border font-bold transition-all ${
-                  manualTokens === num
-                    ? "bg-emerald-600 text-white border-emerald-600"
-                    : "bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300"
-                }`}
-              >
-                +{num} Tokens
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
         <div className="relative flex-1 w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-zinc-400" />
           <Input
-            placeholder="Search by name, email, UTR, or Request ID..."
+            placeholder="Search by seller, plan, UTR, or listing details..."
             className="pl-9 h-10 border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-950/50 text-xs"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -415,10 +334,10 @@ export default function AdminTokensPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-800">
               <tr>
-                <th className="px-6 py-4 font-bold text-zinc-500 uppercase text-[11px] tracking-wider">User</th>
-                <th className="px-6 py-4 font-bold text-zinc-500 uppercase text-[11px] tracking-wider">Tokens Plan</th>
+                <th className="px-6 py-4 font-bold text-zinc-500 uppercase text-[11px] tracking-wider">Seller</th>
+                <th className="px-6 py-4 font-bold text-zinc-500 uppercase text-[11px] tracking-wider">Booster / Pin Plan</th>
                 <th className="px-6 py-4 font-bold text-zinc-500 uppercase text-[11px] tracking-wider">Amount</th>
-                <th className="px-6 py-4 font-bold text-zinc-500 uppercase text-[11px] tracking-wider">Transaction / UTR</th>
+                <th className="px-6 py-4 font-bold text-zinc-500 uppercase text-[11px] tracking-wider">Transaction / UTR & Notes</th>
                 <th className="px-6 py-4 font-bold text-zinc-500 uppercase text-[11px] tracking-wider">Date & Time</th>
                 <th className="px-6 py-4 font-bold text-zinc-500 uppercase text-[11px] tracking-wider">Status</th>
                 <th className="px-6 py-4 font-bold text-zinc-500 uppercase text-[11px] tracking-wider text-right">Approval Actions</th>
@@ -428,10 +347,10 @@ export default function AdminTokensPage() {
               {filteredRequests.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-zinc-500">
-                    <Coins className="size-8 mx-auto text-zinc-300 dark:text-zinc-700 mb-2" />
-                    <p className="font-semibold text-sm">No token requests found.</p>
+                    <Rocket className="size-8 mx-auto text-zinc-300 dark:text-zinc-700 mb-2" />
+                    <p className="font-semibold text-sm">No booster requests found.</p>
                     <p className="text-xs text-zinc-400 mt-1">
-                      {statusFilter !== "all" ? `No ${statusFilter} requests.` : "Users will appear here when they submit token purchase requests."}
+                      {statusFilter !== "all" ? `No ${statusFilter} booster requests.` : "Sellers will appear here when they purchase booster plans for their listings."}
                     </p>
                   </td>
                 </tr>
@@ -442,15 +361,22 @@ export default function AdminTokensPage() {
                   const isRejected = req.status === "rejected";
                   const isActionLoading = actionLoadingId === req.id;
 
+                  // Extract listing ID from notes or field
+                  let listingId = req.listing_id;
+                  if (!listingId && req.notes) {
+                    const match = req.notes.match(/Listing ID:\s*([A-Za-z0-9_-]+)/i);
+                    if (match) listingId = match[1];
+                  }
+
                   return (
                     <tr
                       key={req.id}
                       className="hover:bg-zinc-50/70 dark:hover:bg-zinc-800/30 transition-colors"
                     >
-                      {/* User Info */}
+                      {/* Seller Info */}
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-foreground">{req.user_name || "Customer"}</span>
+                          <span className="font-bold text-foreground">{req.user_name || "Seller"}</span>
                           <span className="text-xs text-muted-foreground">{req.user_email || "No email"}</span>
                           {req.user_phone && (
                             <span className="text-[11px] font-mono text-zinc-400">{req.user_phone}</span>
@@ -458,13 +384,22 @@ export default function AdminTokensPage() {
                         </div>
                       </td>
 
-                      {/* Tokens */}
+                      {/* Booster Plan */}
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <Image src="/token_icon.png" alt="Token" width={20} height={20} className="rounded-full" />
-                          <span className="font-black text-foreground text-sm">
-                            {req.tokens} Tokens
-                          </span>
+                          <div className="size-7 rounded-lg bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center font-bold text-xs">
+                            🚀
+                          </div>
+                          <div>
+                            <span className="font-black text-foreground text-sm block">
+                              {req.plan_name || (req.notes?.includes("PIN") ? "Pin Placement (30D)" : "Booster Plan")}
+                            </span>
+                            {req.plan_days && (
+                              <span className="text-[11px] text-blue-600 dark:text-blue-400 font-semibold">
+                                {req.plan_days} Days Active
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </td>
 
@@ -475,26 +410,37 @@ export default function AdminTokensPage() {
                         </span>
                       </td>
 
-                      {/* UTR / Transaction ID */}
-                      {/* UTR / Transaction ID */}
+                      {/* UTR / Notes & Listing Link */}
                       <td className="px-6 py-4">
                         {req.notes && (
-                          <div className="text-xs font-bold text-foreground mb-1">
-                            Sender: {req.notes}
+                          <div className="text-xs font-medium text-foreground mb-1 max-w-xs truncate" title={req.notes}>
+                            {req.notes}
                           </div>
                         )}
-                        <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 select-all">
-                            {req.transaction_id || "None provided"}
-                          </span>
+                        <div className="flex items-center gap-2 flex-wrap">
                           {req.transaction_id && (
-                            <button
-                              onClick={() => copyToClipboard(req.transaction_id || "", "Transaction ID")}
-                              className="text-zinc-400 hover:text-foreground p-1"
-                              title="Copy UTR"
+                            <div className="flex items-center gap-1">
+                              <span className="font-mono text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded-lg border border-zinc-200 dark:border-zinc-700 select-all">
+                                {req.transaction_id}
+                              </span>
+                              <button
+                                onClick={() => copyToClipboard(req.transaction_id || "", "Transaction ID")}
+                                className="text-zinc-400 hover:text-foreground p-1"
+                                title="Copy UTR"
+                              >
+                                <Copy className="size-3.5" />
+                              </button>
+                            </div>
+                          )}
+                          {listingId && (
+                            <Link
+                              href={`/listing/${listingId}`}
+                              target="_blank"
+                              className="text-[11px] font-bold text-blue-600 hover:underline flex items-center gap-1 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-md"
                             >
-                              <Copy className="size-3.5" />
-                            </button>
+                              <span>View Listing</span>
+                              <ExternalLink className="size-3" />
+                            </Link>
                           )}
                         </div>
                       </td>
@@ -535,12 +481,12 @@ export default function AdminTokensPage() {
                           <div className="flex items-center justify-end gap-2">
                             <Button
                               size="sm"
-                              className="h-8 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm gap-1"
+                              className="h-8 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm gap-1"
                               onClick={() => handleApprove(req)}
                               disabled={isActionLoading}
                             >
                               <CheckCircle2 className="size-3.5" />
-                              {isActionLoading ? "..." : "Approve & Credit"}
+                              {isActionLoading ? "..." : "Approve Booster"}
                             </Button>
                             <Button
                               size="sm"
@@ -555,7 +501,7 @@ export default function AdminTokensPage() {
                           </div>
                         ) : isApproved ? (
                           <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                            Tokens Credited
+                            Booster Active
                           </span>
                         ) : (
                           <span className="text-xs font-semibold text-zinc-400">

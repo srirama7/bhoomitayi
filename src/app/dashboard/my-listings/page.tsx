@@ -42,6 +42,7 @@ import {
   where,
   getDocs,
   doc,
+  addDoc,
   updateDoc,
   deleteDoc,
   orderBy,
@@ -84,6 +85,21 @@ export default function MyListingsPage() {
         pin_payment_status: "pending",
         pin_payment_amount: 499,
         pin_requested_at: pinReqTime,
+        updated_at: pinReqTime,
+      });
+
+      await addDoc(collection(db, "booster_requests"), {
+        user_id: user?.uid || pinningListing.user_id,
+        user_name: user?.displayName || "Seller",
+        user_email: user?.email || "",
+        plan_name: "Pin Placement (30 Days)",
+        plan_days: 30,
+        amount: 499,
+        listing_id: pinningListing.id,
+        notes: `PIN REQUEST | Listing ID: ${pinningListing.id}`,
+        status: "pending",
+        is_booster: true,
+        created_at: pinReqTime,
         updated_at: pinReqTime,
       });
       setListings((prev) =>

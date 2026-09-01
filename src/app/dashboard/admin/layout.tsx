@@ -17,6 +17,7 @@ import {
   AlertCircle,
   MessageSquare,
   Coins,
+  Rocket,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ import { toast } from "sonner";
 const adminNavItems = [
   { label: "Dashboard", href: "/dashboard/admin", icon: LayoutDashboard },
   { label: "Token Requests", href: "/dashboard/admin/tokens", icon: Coins },
+  { label: "Booster Requests", href: "/dashboard/admin/boosters", icon: Rocket },
   { label: "User Management", href: "/dashboard/admin/users", icon: Users },
   { label: "Listings Control", href: "/dashboard/admin/listings", icon: Building },
   { label: "Favorites", href: "/dashboard/admin/favorites", icon: Shield },

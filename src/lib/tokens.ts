@@ -4,13 +4,14 @@ import {
   doc,
   getDoc,
   getDocs,
+  setDoc,
   updateDoc,
   query,
   where,
   addDoc,
   increment,
 } from "firebase/firestore";
-import type { Profile, Coupon } from "@/lib/types/database";
+import type { Profile, Coupon, TokenRequest, BoosterRequest } from "@/lib/types/database";
 import { DEFAULT_FREE_TOKENS, TOKEN_UNLOCK_COST } from "@/lib/constants";
 import { cleanFirestoreData } from "@/lib/utils";
 
@@ -111,21 +112,72 @@ export async function approveTokenPurchase(
 
   try {
     const reqRef = doc(db, "token_requests", requestId);
-    const profileRef = doc(db, "profiles", userId);
-
-    const profileSnap = await getDoc(profileRef);
-    if (!profileSnap.exists()) {
-      return { success: false, error: "User profile not found" };
+    const reqSnap = await getDoc(reqRef);
+    if (!reqSnap.exists()) {
+      return { success: false, error: "Token request not found" };
     }
 
-    const currentTokens = (profileSnap.data() as Profile).tokens ?? DEFAULT_FREE_TOKENS;
-    const newTokens = currentTokens + tokensToAdd;
+    const reqData = reqSnap.data() as TokenRequest;
+    const effectiveUserId = userId || reqData.user_id;
+    const userEmail = reqData.user_email?.trim() || "";
 
-    await updateDoc(profileRef, {
-      tokens: newTokens,
-      updated_at: new Date().toISOString(),
-    });
+    let targetProfileId: string | null = null;
+    let currentTokens = DEFAULT_FREE_TOKENS;
 
+    // 1. Check if profile doc exists by effectiveUserId
+    if (effectiveUserId) {
+      const profileRef = doc(db, "profiles", effectiveUserId);
+      const profileSnap = await getDoc(profileRef);
+      if (profileSnap.exists()) {
+        targetProfileId = profileSnap.id;
+        currentTokens = (profileSnap.data() as Profile).tokens ?? DEFAULT_FREE_TOKENS;
+      }
+    }
+
+    // 2. Fallback: Search profiles by userEmail if profile was not found by ID
+    if (!targetProfileId && userEmail) {
+      const q = query(
+        collection(db, "profiles"),
+        where("email", "==", userEmail.toLowerCase())
+      );
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        targetProfileId = snap.docs[0].id;
+        currentTokens = (snap.docs[0].data() as Profile).tokens ?? DEFAULT_FREE_TOKENS;
+      } else {
+        const qExact = query(
+          collection(db, "profiles"),
+          where("email", "==", userEmail)
+        );
+        const snapExact = await getDocs(qExact);
+        if (!snapExact.empty) {
+          targetProfileId = snapExact.docs[0].id;
+          currentTokens = (snapExact.docs[0].data() as Profile).tokens ?? DEFAULT_FREE_TOKENS;
+        }
+      }
+    }
+
+    // 3. If profile still doesn't exist, targetProfileId is effectiveUserId
+    if (!targetProfileId) {
+      targetProfileId = effectiveUserId || doc(collection(db, "profiles")).id;
+    }
+
+    const newTokens = currentTokens + (tokensToAdd || 0);
+
+    // Save/update profile with merge: true
+    await setDoc(
+      doc(db, "profiles", targetProfileId),
+      {
+        id: targetProfileId,
+        email: userEmail || null,
+        full_name: reqData.user_name || "Customer",
+        tokens: newTokens,
+        updated_at: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+
+    // Update token request status
     await updateDoc(reqRef, {
       status: "approved",
       updated_at: new Date().toISOString(),
@@ -134,7 +186,7 @@ export async function approveTokenPurchase(
     return { success: true };
   } catch (error) {
     console.error("Error approving token request:", error);
-    return { success: false, error: "Failed to approve request" };
+    return { success: false, error: String(error) || "Failed to approve request" };
   }
 }
 
@@ -152,6 +204,94 @@ export async function rejectTokenPurchase(
     return { success: true };
   } catch (error) {
     console.error("Error rejecting token request:", error);
+    return { success: false, error: "Failed to reject request" };
+  }
+}
+
+export async function approveBoosterRequest(
+  requestId: string,
+  collectionName: "booster_requests" | "token_requests" = "booster_requests",
+  listingId?: string | null,
+  planDays?: number | null
+): Promise<{ success: boolean; error?: string }> {
+  if (!db) return { success: false, error: "Database not available" };
+
+  try {
+    const reqRef = doc(db, collectionName, requestId);
+    const reqSnap = await getDoc(reqRef);
+    if (!reqSnap.exists()) {
+      return { success: false, error: "Booster request not found" };
+    }
+
+    const data = reqSnap.data();
+    let targetListingId = listingId || data.listing_id;
+
+    if (!targetListingId && data.notes) {
+      const match = data.notes.match(/Listing ID:\s*([A-Za-z0-9_-]+)/i);
+      if (match) {
+        targetListingId = match[1];
+      }
+    }
+
+    let daysToGrant = planDays || data.plan_days || 30;
+    if (!daysToGrant && data.notes) {
+      const daysMatch = data.notes.match(/\((\d+)\s*Days?\)/i);
+      if (daysMatch) {
+        daysToGrant = parseInt(daysMatch[1], 10);
+      }
+    }
+
+    if (targetListingId) {
+      const listingRef = doc(db, "listings", targetListingId);
+      const listingSnap = await getDoc(listingRef);
+      if (listingSnap.exists()) {
+        const expiresAt = new Date(Date.now() + (daysToGrant || 30) * 24 * 60 * 60 * 1000).toISOString();
+        const isPin = data.notes?.toLowerCase().includes("pin") || data.plan_name?.toLowerCase().includes("pin");
+
+        const updateData: Record<string, any> = {
+          status: "active",
+          payment_status: "approved",
+          expires_at: expiresAt,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (isPin) {
+          updateData.pinned = true;
+          updateData.pin_status = "approved";
+          updateData.pin_expires_at = expiresAt;
+        }
+
+        await updateDoc(listingRef, updateData);
+      }
+    }
+
+    await updateDoc(reqRef, {
+      status: "approved",
+      updated_at: new Date().toISOString(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error approving booster request:", error);
+    return { success: false, error: String(error) || "Failed to approve booster request" };
+  }
+}
+
+export async function rejectBoosterRequest(
+  requestId: string,
+  collectionName: "booster_requests" | "token_requests" = "booster_requests"
+): Promise<{ success: boolean; error?: string }> {
+  if (!db) return { success: false, error: "Database not available" };
+
+  try {
+    const reqRef = doc(db, collectionName, requestId);
+    await updateDoc(reqRef, {
+      status: "rejected",
+      updated_at: new Date().toISOString(),
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("Error rejecting booster request:", error);
     return { success: false, error: "Failed to reject request" };
   }
 }

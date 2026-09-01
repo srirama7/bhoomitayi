@@ -13,7 +13,6 @@ import {
   Sun,
   Moon,
   Monitor,
-  Trash2,
   LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { useAuthStore } from "@/lib/store";
 import { auth } from "@/lib/firebase/config";
-import { signOut, deleteUser } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { SUPPORTED_LANGUAGES } from "@/lib/i18n";
 
@@ -43,7 +42,6 @@ export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [inquiryAlerts, setInquiryAlerts] = useState(true);
   const [marketingEmails, setMarketingEmails] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -67,19 +65,6 @@ export default function SettingsPage() {
       useAuthStore.getState().setUser(null);
       useAuthStore.getState().setProfile(null);
       router.replace("/auth/login");
-    }
-  };
-
-  const handleDeleteAccount = async () => {
-    if (!auth.currentUser) return;
-    try {
-      await deleteUser(auth.currentUser);
-      useAuthStore.getState().setUser(null);
-      useAuthStore.getState().setProfile(null);
-      toast.success("Account deleted successfully");
-      router.push("/");
-    } catch {
-      toast.error("Failed to delete account. Please sign in again and retry.");
     }
   };
 
@@ -239,45 +224,6 @@ export default function SettingsPage() {
               <LogOut className="size-4" />
               Sign Out
             </Button>
-
-            <Separator />
-
-            {!showDeleteConfirm ? (
-              <Button
-                variant="outline"
-                className="w-full rounded-xl justify-start gap-2 text-red-600 border-red-200 dark:border-red-900/50 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-700"
-                onClick={() => setShowDeleteConfirm(true)}
-              >
-                <Trash2 className="size-4" />
-                Delete Account
-              </Button>
-            ) : (
-              <div className="rounded-xl border border-red-300 dark:border-red-900 bg-red-50 dark:bg-red-950/30 p-4 space-y-3">
-                <p className="text-sm font-medium text-red-700 dark:text-red-400">
-                  Are you sure? This action cannot be undone.
-                </p>
-                <p className="text-xs text-red-600/80 dark:text-red-400/80">
-                  All your listings, favorites, and profile data will be permanently deleted.
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="rounded-lg"
-                    onClick={() => setShowDeleteConfirm(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="rounded-lg bg-red-600 hover:bg-red-700 text-white"
-                    onClick={handleDeleteAccount}
-                  >
-                    Yes, Delete My Account
-                  </Button>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
       </div>

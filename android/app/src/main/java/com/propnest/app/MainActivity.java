@@ -92,10 +92,16 @@ public class MainActivity extends BridgeActivity {
         @JavascriptInterface
         public void startGoogleSignIn() {
             Log.d(TAG, "startGoogleSignIn called from JS");
-            // Sign out first to force account picker to always show
-            googleSignInClient.signOut().addOnCompleteListener(task -> {
-                Intent signInIntent = googleSignInClient.getSignInIntent();
-                googleSignInLauncher.launch(signInIntent);
+            runOnUiThread(() -> {
+                try {
+                    googleSignInClient.signOut();
+                } catch (Exception ignored) {}
+                try {
+                    Intent signInIntent = googleSignInClient.getSignInIntent();
+                    googleSignInLauncher.launch(signInIntent);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to launch Google Sign-In intent", e);
+                }
             });
         }
     }

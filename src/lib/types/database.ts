@@ -33,6 +33,25 @@ export interface TokenRequest {
   notes?: string | null;
   created_at: string;
   updated_at?: string | null;
+  is_booster?: boolean;
+}
+
+export interface BoosterRequest {
+  id: string;
+  user_id: string;
+  user_name: string;
+  user_email?: string | null;
+  user_phone?: string | null;
+  plan_name?: string | null;
+  plan_days?: number | null;
+  amount: number;
+  transaction_id?: string | null;
+  listing_id?: string | null;
+  notes?: string | null;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+  updated_at?: string | null;
+  is_booster?: boolean;
 }
 
 export interface Listing {
