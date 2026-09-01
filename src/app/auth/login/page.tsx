@@ -146,48 +146,53 @@ function LoginForm() {
     setIsGoogleLoading(true);
 
     try {
-      // In native Android APK, use native Android Google Sign-In directly
+      // In native Android APK, use native Android Google Sign-In directly with fallback
       if (isNativeApp() || Capacitor.isNativePlatform() || (typeof window !== "undefined" && (window as any).AndroidBridge)) {
-        const userCredential = await signInWithNativeGoogle();
-        const user = userCredential.user;
-
         try {
-          if (db) {
-            const profileRef = doc(db, "profiles", user.uid);
-            const profileSnap = await getDoc(profileRef);
-            if (!profileSnap.exists()) {
-              await setDoc(profileRef, {
-                id: user.uid,
-                full_name: user.displayName || "",
-                email: user.email || "",
-                avatar_url: user.photoURL || null,
-                role: "user",
-                tokens: DEFAULT_FREE_TOKENS,
-                unlocked_listings: [],
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              });
-            } else {
-              const data = profileSnap.data();
-              const updates: Record<string, unknown> = {};
-              if (!data.email && user.email) updates.email = user.email;
-              if (data.tokens === undefined || data.tokens === null) {
-                updates.tokens = DEFAULT_FREE_TOKENS;
-              }
-              if (data.unlocked_listings === undefined) updates.unlocked_listings = [];
-              if (Object.keys(updates).length > 0) {
-                await updateDoc(profileRef, updates);
+          const userCredential = await signInWithNativeGoogle();
+          const user = userCredential.user;
+
+          try {
+            if (db) {
+              const profileRef = doc(db, "profiles", user.uid);
+              const profileSnap = await getDoc(profileRef);
+              if (!profileSnap.exists()) {
+                await setDoc(profileRef, {
+                  id: user.uid,
+                  full_name: user.displayName || "",
+                  email: user.email || "",
+                  avatar_url: user.photoURL || null,
+                  role: "user",
+                  tokens: DEFAULT_FREE_TOKENS,
+                  unlocked_listings: [],
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString(),
+                });
+              } else {
+                const data = profileSnap.data();
+                const updates: Record<string, unknown> = {};
+                if (!data.email && user.email) updates.email = user.email;
+                if (data.tokens === undefined || data.tokens === null) {
+                  updates.tokens = DEFAULT_FREE_TOKENS;
+                }
+                if (data.unlocked_listings === undefined) updates.unlocked_listings = [];
+                if (Object.keys(updates).length > 0) {
+                  await updateDoc(profileRef, updates);
+                }
               }
             }
+          } catch (profileError) {
+            console.error("Failed to create/check profile:", profileError);
           }
-        } catch (profileError) {
-          console.error("Failed to create/check profile:", profileError);
-        }
 
-        toast.success("Signed in successfully!");
-        router.push(redirectTo);
-        router.refresh();
-        return;
+          toast.success("Signed in successfully!");
+          router.push(redirectTo);
+          router.refresh();
+          return;
+        } catch (nativeError) {
+          console.warn("Native Google sign-in encountered an issue, trying web auth fallback:", nativeError);
+          // Fall through to web provider sign-in
+        }
       }
 
       // Web Browser Flow (only for desktop / mobile browsers, not inside native app)

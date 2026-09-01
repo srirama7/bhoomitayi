@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "128735139971-release.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bhoomitayi.app",
+            "certificate_hash": "c882bb0f0d4ddb5096951c3ff7df532855d8e82d"
+          }
+        },
+        {
           "client_id": "128735139971-h04ru4l2sf2l4cr2tfijp211e8rei9d2.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -1096,7 +1096,7 @@ function renderTokenRequests() {
             </div>
             <div class="detail-item">
               <div class="detail-label">Payment Method</div>
-              <div class="detail-value">SBI QR Code / UPI (amoghabhat7403@oksbi)</div>
+              <div class="detail-value">HDFC QR Code / UPI (amoghabhat7403@okhdfcbank)</div>
             </div>
             `}
           </div>

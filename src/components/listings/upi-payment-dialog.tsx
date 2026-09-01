@@ -162,7 +162,7 @@ export function PaymentGateway({
   }
 
   const copyUpi = () => {
-    navigator.clipboard.writeText("amoghabhat7403@oksbi");
+    navigator.clipboard.writeText(UPI_PAYMENT_CONFIG.vpa);
     toast.success("UPI ID copied to clipboard!");
   }
 

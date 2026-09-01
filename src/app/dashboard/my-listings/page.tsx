@@ -535,7 +535,7 @@ export default function MyListingsPage() {
             {/* QR Code */}
             <div className="bg-white p-4 rounded-3xl w-56 h-56 flex items-center justify-center shadow-lg border-4 border-amber-500">
               <QRCodeSVG
-                value="upi://pay?pa=amoghabhat7403@oksbi&pn=BhoomiTayi&am=499&cu=INR"
+                value="upi://pay?pa=amoghabhat7403@okhdfcbank&pn=BhoomiTayi&am=499&cu=INR"
                 size={190}
                 level="Q"
               />
@@ -544,9 +544,9 @@ export default function MyListingsPage() {
             <div className="text-center space-y-2">
               <p className="text-xs text-zinc-400">Scan QR Code with any UPI app (GPay, PhonePe, Paytm)</p>
               <div className="flex items-center justify-center gap-2 p-2 bg-zinc-900 border border-zinc-800 rounded-xl max-w-xs mx-auto">
-                <span className="text-xs font-mono select-all truncate max-w-[200px]">amoghabhat7403@oksbi</span>
+                <span className="text-xs font-mono select-all truncate max-w-[200px]">amoghabhat7403@okhdfcbank</span>
                 <Button size="icon" variant="ghost" className="h-6 w-6 text-zinc-400" onClick={() => {
-                  navigator.clipboard.writeText("amoghabhat7403@oksbi");
+                  navigator.clipboard.writeText("amoghabhat7403@okhdfcbank");
                   toast.success("UPI ID copied!");
                 }}>
                   <Copy className="size-3.5" />

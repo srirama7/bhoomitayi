@@ -145,7 +145,7 @@ export const TOKEN_PACKAGES = [
 ] as const;
 
 export const UPI_PAYMENT_CONFIG = {
-  vpa: "amoghabhat7403@oksbi",
+  vpa: "amoghabhat7403@okhdfcbank",
   name: "BhoomiTayi",
   qrImage: "/new_qr.png",
   tokenIcon: "/token_icon.png",
