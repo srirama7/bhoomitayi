@@ -1251,10 +1251,10 @@ async function rejectTokenRequest(reqId) {
   }
 }
 
-// BOOSTER REQUESTS MANAGEMENT
+// BOOSTER REQUESTS MANAGEMENT (Informational Ledger & Listing Status)
 function setBoosterFilter(f) {
   boosterFilter = f;
-  ["all", "pending", "approved", "rejected"].forEach(type => {
+  ["all", "pending", "approved"].forEach(type => {
     const btn = document.getElementById("boosterBtn-" + type);
     if (btn) {
       if (type === f) {
@@ -1270,20 +1270,37 @@ function setBoosterFilter(f) {
 }
 
 function updateBoosterStats() {
-  const t = allBoosterRequests.length;
-  const p = allBoosterRequests.filter(r => r.status === "pending").length;
-  const a = allBoosterRequests.filter(r => r.status === "approved").length;
-  const r = allBoosterRequests.filter(r => r.status === "rejected").length;
+  const total = allBoosterRequests.length;
+  
+  let approvedCount = 0;
+  let pendingCount = 0;
+  let totalRevenue = 0;
+
+  allBoosterRequests.forEach(r => {
+    totalRevenue += Number(r.amount || 0);
+
+    let lid = r.listing_id;
+    if (!lid && r.notes) {
+      const match = r.notes.match(/Listing ID:\s*([A-Za-z0-9_-]+)/i);
+      if (match) lid = match[1];
+    }
+    const listing = lid ? allListings.find(x => x.id === lid) : null;
+    if (listing && listing.status === "active") {
+      approvedCount++;
+    } else {
+      pendingCount++;
+    }
+  });
   
   const elAll = document.getElementById("statBoosterAll");
   const elPending = document.getElementById("statBoosterPending");
   const elApproved = document.getElementById("statBoosterApproved");
-  const elRejected = document.getElementById("statBoosterRejected");
+  const elRev = document.getElementById("statBoosterRevenue");
   
-  if (elAll) elAll.textContent = t;
-  if (elPending) elPending.textContent = p;
-  if (elApproved) elApproved.textContent = a;
-  if (elRejected) elRejected.textContent = r;
+  if (elAll) elAll.textContent = total;
+  if (elPending) elPending.textContent = pendingCount;
+  if (elApproved) elApproved.textContent = approvedCount;
+  if (elRev) elRev.textContent = "₹" + totalRevenue.toLocaleString('en-IN');
 }
 
 function renderBoosterRequests() {
@@ -1291,8 +1308,27 @@ function renderBoosterRequests() {
   if (!c) return;
   
   let list = allBoosterRequests.slice();
-  if (boosterFilter !== "all") {
-    list = list.filter(r => r.status === boosterFilter);
+  
+  if (boosterFilter === "pending") {
+    list = list.filter(r => {
+      let lid = r.listing_id;
+      if (!lid && r.notes) {
+        const match = r.notes.match(/Listing ID:\s*([A-Za-z0-9_-]+)/i);
+        if (match) lid = match[1];
+      }
+      const l = lid ? allListings.find(x => x.id === lid) : null;
+      return !l || l.status === "pending";
+    });
+  } else if (boosterFilter === "approved") {
+    list = list.filter(r => {
+      let lid = r.listing_id;
+      if (!lid && r.notes) {
+        const match = r.notes.match(/Listing ID:\s*([A-Za-z0-9_-]+)/i);
+        if (match) lid = match[1];
+      }
+      const l = lid ? allListings.find(x => x.id === lid) : null;
+      return l && l.status === "active";
+    });
   }
   
   const q = (document.getElementById("boosterSearchInput")?.value || "").toLowerCase().trim();
@@ -1303,46 +1339,50 @@ function renderBoosterRequests() {
   }
   
   if (!list.length) {
-    c.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:#64748b;"><p>🚀 No booster requests found matching your filter.</p></div>';
+    c.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:#64748b;"><p>🚀 No booster payment records found matching your filter.</p></div>';
     return;
   }
   
   c.innerHTML = list.map(r => {
-    const isPending = r.status === "pending";
-    const isApproved = r.status === "approved";
-    const isRejected = r.status === "rejected";
-    
-    let statusBadge = '';
-    if (isPending) {
-      statusBadge = '<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:bold;">⏳ Pending Approval</span>';
-    } else if (isApproved) {
-      statusBadge = '<span class="badge" style="background:#dcfce7; color:#166534; font-weight:bold;">✓ Approved & Active</span>';
-    } else {
-      statusBadge = '<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight:bold;">✕ Rejected</span>';
-    }
-    
     let listingId = r.listing_id;
     if (!listingId && r.notes) {
       const match = r.notes.match(/Listing ID:\s*([A-Za-z0-9_-]+)/i);
       if (match) listingId = match[1];
     }
+
+    const listing = listingId ? allListings.find(l => l.id === listingId) : null;
+    const isLive = listing && listing.status === "active";
+    const isPending = !listing || listing.status === "pending";
+    const isRejected = listing && listing.status === "rejected";
+
+    let listingStatusBadge = '';
+    if (isLive) {
+      listingStatusBadge = '<span class="badge" style="background:#dcfce7; color:#166534; font-weight:bold;">✓ Listing Approved & Live</span>';
+    } else if (isPending) {
+      listingStatusBadge = '<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:bold;">⏳ Awaiting Approval in Listings Tab</span>';
+    } else if (isRejected) {
+      listingStatusBadge = '<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight:bold;">✕ Listing Rejected</span>';
+    } else {
+      listingStatusBadge = `<span class="badge" style="background:#f1f5f9; color:#475569; font-weight:bold;">Listing: ${listing.status}</span>`;
+    }
     
     const planName = r.plan_name || (r.notes?.includes("PIN") ? "Pin Placement (30 Days)" : "Booster Plan");
     const planDays = r.plan_days || 30;
+    const searchTarget = (listing?.title || listingId || "").replace(/'/g, "\\'");
     
     return `
-      <div class="listing-card" style="border-left: 4px solid ${isPending ? '#f59e0b' : isApproved ? '#10b981' : '#ef4444'}; margin-bottom:12px;">
+      <div class="listing-card" style="border-left: 4px solid ${isLive ? '#10b981' : isPending ? '#f59e0b' : '#ef4444'}; margin-bottom:12px;">
         <div class="listing-top">
           <div style="font-size:24px; margin-right:12px;">🚀</div>
           <div class="listing-info">
             <div class="listing-name" style="display:flex; align-items:center; gap:8px;">
-              <span>${planName} (₹${r.amount})</span>
-              ${statusBadge}
-              <span class="badge" style="background:#e0e7ff; color:#4338ca; font-weight:bold;">${planDays} DAYS</span>
+              <span>${planName} · ₹${r.amount}</span>
+              ${listingStatusBadge}
+              <span class="badge" style="background:#e0e7ff; color:#4338ca; font-weight:bold;">${planDays} DAYS DURATION</span>
             </div>
             <div class="listing-meta">
               <strong>Seller:</strong> ${r.user_name || 'Seller'} (${r.user_email || 'No email'})
-              ${listingId ? ` · <a href="https://www.bhoomitayi.com/listing/${listingId}" target="_blank" style="color:#2563eb; font-weight:bold; text-decoration:underline;">View Listing ↗</a>` : ''}
+              ${listing ? ` · <strong>Listing Title:</strong> "${listing.title}"` : (listingId ? ` · <strong>Listing ID:</strong> ${listingId}` : '')}
             </div>
           </div>
           <div class="listing-right">
@@ -1353,13 +1393,13 @@ function renderBoosterRequests() {
         <div class="listing-details show" style="padding-top:10px; margin-top:10px; border-top:1px solid #f1f5f9;">
           <div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; margin-bottom:12px;">
             <div class="detail-item">
-              <div class="detail-label">Sender Name / Contact</div>
+              <div class="detail-label">Sender Contact</div>
               <div class="detail-value" style="font-weight:bold; color:#1e293b; font-size:15px;">
-                ${r.user_name || 'Not provided'}
+                ${r.user_name || 'Not provided'} ${r.user_phone ? `(${r.user_phone})` : ''}
               </div>
             </div>
             <div class="detail-item">
-              <div class="detail-label">UPI ID / UTR</div>
+              <div class="detail-label">UPI ID / Transaction UTR</div>
               <div class="detail-value" style="font-family:monospace; font-weight:bold; color:#64748b; background:#f1f5f9; padding:4px 8px; border-radius:4px; display:inline-block; font-size:12px;">
                 ${r.transaction_id || 'Not provided'}
               </div>
@@ -1369,29 +1409,27 @@ function renderBoosterRequests() {
               <div class="detail-value" style="font-weight:bold; color:#059669; font-size:15px;">₹${r.amount}</div>
             </div>
             <div class="detail-item" style="grid-column: span 2;">
-              <div class="detail-label">Plan & Listing Reference</div>
+              <div class="detail-label">Booster Plan & Listing Reference</div>
               <div class="detail-value" style="font-weight:bold; color:#4338ca; font-size:13px; background:#eef2ff; padding:8px; border-radius:6px; border:1px solid #c7d2fe;">
                 ${r.notes || `${planName} for Listing ID: ${listingId || 'N/A'}`}
               </div>
             </div>
           </div>
           
-          <div class="action-btns">
-            ${isPending ? `
-              <button class="btn btn-primary" style="background:#2563eb; border-color:#2563eb; font-weight:bold;" onclick="approveBoosterRequest('${r.id}', '${r._colSource || 'booster_requests'}', '${listingId || ''}', ${planDays})">
-                ✓ Approve & Activate Booster
+          <div class="action-btns" style="display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-size:12px; color:#64748b; font-weight:500;">
+              👉 Approve or reject the listing in the <strong>🏡 Listings</strong> tab.
+            </div>
+            <div style="display:flex; gap:8px;">
+              ${searchTarget ? `
+                <button class="btn btn-primary" onclick="switchTab('listings'); document.getElementById('searchInput').value='${searchTarget}'; renderListings();">
+                  🏡 View & Approve in Listings Tab
+                </button>
+              ` : ''}
+              <button class="btn" style="color:#64748b; border-color:#cbd5e1; font-size: 13px;" onclick="deleteBoosterRequestRecord('${r.id}', '${r._colSource || 'booster_requests'}')">
+                🗑 Delete Record
               </button>
-              <button class="btn" style="color:#dc2626; border-color:#fca5a5;" onclick="rejectBoosterRequest('${r.id}', '${r._colSource || 'booster_requests'}')">
-                ✕ Reject Booster
-              </button>
-            ` : `
-              <span style="font-size:12px; font-weight:600; color:${isApproved ? '#059669' : '#991b1b'}; margin-right:10px;">
-                ${isApproved ? '✓ Booster Active & Published' : '✕ Request Rejected'}
-              </span>
-            `}
-            <button class="btn" style="color:#64748b; border-color:#cbd5e1; font-size: 13px;" onclick="deleteBoosterRequestRecord('${r.id}', '${r._colSource || 'booster_requests'}')">
-              🗑 Delete Record
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1399,89 +1437,8 @@ function renderBoosterRequests() {
   }).join("");
 }
 
-async function approveBoosterRequest(reqId, colSource, listingId, planDays) {
-  if (!confirm(`Confirm approval? This will activate the booster plan for this listing.`)) return;
-  try {
-    const collectionName = colSource || "booster_requests";
-    const reqRef = db.collection(collectionName).doc(reqId);
-    const reqDoc = await reqRef.get();
-    const data = reqDoc.exists ? reqDoc.data() : {};
-
-    let targetListingId = listingId || data.listing_id;
-    if (!targetListingId && data.notes) {
-      const match = data.notes.match(/Listing ID:\s*([A-Za-z0-9_-]+)/i);
-      if (match) targetListingId = match[1];
-    }
-
-    let days = planDays || data.plan_days || 30;
-    if (!days && data.notes) {
-      const match = data.notes.match(/\((\d+)\s*Days?\)/i);
-      if (match) days = parseInt(match[1], 10);
-    }
-
-    // 1. Update request status first
-    await reqRef.update({
-      status: "approved",
-      approved_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    });
-
-    // 2. Try updating listing
-    if (targetListingId) {
-      try {
-        const listRef = db.collection("listings").doc(targetListingId);
-        const listDoc = await listRef.get();
-        if (listDoc.exists) {
-          const expiresAt = new Date(Date.now() + (days || 30) * 24 * 60 * 60 * 1000).toISOString();
-          const isPin = (data.notes || "").toLowerCase().includes("pin") || (data.plan_name || "").toLowerCase().includes("pin");
-          const updateObj = {
-            status: "active",
-            payment_status: "approved",
-            expires_at: expiresAt,
-            updated_at: new Date().toISOString()
-          };
-          if (isPin) {
-            updateObj.pinned = true;
-            updateObj.pin_status = "approved";
-            updateObj.pin_expires_at = expiresAt;
-          }
-          await listRef.update(updateObj);
-        }
-      } catch (listErr) {
-        console.warn("Direct listing update warning:", listErr);
-      }
-    }
-
-    shootConfetti();
-    await logAction("Booster Approved", `Approved booster request ${reqId} for listing ${targetListingId || 'N/A'}`);
-    alert(`Successfully approved and activated listing booster!`);
-    updateBoosterStats();
-    renderBoosterRequests();
-  } catch (e) {
-    console.error("Error approving booster request:", e);
-    alert("Error approving booster request: " + e.message);
-  }
-}
-
-async function rejectBoosterRequest(reqId, colSource) {
-  if (!confirm("Are you sure you want to reject this booster request?")) return;
-  try {
-    const collectionName = colSource || "booster_requests";
-    await db.collection(collectionName).doc(reqId).update({
-      status: "rejected",
-      updated_at: new Date().toISOString()
-    });
-    await logAction("Booster Rejected", `Rejected booster request ${reqId}`);
-    alert("Booster request rejected.");
-    updateBoosterStats();
-    renderBoosterRequests();
-  } catch (e) {
-    alert("Error rejecting booster request: " + e.message);
-  }
-}
-
 window.deleteBoosterRequestRecord = async function(reqId, colSource) {
-  if (!confirm("Are you sure you want to delete this booster record from admin?")) return;
+  if (!confirm("Are you sure you want to delete this booster payment record?")) return;
   try {
     const collectionName = colSource || "booster_requests";
     await db.collection(collectionName).doc(reqId).delete();

@@ -197,18 +197,18 @@
       <div class="header-actions">
         <div>
           <h2 style="font-size:20px; color:#0f172a; margin:0; display:flex; align-items:center; gap:8px;">
-            <span>🚀 Listing Booster & Pin Placement Requests</span>
+            <span>🚀 Listing Booster & Pin Payments (Info & Status)</span>
           </h2>
-          <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">Verify listing visibility booster packages (Basic, Standard, Plus, Pro) and Pin placement payment requests.</p>
+          <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">View booster plan payments, transaction UTRs, and see whether the listing is approved. Listing approvals are managed in the 🏡 Listings tab.</p>
         </div>
         <button class="btn btn-primary" onclick="exportBoosterRequestsCSV()">⬇ Export CSV</button>
       </div>
 
       <div class="stats-row" id="boosterStatsRow">
-        <div class="stat-card active" onclick="setBoosterFilter('all')"><div class="stat-label"><span class="dot dot-blue"></span> All Requests</div><div class="stat-value" id="statBoosterAll">0</div></div>
-        <div class="stat-card" onclick="setBoosterFilter('pending')"><div class="stat-label"><span class="dot dot-orange"></span> Pending Approval</div><div class="stat-value" id="statBoosterPending" style="color:#d97706;">0</div></div>
-        <div class="stat-card" onclick="setBoosterFilter('approved')"><div class="stat-label"><span class="dot dot-green"></span> Approved & Active</div><div class="stat-value" id="statBoosterApproved" style="color:#16a34a;">0</div></div>
-        <div class="stat-card" onclick="setBoosterFilter('rejected')"><div class="stat-label"><span class="dot dot-red"></span> Rejected</div><div class="stat-value" id="statBoosterRejected">0</div></div>
+        <div class="stat-card active" onclick="setBoosterFilter('all')"><div class="stat-label"><span class="dot dot-blue"></span> All Payments</div><div class="stat-value" id="statBoosterAll">0</div></div>
+        <div class="stat-card" onclick="setBoosterFilter('pending')"><div class="stat-label"><span class="dot dot-orange"></span> Awaiting Listing Approval</div><div class="stat-value" id="statBoosterPending" style="color:#d97706;">0</div></div>
+        <div class="stat-card" onclick="setBoosterFilter('approved')"><div class="stat-label"><span class="dot dot-green"></span> Approved & Live</div><div class="stat-value" id="statBoosterApproved" style="color:#16a34a;">0</div></div>
+        <div class="stat-card" onclick="setBoosterFilter('all')"><div class="stat-label"><span class="dot dot-purple" style="background:#8b5cf6"></span> Total Revenue</div><div class="stat-value" id="statBoosterRevenue" style="color:#8b5cf6;">₹0</div></div>
       </div>
 
       <!-- Search and Filters -->
@@ -218,9 +218,8 @@
         </div>
         <div style="display:flex; gap:8px;">
           <button class="btn" onclick="setBoosterFilter('all')" id="boosterBtn-all" style="background:#3b82f6; color:white;">All</button>
-          <button class="btn" onclick="setBoosterFilter('pending')" id="boosterBtn-pending">Pending</button>
-          <button class="btn" onclick="setBoosterFilter('approved')" id="boosterBtn-approved">Approved</button>
-          <button class="btn" onclick="setBoosterFilter('rejected')" id="boosterBtn-rejected">Rejected</button>
+          <button class="btn" onclick="setBoosterFilter('pending')" id="boosterBtn-pending">Pending Listings</button>
+          <button class="btn" onclick="setBoosterFilter('approved')" id="boosterBtn-approved">Live Listings</button>
         </div>
       </div>
 
