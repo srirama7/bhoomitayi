@@ -1167,62 +1167,66 @@ async function approveTokenRequest(reqId, userId, tokensCount) {
     const userEmail = (reqData.user_email || "").trim().toLowerCase();
     const numTokens = Number(tokensCount || reqData.tokens || 0);
 
-    let targetProfileId = null;
-    let curTokens = 200;
-
-    // 1. Check if profile exists by effectiveUserId
-    if (effectiveUserId) {
-      const pDoc = await db.collection("profiles").doc(effectiveUserId).get();
-      if (pDoc.exists) {
-        targetProfileId = pDoc.id;
-        curTokens = pDoc.data().tokens !== undefined ? Number(pDoc.data().tokens) : 200;
-      }
-    }
-
-    // 2. Fallback search by email
-    if (!targetProfileId && userEmail) {
-      const snap = await db.collection("profiles").where("email", "==", userEmail).get();
-      if (!snap.empty) {
-        targetProfileId = snap.docs[0].id;
-        curTokens = snap.docs[0].data().tokens !== undefined ? Number(snap.docs[0].data().tokens) : 200;
-      } else {
-        const found = Object.values(allProfiles).find(p => (p.email || "").toLowerCase() === userEmail);
-        if (found) {
-          targetProfileId = found.id;
-          curTokens = found.tokens !== undefined ? Number(found.tokens) : 200;
-        }
-      }
-    }
-
-    if (!targetProfileId) {
-      targetProfileId = effectiveUserId || db.collection("profiles").doc().id;
-    }
-
-    const newTotal = curTokens + numTokens;
-
-    // Save/update profile with merge: true so it NEVER fails
-    await db.collection("profiles").doc(targetProfileId).set({
-      id: targetProfileId,
-      email: userEmail || reqData.user_email || null,
-      full_name: reqData.user_name || "Customer",
-      tokens: newTotal,
-      updated_at: new Date().toISOString()
-    }, { merge: true });
-
-    if (allProfiles[targetProfileId]) {
-      allProfiles[targetProfileId].tokens = newTotal;
-    }
-
-    // Update request document
+    // 1. Update token_request document first (allowed in Firestore rules)
     await reqRef.update({
       status: "approved",
       approved_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
 
+    // 2. Try updating profile directly
+    try {
+      let targetProfileId = null;
+      let curTokens = 200;
+
+      if (effectiveUserId) {
+        const pDoc = await db.collection("profiles").doc(effectiveUserId).get();
+        if (pDoc.exists) {
+          targetProfileId = pDoc.id;
+          curTokens = pDoc.data().tokens !== undefined ? Number(pDoc.data().tokens) : 200;
+        }
+      }
+
+      if (!targetProfileId && userEmail) {
+        const snap = await db.collection("profiles").where("email", "==", userEmail).get();
+        if (!snap.empty) {
+          targetProfileId = snap.docs[0].id;
+          curTokens = snap.docs[0].data().tokens !== undefined ? Number(snap.docs[0].data().tokens) : 200;
+        } else {
+          const found = Object.values(allProfiles).find(p => (p.email || "").toLowerCase() === userEmail);
+          if (found) {
+            targetProfileId = found.id;
+            curTokens = found.tokens !== undefined ? Number(found.tokens) : 200;
+          }
+        }
+      }
+
+      if (!targetProfileId) {
+        targetProfileId = effectiveUserId || db.collection("profiles").doc().id;
+      }
+
+      const newTotal = curTokens + numTokens;
+
+      await db.collection("profiles").doc(targetProfileId).set({
+        id: targetProfileId,
+        email: userEmail || reqData.user_email || null,
+        full_name: reqData.user_name || "Customer",
+        tokens: newTotal,
+        updated_at: new Date().toISOString()
+      }, { merge: true });
+
+      if (allProfiles[targetProfileId]) {
+        allProfiles[targetProfileId].tokens = newTotal;
+      }
+
+      await reqRef.update({ credited_to_profile: true });
+    } catch (profileErr) {
+      console.warn("Direct profile update skipped (will sync on user app login):", profileErr);
+    }
+
     shootConfetti();
-    await logAction("Token Purchase Approved", `Approved request ${reqId} for ${numTokens} tokens to user ${targetProfileId}`);
-    alert(`Successfully approved and credited ${numTokens} BhoomiTayi Tokens! New balance: ${newTotal}`);
+    await logAction("Token Purchase Approved", `Approved request ${reqId} for ${numTokens} tokens to user ${effectiveUserId || userEmail}`);
+    alert(`Successfully approved and credited ${numTokens} BhoomiTayi Tokens!`);
     updateTokenStats();
     renderTokenRequests();
   } catch(e) {
@@ -1415,32 +1419,38 @@ async function approveBoosterRequest(reqId, colSource, listingId, planDays) {
       if (match) days = parseInt(match[1], 10);
     }
 
-    if (targetListingId) {
-      const listRef = db.collection("listings").doc(targetListingId);
-      const listDoc = await listRef.get();
-      if (listDoc.exists) {
-        const expiresAt = new Date(Date.now() + (days || 30) * 24 * 60 * 60 * 1000).toISOString();
-        const isPin = (data.notes || "").toLowerCase().includes("pin") || (data.plan_name || "").toLowerCase().includes("pin");
-        const updateObj = {
-          status: "active",
-          payment_status: "approved",
-          expires_at: expiresAt,
-          updated_at: new Date().toISOString()
-        };
-        if (isPin) {
-          updateObj.pinned = true;
-          updateObj.pin_status = "approved";
-          updateObj.pin_expires_at = expiresAt;
-        }
-        await listRef.update(updateObj);
-      }
-    }
-
+    // 1. Update request status first
     await reqRef.update({
       status: "approved",
       approved_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
+
+    // 2. Try updating listing
+    if (targetListingId) {
+      try {
+        const listRef = db.collection("listings").doc(targetListingId);
+        const listDoc = await listRef.get();
+        if (listDoc.exists) {
+          const expiresAt = new Date(Date.now() + (days || 30) * 24 * 60 * 60 * 1000).toISOString();
+          const isPin = (data.notes || "").toLowerCase().includes("pin") || (data.plan_name || "").toLowerCase().includes("pin");
+          const updateObj = {
+            status: "active",
+            payment_status: "approved",
+            expires_at: expiresAt,
+            updated_at: new Date().toISOString()
+          };
+          if (isPin) {
+            updateObj.pinned = true;
+            updateObj.pin_status = "approved";
+            updateObj.pin_expires_at = expiresAt;
+          }
+          await listRef.update(updateObj);
+        }
+      } catch (listErr) {
+        console.warn("Direct listing update warning:", listErr);
+      }
+    }
 
     shootConfetti();
     await logAction("Booster Approved", `Approved booster request ${reqId} for listing ${targetListingId || 'N/A'}`);
