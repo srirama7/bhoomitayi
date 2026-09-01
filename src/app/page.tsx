@@ -141,21 +141,13 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen overflow-hidden relative selection:bg-blue-200 selection:text-blue-900 dark:selection:bg-blue-900/50 dark:selection:text-blue-100">
-      {/* Global Ambient Background to remove all flat white/dark spaces */}
+      {/* Global Ambient Background */}
       <div className="fixed inset-0 pointer-events-none -z-50 overflow-hidden">
         <div className="absolute inset-0 bg-indigo-50/30 dark:bg-zinc-950 transition-colors duration-1000" />
-        
-        {/* Massive Ambient Glows */}
-        <div className="absolute top-[-10%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-r from-blue-400/20 to-cyan-300/20 dark:from-blue-600/30 dark:to-cyan-400/30 blur-[150px] animate-aurora mix-blend-multiply dark:mix-blend-screen" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[70vw] h-[70vw] rounded-full bg-gradient-to-r from-purple-400/20 to-pink-300/20 dark:from-purple-600/30 dark:to-pink-500/30 blur-[150px] animate-aurora-delayed mix-blend-multiply dark:mix-blend-screen" />
-        <div className="absolute top-[30%] left-[-20%] w-[50vw] h-[50vw] rounded-full bg-gradient-to-r from-indigo-400/20 to-blue-300/20 dark:from-indigo-600/20 dark:to-blue-500/20 blur-[150px] animate-aurora-slow mix-blend-multiply dark:mix-blend-screen" />
-        
-        {/* Intense Neon Lights specifically for dark mode/black parts */}
-        <div className="absolute top-[20%] right-[10%] w-[20vw] h-[20vw] rounded-full bg-pink-500/0 dark:bg-pink-500/40 blur-[80px] animate-float mix-blend-screen" />
-        <div className="absolute bottom-[30%] left-[15%] w-[15vw] h-[15vw] rounded-full bg-lime-500/0 dark:bg-lime-500/40 blur-[80px] animate-float-delayed mix-blend-screen" />
-        <div className="absolute top-[60%] right-[30%] w-[25vw] h-[25vw] rounded-full bg-amber-500/0 dark:bg-amber-500/30 blur-[90px] animate-aurora mix-blend-screen" style={{ animationDelay: '3s' }} />
-        
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] dark:opacity-[0.06] mix-blend-overlay" />
+        {/* Reduced from 7 animated divs to 3 to cut GPU layer count */}
+        <div className="absolute top-[-10%] left-[20%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-r from-blue-400/15 to-cyan-300/15 dark:from-blue-600/20 dark:to-cyan-400/20 blur-[150px] animate-aurora mix-blend-multiply dark:mix-blend-screen" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-gradient-to-r from-purple-400/15 to-pink-300/15 dark:from-purple-600/20 dark:to-pink-500/20 blur-[150px] animate-aurora-delayed mix-blend-multiply dark:mix-blend-screen" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.04] dark:opacity-[0.05] mix-blend-overlay" />
       </div>
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-slate-900 dark:bg-slate-950">
