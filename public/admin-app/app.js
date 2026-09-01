@@ -217,28 +217,34 @@ function renderFirebaseDetailedList() {
 document.getElementById("fbSearchInput")?.addEventListener("input", renderFirebaseDetailedList);
 
 // TABS
-const tabIds = ["tab-overview", "tab-tokens", "tab-coupons", "tab-listings", "tab-users", "tab-favorites", "tab-reports", "tab-feedback", "tab-analytics", "tab-revenue", "tab-moderation", "tab-logs", "tab-firebase", "tab-settings"];
 document.querySelectorAll(".tab").forEach(t => {
   t.addEventListener("click", function () {
     document.querySelectorAll(".tab").forEach(x => x.classList.remove("active"));
     this.classList.add("active");
-    tabIds.forEach(id => document.getElementById(id).classList.add("hidden"));
-    document.getElementById("tab-" + this.dataset.tab).classList.remove("hidden");
+
+    // Hide all content containers
+    document.querySelectorAll(".content").forEach(el => el.classList.add("hidden"));
+
+    const tabName = this.dataset.tab;
+    const targetId = tabName === "dashboard" ? "tab-overview" : ("tab-" + tabName);
+    const targetEl = document.getElementById(targetId);
+    if (targetEl) targetEl.classList.remove("hidden");
     
     // Redraw charts because hidden canvases have 0 width/height
     if (allListings.length > 0) {
-      if (this.dataset.tab === "overview") drawOverviewChart();
-      if (this.dataset.tab === "analytics") renderAnalytics();
-      if (this.dataset.tab === "revenue") renderRevenue();
+      if (tabName === "dashboard" || tabName === "overview") drawOverviewChart();
+      if (tabName === "analytics") renderAnalytics();
+      if (tabName === "revenue") renderRevenue();
     }
     
-    if (this.dataset.tab === "tokens") { renderTokenRequests(); updateTokenStats(); }
-    if (this.dataset.tab === "boosters") { renderBoosterRequests(); updateBoosterStats(); }
-    if (this.dataset.tab === "coupons") renderCoupons();
-    if (this.dataset.tab === "users") renderUsers();
-    if (this.dataset.tab === "favorites") renderFavorites();
-    if (this.dataset.tab === "reports") renderReports();
-    if (this.dataset.tab === "feedback") renderFeedbacks();
+    if (tabName === "tokens") { renderTokenRequests(); updateTokenStats(); }
+    if (tabName === "boosters") { renderBoosterRequests(); updateBoosterStats(); }
+    if (tabName === "coupons") renderCoupons();
+    if (tabName === "listings") renderListings();
+    if (tabName === "users") renderUsers();
+    if (tabName === "favorites") renderFavorites();
+    if (tabName === "reports") renderReports();
+    if (tabName === "feedback") renderFeedbacks();
   });
 });
 
@@ -260,6 +266,8 @@ function switchTab(tabId) {
 }
 
 // DATA
+let isListeningToData = false;
+
 async function refreshData() {
   // Wait for auth to be ready
   if (!auth.currentUser) {
@@ -269,103 +277,99 @@ async function refreshData() {
     });
   }
   try {
-    const [listSnap, profSnap] = await Promise.all([
-      db.collection("listings").orderBy("created_at", "desc").get(),
-      db.collection("profiles").get()
+    const [favSnap, repSnap] = await Promise.allSettled([
+      db.collection("favorites").get(),
+      db.collection("reports").get()
     ]);
-    
-    // Fetch these safely, as they require auth in Firestore rules
-    let favSnap, repSnap;
-    try { favSnap = await db.collection("favorites").get(); } catch(e) { console.warn("Could not read favorites - check rules/auth"); }
-    try { repSnap = await db.collection("reports").get(); } catch(e) { console.warn("Could not read reports - check rules/auth"); }
 
-    allProfiles = {};
-    profSnap.forEach(d => allProfiles[d.id] = {id: d.id, ...d.data()});
-    allFavorites = [];
-    if (favSnap) favSnap.forEach(d => allFavorites.push({id: d.id, ...d.data()}));
-    allReports = [];
-    if (repSnap) repSnap.forEach(d => allReports.push({id: d.id, ...d.data()}));
+    allFavorites = favSnap.status === "fulfilled" ? favSnap.value.docs.map(d => ({id: d.id, ...d.data()})) : [];
+    allReports = repSnap.status === "fulfilled" ? repSnap.value.docs.map(d => ({id: d.id, ...d.data()})) : [];
 
-    // Auto-seed mock data if empty
-    if (allListings.length === 0 && listSnap) {
-      listSnap.forEach(d => allListings.push({id: d.id, ...d.data()}));
-    }
-    
-    if (allListings.length > 0 && Object.keys(allProfiles).length > 0) {
-      const uId = Object.keys(allProfiles)[0];
-      const lId = allListings[0].id;
-      
-      if (allReports.length === 0) {
-        try {
-          const newRep = await db.collection("reports").add({ reporter_id: uId, listing_id: lId, reason: "Spam content", created_at: new Date().toISOString() });
-          allReports.push({ id: newRep.id, reporter_id: uId, listing_id: lId, reason: "Spam content", created_at: new Date().toISOString() });
-        } catch(e) { console.warn("Failed to seed report", e); }
-      }
-      if (allFavorites.length === 0) {
-        try {
-          const newFav = await db.collection("favorites").add({ user_id: uId, listing_id: lId, created_at: new Date().toISOString() });
-          allFavorites.push({ id: newFav.id, user_id: uId, listing_id: lId, created_at: new Date().toISOString() });
-        } catch(e) { console.warn("Failed to seed favorite", e); }
-      }
+    if (!isListeningToData) {
+      isListeningToData = true;
+
+      // Realtime listings listener
+      db.collection("listings").orderBy("created_at", "desc").onSnapshot(snap => {
+        allListings = snap.docs.map(d => {
+          const data = { id: d.id, ...d.data() };
+          if (data.status === "active" && data.expires_at && new Date(data.expires_at) < new Date()) {
+            data.status = "timed_out";
+          }
+          return data;
+        });
+        updateStats();
+        renderListings();
+        updateBoosterStats();
+        renderBoosterRequests();
+        renderAnalytics();
+        renderRevenue();
+        renderModeration();
+        drawOverviewChart();
+      }, err => {
+        console.warn("Listings snapshot error:", err);
+      });
+
+      // Realtime profiles listener
+      db.collection("profiles").onSnapshot(snap => {
+        allProfiles = {};
+        snap.docs.forEach(d => allProfiles[d.id] = {id: d.id, ...d.data()});
+        renderUsers();
+        updateStats();
+        renderTokenRequests();
+      }, err => {
+        console.warn("Profiles snapshot error:", err);
+      });
+
+      // Realtime audit logs
+      db.collection("audit_logs").orderBy("created_at", "desc").limit(100).onSnapshot(snap => {
+        allLogs = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        renderLogs();
+      }, err => {
+        console.warn("Audit logs error:", err);
+      });
+
+      // Realtime feedback
+      db.collection("feedbacks").onSnapshot(snap => {
+        allFeedbacks = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        allFeedbacks.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+        renderFeedbacks();
+      }, err => {
+        console.error("Error loading feedbacks:", err);
+      });
+
+      // Realtime token requests
+      db.collection("token_requests").orderBy("created_at", "desc").onSnapshot(snap => {
+        const all = snap.docs.map(d => ({id: d.id, ...d.data(), _colSource: "token_requests"}));
+        allTokenRequests = all.filter(r => !r.is_booster && Number(r.tokens || 0) > 0 && !r.notes?.includes("BOOSTER PLAN") && !r.notes?.includes("PIN REQUEST"));
+        const legacyBoosters = all.filter(r => r.is_booster || Number(r.tokens || 0) === 0 || r.notes?.includes("BOOSTER PLAN") || r.notes?.includes("PIN REQUEST"));
+        mergeAndSetBoosters(legacyBoosters, null);
+        renderTokenRequests();
+        updateTokenStats();
+      }, err => {
+        console.warn("Error listening to token_requests:", err);
+      });
+
+      // Realtime booster requests
+      db.collection("booster_requests").orderBy("created_at", "desc").onSnapshot(snap => {
+        const modernBoosters = snap.docs.map(d => ({id: d.id, ...d.data(), _colSource: "booster_requests"}));
+        mergeAndSetBoosters(null, modernBoosters);
+      }, err => {
+        console.warn("Error listening to booster_requests:", err);
+      });
+
+      // Realtime coupons
+      db.collection("coupons").orderBy("created_at", "desc").onSnapshot(snap => {
+        allCoupons = snap.docs.map(d => ({id: d.id, ...d.data()}));
+        renderCoupons();
+      }, err => {
+        console.warn("Error listening to coupons:", err);
+      });
     }
 
-    allListings = [];
-    for (const d of listSnap.docs) {
-      const data = { id: d.id, ...d.data() };
-      if (data.status === "active" && data.expires_at && new Date(data.expires_at) < new Date()) {
-        try {
-          await db.collection("listings").doc(d.id).update({ status: "timed_out" });
-          data.status = "timed_out";
-        } catch (e) { console.warn("Could not auto-expire:", d.id, e); }
-      }
-      allListings.push(data);
-    }
-    console.log("Loaded", allListings.length, "listings,", Object.keys(allProfiles).length, "profiles");
     updateAll();
-
-    db.collection("audit_logs").orderBy("created_at", "desc").limit(100).onSnapshot(snap => {
-      allLogs = snap.docs.map(d => ({id: d.id, ...d.data()}));
-      renderLogs();
-    });
-
-    db.collection("feedbacks").onSnapshot(snap => {
-      allFeedbacks = snap.docs.map(d => ({id: d.id, ...d.data()}));
-      allFeedbacks.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-      renderFeedbacks();
-    }, err => {
-      console.error("Error loading feedbacks:", err);
-    });
-
-    db.collection("token_requests").orderBy("created_at", "desc").onSnapshot(snap => {
-      const all = snap.docs.map(d => ({id: d.id, ...d.data(), _colSource: "token_requests"}));
-      
-      // Token requests only (exclude boosters)
-      allTokenRequests = all.filter(r => !r.is_booster && Number(r.tokens || 0) > 0 && !r.notes?.includes("BOOSTER PLAN") && !r.notes?.includes("PIN REQUEST"));
-      
-      // Legacy booster entries
-      const legacyBoosters = all.filter(r => r.is_booster || Number(r.tokens || 0) === 0 || r.notes?.includes("BOOSTER PLAN") || r.notes?.includes("PIN REQUEST"));
-      mergeAndSetBoosters(legacyBoosters, null);
-      
-      renderTokenRequests();
-      updateTokenStats();
-    }, err => {
-      console.warn("Error listening to token_requests:", err);
-    });
-
-    db.collection("booster_requests").orderBy("created_at", "desc").onSnapshot(snap => {
-      const modernBoosters = snap.docs.map(d => ({id: d.id, ...d.data(), _colSource: "booster_requests"}));
-      mergeAndSetBoosters(null, modernBoosters);
-    }, err => {
-      console.warn("Error listening to booster_requests:", err);
-    });
-
-    db.collection("coupons").orderBy("created_at", "desc").onSnapshot(snap => {
-      allCoupons = snap.docs.map(d => ({id: d.id, ...d.data()}));
-      renderCoupons();
-    }, err => {
-      console.warn("Error listening to coupons:", err);
-    });
-  }catch(e){console.error("Error:",e)}
+  } catch(e) {
+    console.error("Error in refreshData:", e);
+  }
 }
 
 function mergeAndSetBoosters(legacy, modern) {
@@ -754,18 +758,35 @@ async function setTimer(id){
   if(listing && listing.status === "active") {
     if(!confirm("Do you want to approve again with updated timings?")) return;
   }
-  try{await db.collection("listings").doc(id).update({expires_at:new Date(Date.now()+ms).toISOString(),status:"active",updated_at:new Date().toISOString()});
+  try{
+    const newExpiresAt = new Date(Date.now()+ms).toISOString();
+    await db.collection("listings").doc(id).update({expires_at: newExpiresAt, status:"active", updated_at:new Date().toISOString()});
+    if (listing) {
+      listing.expires_at = newExpiresAt;
+      listing.status = "active";
+    }
     alert("Timer set! Listing is now active.");
     if (listing) {
       const pr = allProfiles[listing.user_id] || {};
       const ownerEmail = listing.owner_email || pr.email || "";
       sendApprovalEmail(listing.id, listing.title, ownerEmail);
     }
-    refreshData()}catch(e){alert("Error: "+e.message)}
+    renderListings();
+    updateStats();
+  }catch(e){alert("Error: "+e.message)}
 }
+
 async function clearTimer(id){
-  try{await db.collection("listings").doc(id).update({expires_at:null,updated_at:new Date().toISOString()});
-    alert("Timer cleared.");refreshData()}catch(e){alert("Error: "+e.message)}
+  try{
+    await db.collection("listings").doc(id).update({expires_at:null,updated_at:new Date().toISOString()});
+    const listing = allListings.find(x => x.id === id);
+    if (listing) {
+      listing.expires_at = null;
+    }
+    alert("Timer cleared.");
+    renderListings();
+    updateStats();
+  }catch(e){alert("Error: "+e.message)}
 }
 function gi(id){return parseInt(document.getElementById(id).value)||0}
 
@@ -800,12 +821,16 @@ async function doBulkAction(act) {
   const ids = Array.from(checkboxes).map(cb => cb.value);
   try {
     for (const id of ids) {
-      if(act==="delete"){ await db.collection("listings").doc(id).delete(); }
+      if(act==="delete"){
+        await db.collection("listings").doc(id).delete();
+        allListings = allListings.filter(x => x.id !== id);
+      }
       else{
         let status=act==="approve"?"active":act==="reject"?"rejected":"pending";
         await db.collection("listings").doc(id).update({status, updated_at: new Date().toISOString()});
+        const l = allListings.find(x => x.id === id);
+        if (l) l.status = status;
         if (act === "approve") {
-          const l = allListings.find(x => x.id === id);
           if (l) {
             const pr = allProfiles[l.user_id] || {};
             const ownerEmail = l.owner_email || pr.email || "";
@@ -815,7 +840,10 @@ async function doBulkAction(act) {
       }
     }
     await logAction("Bulk Action", `Admin bulk ${act}d ${ids.length} listings`);
-    refreshData();
+    renderListings();
+    updateStats();
+    updateBoosterStats();
+    renderBoosterRequests();
     document.getElementById('bulkActionBar').style.display = 'none';
   } catch(e) {
     alert("Error executing bulk action: " + e.message);
@@ -837,7 +865,7 @@ async function toggleFeatured(id, isFeatured) {
 async function doAction(id,action){
   const l=allListings.find(x=>x.id===id);
   const t={approve:"Approve Listing",reject:"Reject Listing",delete:"Delete Listing",relaunch:"Relaunch Listing"};
-  let d={approve:`Approve "${l.title}"?`,reject:`Reject "${l.title}"?`,delete:`Permanently delete "${l.title}"?`,relaunch:`Relaunch "${l.title}"?`};
+  let d={approve:`Approve "${l?l.title:id}"?`,reject:`Reject "${l?l.title:id}"?`,delete:`Permanently delete "${l?l.title:id}"?`,relaunch:`Relaunch "${l?l.title:id}"?`};
   
   if (action === "reject") {
     d.reject += `<br><br><label style="display:block;margin-bottom:8px;font-size:14px;color:#475569">Reason for rejection (sent to user):</label><input type="text" id="rejectReason" style="width:100%;padding:8px;border-radius:6px;border:1px solid #cbd5e1" placeholder="e.g. Blurry images or violates guidelines">`;
@@ -852,18 +880,32 @@ async function doAction(id,action){
       if(inp) reason = inp.value.trim();
     }
     closeModal();
-    try{if(action==="delete")await db.collection("listings").doc(id).delete();
-      else if(action==="relaunch")await db.collection("listings").doc(id).update({status:"active",expires_at:null,updated_at:new Date().toISOString()});
+    try{
+      if(action==="delete") {
+        await db.collection("listings").doc(id).delete();
+        allListings = allListings.filter(x => x.id !== id);
+      }
+      else if(action==="relaunch") {
+        await db.collection("listings").doc(id).update({status:"active",expires_at:null,updated_at:new Date().toISOString()});
+        if (l) { l.status = "active"; l.expires_at = null; }
+      }
       else {
-        await db.collection("listings").doc(id).update({status:action==="approve"?"active":"rejected",updated_at:new Date().toISOString()});
+        const newStatus = action==="approve"?"active":"rejected";
+        await db.collection("listings").doc(id).update({status: newStatus, updated_at:new Date().toISOString()});
+        if (l) { l.status = newStatus; }
       }
-      await logAction("Listing Action", `Admin performed ${action} on listing ${id} ("${l.title}")`);
+      await logAction("Listing Action", `Admin performed ${action} on listing ${id} ("${l ? l.title : ''}")`);
       if (action === "approve" || action === "relaunch") {
-        const pr = allProfiles[l.user_id] || {};
-        const ownerEmail = l.owner_email || pr.email || "";
-        sendApprovalEmail(l.id, l.title, ownerEmail);
+        const pr = (l && allProfiles[l.user_id]) || {};
+        const ownerEmail = (l && l.owner_email) || pr.email || "";
+        if (l) sendApprovalEmail(l.id, l.title, ownerEmail);
       }
-      refreshData()}catch(e){alert("Error: "+e.message)}};
+      renderListings();
+      updateStats();
+      updateBoosterStats();
+      renderBoosterRequests();
+    }catch(e){alert("Error: "+e.message)}
+  };
 }
 function closeModal(){document.getElementById("confirmModal").classList.add("hidden")}
 
@@ -1480,65 +1522,78 @@ async function doManualGrantTokens() {
   }
   
   try {
-    // Find profile by email
-    const snap = await db.collection("profiles").where("email", "==", email).get();
-    if (snap.empty) {
-      // Find case-insensitive in local profiles
-      const foundEntry = Object.values(allProfiles).find(p => (p.email||"").toLowerCase() === email);
-      if (!foundEntry) {
-        if (!confirm(`No existing account found with email "${email}". Do you want to create a placeholder profile and credit ${tokens} tokens?`)) {
-          return;
+    let foundProfile = Object.values(allProfiles).find(p => (p.email || "").toLowerCase() === email);
+    let targetProfileId = foundProfile ? foundProfile.id : null;
+    let curTokens = foundProfile && foundProfile.tokens !== undefined ? Number(foundProfile.tokens) : 200;
+
+    if (!foundProfile) {
+      try {
+        const snap = await db.collection("profiles").where("email", "==", email).get();
+        if (!snap.empty) {
+          targetProfileId = snap.docs[0].id;
+          curTokens = snap.docs[0].data().tokens !== undefined ? Number(snap.docs[0].data().tokens) : 200;
+          foundProfile = { id: targetProfileId, ...snap.docs[0].data() };
         }
-        const newRef = await db.collection("profiles").add({
-          email: email,
-          full_name: email.split("@")[0],
-          tokens: 200 + tokens,
-          created_at: new Date().toISOString(),
-          unlocked_listings: []
-        });
-        allProfiles[newRef.id] = { id: newRef.id, email: email, tokens: 200 + tokens };
-        shootConfetti();
-        alert(`Created profile for ${email} with ${200 + tokens} BhoomiTayi Tokens!`);
-        document.getElementById("manualGrantEmail").value = "";
-        return;
+      } catch (qErr) {
+        console.warn("Could not query profiles by email:", qErr);
       }
-      
-      const pDoc = foundEntry;
-      const cur = pDoc.tokens !== undefined ? Number(pDoc.tokens) : 200;
-      await db.collection("profiles").doc(pDoc.id).update({
-        tokens: cur + tokens,
-        updated_at: new Date().toISOString()
-      });
-      pDoc.tokens = cur + tokens;
-      shootConfetti();
-      await logAction("Manual Token Grant", `Granted ${tokens} tokens to ${email}`);
-      alert(`Successfully credited ${tokens} BhoomiTayi Tokens to ${email}! New balance: ${pDoc.tokens} tokens.`);
-      document.getElementById("manualGrantEmail").value = "";
-      renderUsers();
-      return;
     }
-    
-    const docSnap = snap.docs[0];
-    const cur = docSnap.data().tokens !== undefined ? Number(docSnap.data().tokens) : 200;
-    await db.collection("profiles").doc(docSnap.id).update({
-      tokens: cur + tokens,
+
+    if (!targetProfileId) {
+      targetProfileId = db.collection("profiles").doc().id;
+    }
+
+    const newTotal = curTokens + tokens;
+
+    // 1. Record approved grant in token_requests collection
+    await db.collection("token_requests").add({
+      user_id: targetProfileId,
+      user_name: foundProfile?.full_name || email.split("@")[0],
+      user_email: email,
+      tokens: tokens,
+      amount: 0,
+      transaction_id: "MANUAL-" + Date.now().toString().slice(-6),
+      notes: "Manual Token Grant by Admin",
+      status: "approved",
+      approved_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
-    if (allProfiles[docSnap.id]) {
-      allProfiles[docSnap.id].tokens = cur + tokens;
+
+    // 2. Try updating profile directly
+    try {
+      await db.collection("profiles").doc(targetProfileId).set({
+        id: targetProfileId,
+        email: email,
+        full_name: foundProfile?.full_name || email.split("@")[0],
+        tokens: newTotal,
+        updated_at: new Date().toISOString()
+      }, { merge: true });
+
+      if (allProfiles[targetProfileId]) {
+        allProfiles[targetProfileId].tokens = newTotal;
+      } else {
+        allProfiles[targetProfileId] = { id: targetProfileId, email: email, tokens: newTotal };
+      }
+    } catch (pErr) {
+      console.warn("Direct profile write skipped (will sync on user login):", pErr);
     }
+
     shootConfetti();
     await logAction("Manual Token Grant", `Granted ${tokens} tokens to ${email}`);
-    alert(`Successfully credited ${tokens} BhoomiTayi Tokens to ${email}! New balance: ${cur + tokens} tokens.`);
+    alert(`Successfully credited ${tokens} BhoomiTayi Tokens to ${email}!`);
     document.getElementById("manualGrantEmail").value = "";
+    updateTokenStats();
+    renderTokenRequests();
     renderUsers();
   } catch(e) {
+    console.error("Error granting tokens:", e);
     alert("Error granting tokens: " + e.message);
   }
 }
 
 async function quickGrantTokensToUser(userId, userEmail) {
-  const input = prompt(`Enter number of BhoomiTayi Tokens to grant to ${userEmail}:`, "5");
+  const input = prompt(`Enter number of BhoomiTayi Tokens to grant to ${userEmail || 'user'}:`, "100");
   if (!input) return;
   const count = parseInt(input, 10);
   if (!count || isNaN(count) || count < 1) {
@@ -1547,19 +1602,40 @@ async function quickGrantTokensToUser(userId, userEmail) {
   }
   
   try {
-    const userRef = db.collection("profiles").doc(userId);
-    const userDoc = await userRef.get();
-    const cur = userDoc.exists && userDoc.data().tokens !== undefined ? Number(userDoc.data().tokens) : 200;
-    await userRef.update({
-      tokens: cur + count,
+    const cur = allProfiles[userId]?.tokens !== undefined ? Number(allProfiles[userId].tokens) : 200;
+    const newTotal = cur + count;
+
+    // Record approved grant in token_requests
+    await db.collection("token_requests").add({
+      user_id: userId,
+      user_name: allProfiles[userId]?.full_name || userEmail?.split("@")[0] || "Customer",
+      user_email: userEmail || allProfiles[userId]?.email || "",
+      tokens: count,
+      amount: 0,
+      transaction_id: "MANUAL-" + Date.now().toString().slice(-6),
+      notes: "Quick Token Grant by Admin",
+      status: "approved",
+      approved_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
-    if (allProfiles[userId]) {
-      allProfiles[userId].tokens = cur + count;
+
+    try {
+      await db.collection("profiles").doc(userId).set({
+        tokens: newTotal,
+        updated_at: new Date().toISOString()
+      }, { merge: true });
+
+      if (allProfiles[userId]) {
+        allProfiles[userId].tokens = newTotal;
+      }
+    } catch (pErr) {
+      console.warn("Direct profile update skipped:", pErr);
     }
+
     shootConfetti();
     await logAction("Manual Token Grant", `Granted ${count} tokens to user ${userId} (${userEmail})`);
-    alert(`Successfully granted ${count} tokens to ${userEmail}! New balance: ${cur + count} tokens.`);
+    alert(`Successfully granted ${count} tokens to ${userEmail}! New balance: ${newTotal} tokens.`);
     renderUsers();
   } catch(e) {
     alert("Error: " + e.message);
@@ -2019,8 +2095,9 @@ async function deleteFavorite(id) {
   if(!confirm("Delete this favorite?")) return;
   try {
     await db.collection("favorites").doc(id).delete();
+    allFavorites = allFavorites.filter(x => x.id !== id);
     alert("Favorite deleted.");
-    refreshData();
+    renderFavorites();
   } catch(e) { alert("Error: " + e.message); }
 }
 
@@ -2028,8 +2105,9 @@ async function dismissReport(id) {
   if(!confirm("Dismiss this report?")) return;
   try {
     await db.collection("reports").doc(id).delete();
+    allReports = allReports.filter(x => x.id !== id);
     alert("Report dismissed.");
-    refreshData();
+    renderReports();
   } catch(e) { alert("Error: " + e.message); }
 }
 
