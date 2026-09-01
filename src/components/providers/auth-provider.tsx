@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { onAuthStateChanged } from "firebase/auth";
-import { doc, onSnapshot, updateDoc } from "firebase/firestore";
+import { doc, onSnapshot } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase/config";
 import { useAuthStore } from "@/lib/store";
 import { DEFAULT_FREE_TOKENS } from "@/lib/constants";
@@ -37,14 +37,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (tokens === undefined || tokens === null) {
               tokens = DEFAULT_FREE_TOKENS;
-              try {
-                await updateDoc(profileRef, {
-                  tokens: DEFAULT_FREE_TOKENS,
-                  unlocked_listings: unlockedListings,
-                });
-              } catch (e) {
-                console.error("Error setting default tokens:", e);
-              }
             }
 
             setProfile({

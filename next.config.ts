@@ -23,6 +23,19 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  experimental: {
+    // Reduces peak webpack memory usage (trades a bit of build speed for lower RAM)
+    webpackMemoryOptimizations: true,
+    // Tree-shake large packages so only used components are compiled into memory
+    optimizePackageImports: [
+      "lucide-react",
+      "framer-motion",
+      "firebase",
+      "date-fns",
+      "radix-ui",
+    ],
+  },
 };
 
 export default nextConfig;
+
