@@ -232,7 +232,8 @@ document.querySelectorAll(".tab").forEach(t => {
       if (this.dataset.tab === "revenue") renderRevenue();
     }
     
-    if (this.dataset.tab === "tokens") renderTokenRequests();
+    if (this.dataset.tab === "tokens") { renderTokenRequests(); updateTokenStats(); }
+    if (this.dataset.tab === "boosters") { renderBoosterRequests(); updateBoosterStats(); }
     if (this.dataset.tab === "coupons") renderCoupons();
     if (this.dataset.tab === "users") renderUsers();
     if (this.dataset.tab === "favorites") renderFavorites();
@@ -243,6 +244,10 @@ document.querySelectorAll(".tab").forEach(t => {
 
 let allTokenRequests = [];
 let tokenFilter = "all";
+let allBoosterRequests = [];
+let boosterFilter = "all";
+let legacyBoostersCache = [];
+let newBoostersCache = [];
 let allCoupons = [];
 let allFavorites = [];
 let allReports = [];
@@ -332,11 +337,26 @@ async function refreshData() {
     });
 
     db.collection("token_requests").orderBy("created_at", "desc").onSnapshot(snap => {
-      allTokenRequests = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      const all = snap.docs.map(d => ({id: d.id, ...d.data(), _colSource: "token_requests"}));
+      
+      // Token requests only (exclude boosters)
+      allTokenRequests = all.filter(r => !r.is_booster && Number(r.tokens || 0) > 0 && !r.notes?.includes("BOOSTER PLAN") && !r.notes?.includes("PIN REQUEST"));
+      
+      // Legacy booster entries
+      const legacyBoosters = all.filter(r => r.is_booster || Number(r.tokens || 0) === 0 || r.notes?.includes("BOOSTER PLAN") || r.notes?.includes("PIN REQUEST"));
+      mergeAndSetBoosters(legacyBoosters, null);
+      
       renderTokenRequests();
       updateTokenStats();
     }, err => {
       console.warn("Error listening to token_requests:", err);
+    });
+
+    db.collection("booster_requests").orderBy("created_at", "desc").onSnapshot(snap => {
+      const modernBoosters = snap.docs.map(d => ({id: d.id, ...d.data(), _colSource: "booster_requests"}));
+      mergeAndSetBoosters(null, modernBoosters);
+    }, err => {
+      console.warn("Error listening to booster_requests:", err);
     });
 
     db.collection("coupons").orderBy("created_at", "desc").onSnapshot(snap => {
@@ -348,7 +368,20 @@ async function refreshData() {
   }catch(e){console.error("Error:",e)}
 }
 
-function updateAll(){updateStats();updateTokenStats();renderTokenRequests();renderCoupons();renderListings();renderUsers();renderFavorites();renderReports();renderFeedbacks();renderAnalytics();renderRevenue();renderModeration();drawOverviewChart();loadSettings();renderFirebaseDetailedList();}
+function mergeAndSetBoosters(legacy, modern) {
+  if (legacy) legacyBoostersCache = legacy;
+  if (modern) newBoostersCache = modern;
+  
+  const map = new Map();
+  legacyBoostersCache.forEach(b => map.set(b.id, b));
+  newBoostersCache.forEach(b => map.set(b.id, b));
+  
+  allBoosterRequests = Array.from(map.values()).sort((a,b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+  renderBoosterRequests();
+  updateBoosterStats();
+}
+
+function updateAll(){updateStats();updateTokenStats();updateBoosterStats();renderTokenRequests();renderBoosterRequests();renderCoupons();renderListings();renderUsers();renderFavorites();renderReports();renderFeedbacks();renderAnalytics();renderRevenue();renderModeration();drawOverviewChart();loadSettings();renderFirebaseDetailedList();}
 
 
 
@@ -1045,18 +1078,17 @@ function renderTokenRequests() {
     const curTokens = userProfile.tokens !== undefined ? userProfile.tokens : 200;
     
     return `
-      <div class="listing-card" style="border-left: 4px solid ${r.is_booster ? '#6366f1' : isPending ? '#f59e0b' : isApproved ? '#10b981' : '#ef4444'}; margin-bottom:12px;">
+      <div class="listing-card" style="border-left: 4px solid ${isPending ? '#f59e0b' : isApproved ? '#10b981' : '#ef4444'}; margin-bottom:12px;">
         <div class="listing-top">
-          <div style="font-size:24px; margin-right:12px;">${r.is_booster ? '🚀' : '🪙'}</div>
+          <div style="font-size:24px; margin-right:12px;">🪙</div>
           <div class="listing-info">
             <div class="listing-name" style="display:flex; align-items:center; gap:8px;">
-              <span>${r.is_booster ? `Booster Plan Payment (₹${r.amount})` : `${r.tokens} BhoomiTayi Tokens Plan (₹${r.amount})`}</span>
+              <span>${r.tokens} BhoomiTayi Tokens Plan (₹${r.amount})</span>
               ${statusBadge}
-              ${r.is_booster ? '<span class="badge" style="background:#e0e7ff; color:#4338ca; font-weight:bold;">🚀 BOOSTER LISTING</span>' : ''}
             </div>
             <div class="listing-meta">
               <strong>User:</strong> ${r.user_name || userProfile.full_name || 'Customer'} (${r.user_email || userProfile.email || 'No email'})
-              ${!r.is_booster ? ` · <strong>Current User Balance:</strong> 🪙 ${curTokens} Tokens` : ''}
+              · <strong>Current User Balance:</strong> 🪙 ${curTokens} Tokens
             </div>
           </div>
           <div class="listing-right">
@@ -1069,7 +1101,7 @@ function renderTokenRequests() {
             <div class="detail-item">
               <div class="detail-label">Sender Name / Mobile</div>
               <div class="detail-value" style="font-weight:bold; color:#1e293b; font-size:15px;">
-                ${r.is_booster ? r.user_name : (r.notes || 'Not provided')}
+                ${r.notes || 'Not provided'}
               </div>
             </div>
             <div class="detail-item">
@@ -1082,47 +1114,33 @@ function renderTokenRequests() {
               <div class="detail-label">Amount Paid</div>
               <div class="detail-value" style="font-weight:bold; color:#059669; font-size:15px;">₹${r.amount}</div>
             </div>
-            ${r.is_booster ? `
-            <div class="detail-item" style="grid-column: span 2;">
-              <div class="detail-label">Booster Notes / Plan Details</div>
-              <div class="detail-value" style="font-weight:bold; color:#4338ca; font-size:14px; background:#eef2ff; padding:8px; border-radius:6px; border:1px solid #c7d2fe;">
-                ${r.notes || 'N/A'}
-              </div>
-            </div>
-            ` : `
             <div class="detail-item">
               <div class="detail-label">Tokens to Credit</div>
               <div class="detail-value" style="font-weight:bold; color:#2563eb;">+${r.tokens} Tokens</div>
             </div>
             <div class="detail-item">
               <div class="detail-label">Payment Method</div>
-              <div class="detail-value">HDFC QR Code / UPI (amoghabhat7403@okhdfcbank)</div>
+              <div class="detail-value">UPI QR Code (amoghabhat7403@okhdfcbank)</div>
             </div>
-            `}
           </div>
           
-          ${r.is_booster ? `
-            <div class="action-btns">
-              <button class="btn" style="color:#64748b; border-color:#cbd5e1; font-size: 13px;" onclick="deleteTokenRequestRecord('${r.id}')">
-                🗑 Delete Booster Record
-              </button>
-            </div>
-          ` : isPending ? `
-            <div class="action-btns">
-              <button class="btn btn-primary" style="background:#059669; border-color:#059669; font-weight:bold;" onclick="approveTokenRequest('${r.id}', '${r.user_id}', ${r.tokens})">
+          <div class="action-btns">
+            ${isPending ? `
+              <button class="btn btn-primary" style="background:#059669; border-color:#059669; font-weight:bold;" onclick="approveTokenRequest('${r.id}', '${r.user_id || ''}', ${r.tokens})">
                 ✓ Approve & Credit ${r.tokens} Tokens
               </button>
               <button class="btn" style="color:#dc2626; border-color:#fca5a5;" onclick="rejectTokenRequest('${r.id}')">
                 ✕ Reject Request
               </button>
-            </div>
-          ` : `
-            <div class="action-btns">
-              <button class="btn" style="color:#64748b; border-color:#cbd5e1; font-size: 13px;" onclick="deleteTokenRequestRecord('${r.id}')">
-                🗑 Delete Record (Keep Tokens)
-              </button>
-            </div>
-          `}
+            ` : `
+              <span style="font-size:12px; font-weight:600; color:${isApproved ? '#059669' : '#991b1b'}; margin-right:10px;">
+                ${isApproved ? '✓ Tokens Credited' : '✕ Request Rejected'}
+              </span>
+            `}
+            <button class="btn" style="color:#64748b; border-color:#cbd5e1; font-size: 13px;" onclick="deleteTokenRequestRecord('${r.id}')">
+              🗑 Delete Record
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -1130,7 +1148,7 @@ function renderTokenRequests() {
 }
 
 window.deleteTokenRequestRecord = async function(reqId) {
-  if (!confirm("Are you sure you want to delete this record? This will NOT remove tokens from the user's account, it only removes this message from the admin panel.")) return;
+  if (!confirm("Are you sure you want to delete this record?")) return;
   try {
     await db.collection("token_requests").doc(reqId).delete();
     alert("Record deleted successfully.");
@@ -1142,35 +1160,73 @@ window.deleteTokenRequestRecord = async function(reqId) {
 async function approveTokenRequest(reqId, userId, tokensCount) {
   if (!confirm(`Confirm approval? This will credit ${tokensCount} BhoomiTayi Tokens to the user profile immediately.`)) return;
   try {
-    const batch = db.batch();
-    
     const reqRef = db.collection("token_requests").doc(reqId);
-    batch.update(reqRef, {
+    const reqDoc = await reqRef.get();
+    const reqData = reqDoc.exists ? reqDoc.data() : {};
+    const effectiveUserId = userId || reqData.user_id;
+    const userEmail = (reqData.user_email || "").trim().toLowerCase();
+    const numTokens = Number(tokensCount || reqData.tokens || 0);
+
+    let targetProfileId = null;
+    let curTokens = 200;
+
+    // 1. Check if profile exists by effectiveUserId
+    if (effectiveUserId) {
+      const pDoc = await db.collection("profiles").doc(effectiveUserId).get();
+      if (pDoc.exists) {
+        targetProfileId = pDoc.id;
+        curTokens = pDoc.data().tokens !== undefined ? Number(pDoc.data().tokens) : 200;
+      }
+    }
+
+    // 2. Fallback search by email
+    if (!targetProfileId && userEmail) {
+      const snap = await db.collection("profiles").where("email", "==", userEmail).get();
+      if (!snap.empty) {
+        targetProfileId = snap.docs[0].id;
+        curTokens = snap.docs[0].data().tokens !== undefined ? Number(snap.docs[0].data().tokens) : 200;
+      } else {
+        const found = Object.values(allProfiles).find(p => (p.email || "").toLowerCase() === userEmail);
+        if (found) {
+          targetProfileId = found.id;
+          curTokens = found.tokens !== undefined ? Number(found.tokens) : 200;
+        }
+      }
+    }
+
+    if (!targetProfileId) {
+      targetProfileId = effectiveUserId || db.collection("profiles").doc().id;
+    }
+
+    const newTotal = curTokens + numTokens;
+
+    // Save/update profile with merge: true so it NEVER fails
+    await db.collection("profiles").doc(targetProfileId).set({
+      id: targetProfileId,
+      email: userEmail || reqData.user_email || null,
+      full_name: reqData.user_name || "Customer",
+      tokens: newTotal,
+      updated_at: new Date().toISOString()
+    }, { merge: true });
+
+    if (allProfiles[targetProfileId]) {
+      allProfiles[targetProfileId].tokens = newTotal;
+    }
+
+    // Update request document
+    await reqRef.update({
       status: "approved",
       approved_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     });
-    
-    if (userId) {
-      const userRef = db.collection("profiles").doc(userId);
-      const userDoc = await userRef.get();
-      if (userDoc.exists) {
-        const curTokens = userDoc.data().tokens !== undefined ? Number(userDoc.data().tokens) : 200;
-        batch.update(userRef, {
-          tokens: curTokens + Number(tokensCount),
-          updated_at: new Date().toISOString()
-        });
-        if (allProfiles[userId]) {
-          allProfiles[userId].tokens = curTokens + Number(tokensCount);
-        }
-      }
-    }
-    
-    await batch.commit();
+
     shootConfetti();
-    await logAction("Token Purchase Approved", `Approved request ${reqId} for ${tokensCount} tokens to user ${userId}`);
-    alert(`Successfully approved and credited ${tokensCount} BhoomiTayi Tokens!`);
+    await logAction("Token Purchase Approved", `Approved request ${reqId} for ${numTokens} tokens to user ${targetProfileId}`);
+    alert(`Successfully approved and credited ${numTokens} BhoomiTayi Tokens! New balance: ${newTotal}`);
+    updateTokenStats();
+    renderTokenRequests();
   } catch(e) {
+    console.error("Error approving token request:", e);
     alert("Error approving token request: " + e.message);
   }
 }
@@ -1184,9 +1240,263 @@ async function rejectTokenRequest(reqId) {
     });
     await logAction("Token Purchase Rejected", `Rejected request ${reqId}`);
     alert("Token request rejected.");
+    updateTokenStats();
+    renderTokenRequests();
   } catch(e) {
     alert("Error rejecting token request: " + e.message);
   }
+}
+
+// BOOSTER REQUESTS MANAGEMENT
+function setBoosterFilter(f) {
+  boosterFilter = f;
+  ["all", "pending", "approved", "rejected"].forEach(type => {
+    const btn = document.getElementById("boosterBtn-" + type);
+    if (btn) {
+      if (type === f) {
+        btn.style.background = "#3b82f6";
+        btn.style.color = "white";
+      } else {
+        btn.style.background = "white";
+        btn.style.color = "#1e293b";
+      }
+    }
+  });
+  renderBoosterRequests();
+}
+
+function updateBoosterStats() {
+  const t = allBoosterRequests.length;
+  const p = allBoosterRequests.filter(r => r.status === "pending").length;
+  const a = allBoosterRequests.filter(r => r.status === "approved").length;
+  const r = allBoosterRequests.filter(r => r.status === "rejected").length;
+  
+  const elAll = document.getElementById("statBoosterAll");
+  const elPending = document.getElementById("statBoosterPending");
+  const elApproved = document.getElementById("statBoosterApproved");
+  const elRejected = document.getElementById("statBoosterRejected");
+  
+  if (elAll) elAll.textContent = t;
+  if (elPending) elPending.textContent = p;
+  if (elApproved) elApproved.textContent = a;
+  if (elRejected) elRejected.textContent = r;
+}
+
+function renderBoosterRequests() {
+  const c = document.getElementById("boosterRequestsContainer");
+  if (!c) return;
+  
+  let list = allBoosterRequests.slice();
+  if (boosterFilter !== "all") {
+    list = list.filter(r => r.status === boosterFilter);
+  }
+  
+  const q = (document.getElementById("boosterSearchInput")?.value || "").toLowerCase().trim();
+  if (q) {
+    list = list.filter(r => {
+      return [r.user_name, r.user_email, r.user_phone, r.transaction_id, r.notes, r.plan_name, r.id].some(v => (v||"").toLowerCase().includes(q));
+    });
+  }
+  
+  if (!list.length) {
+    c.innerHTML = '<div class="empty-state" style="padding:40px; text-align:center; color:#64748b;"><p>🚀 No booster requests found matching your filter.</p></div>';
+    return;
+  }
+  
+  c.innerHTML = list.map(r => {
+    const isPending = r.status === "pending";
+    const isApproved = r.status === "approved";
+    const isRejected = r.status === "rejected";
+    
+    let statusBadge = '';
+    if (isPending) {
+      statusBadge = '<span class="badge" style="background:#fef3c7; color:#92400e; font-weight:bold;">⏳ Pending Approval</span>';
+    } else if (isApproved) {
+      statusBadge = '<span class="badge" style="background:#dcfce7; color:#166534; font-weight:bold;">✓ Approved & Active</span>';
+    } else {
+      statusBadge = '<span class="badge" style="background:#fee2e2; color:#991b1b; font-weight:bold;">✕ Rejected</span>';
+    }
+    
+    let listingId = r.listing_id;
+    if (!listingId && r.notes) {
+      const match = r.notes.match(/Listing ID:\s*([A-Za-z0-9_-]+)/i);
+      if (match) listingId = match[1];
+    }
+    
+    const planName = r.plan_name || (r.notes?.includes("PIN") ? "Pin Placement (30 Days)" : "Booster Plan");
+    const planDays = r.plan_days || 30;
+    
+    return `
+      <div class="listing-card" style="border-left: 4px solid ${isPending ? '#f59e0b' : isApproved ? '#10b981' : '#ef4444'}; margin-bottom:12px;">
+        <div class="listing-top">
+          <div style="font-size:24px; margin-right:12px;">🚀</div>
+          <div class="listing-info">
+            <div class="listing-name" style="display:flex; align-items:center; gap:8px;">
+              <span>${planName} (₹${r.amount})</span>
+              ${statusBadge}
+              <span class="badge" style="background:#e0e7ff; color:#4338ca; font-weight:bold;">${planDays} DAYS</span>
+            </div>
+            <div class="listing-meta">
+              <strong>Seller:</strong> ${r.user_name || 'Seller'} (${r.user_email || 'No email'})
+              ${listingId ? ` · <a href="https://www.bhoomitayi.com/listing/${listingId}" target="_blank" style="color:#2563eb; font-weight:bold; text-decoration:underline;">View Listing ↗</a>` : ''}
+            </div>
+          </div>
+          <div class="listing-right">
+            <div class="listing-date">${formatDate(r.created_at)} ${new Date(r.created_at).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'})}</div>
+          </div>
+        </div>
+        
+        <div class="listing-details show" style="padding-top:10px; margin-top:10px; border-top:1px solid #f1f5f9;">
+          <div class="detail-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; margin-bottom:12px;">
+            <div class="detail-item">
+              <div class="detail-label">Sender Name / Contact</div>
+              <div class="detail-value" style="font-weight:bold; color:#1e293b; font-size:15px;">
+                ${r.user_name || 'Not provided'}
+              </div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">UPI ID / UTR</div>
+              <div class="detail-value" style="font-family:monospace; font-weight:bold; color:#64748b; background:#f1f5f9; padding:4px 8px; border-radius:4px; display:inline-block; font-size:12px;">
+                ${r.transaction_id || 'Not provided'}
+              </div>
+            </div>
+            <div class="detail-item">
+              <div class="detail-label">Amount Paid</div>
+              <div class="detail-value" style="font-weight:bold; color:#059669; font-size:15px;">₹${r.amount}</div>
+            </div>
+            <div class="detail-item" style="grid-column: span 2;">
+              <div class="detail-label">Plan & Listing Reference</div>
+              <div class="detail-value" style="font-weight:bold; color:#4338ca; font-size:13px; background:#eef2ff; padding:8px; border-radius:6px; border:1px solid #c7d2fe;">
+                ${r.notes || `${planName} for Listing ID: ${listingId || 'N/A'}`}
+              </div>
+            </div>
+          </div>
+          
+          <div class="action-btns">
+            ${isPending ? `
+              <button class="btn btn-primary" style="background:#2563eb; border-color:#2563eb; font-weight:bold;" onclick="approveBoosterRequest('${r.id}', '${r._colSource || 'booster_requests'}', '${listingId || ''}', ${planDays})">
+                ✓ Approve & Activate Booster
+              </button>
+              <button class="btn" style="color:#dc2626; border-color:#fca5a5;" onclick="rejectBoosterRequest('${r.id}', '${r._colSource || 'booster_requests'}')">
+                ✕ Reject Booster
+              </button>
+            ` : `
+              <span style="font-size:12px; font-weight:600; color:${isApproved ? '#059669' : '#991b1b'}; margin-right:10px;">
+                ${isApproved ? '✓ Booster Active & Published' : '✕ Request Rejected'}
+              </span>
+            `}
+            <button class="btn" style="color:#64748b; border-color:#cbd5e1; font-size: 13px;" onclick="deleteBoosterRequestRecord('${r.id}', '${r._colSource || 'booster_requests'}')">
+              🗑 Delete Record
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function approveBoosterRequest(reqId, colSource, listingId, planDays) {
+  if (!confirm(`Confirm approval? This will activate the booster plan for this listing.`)) return;
+  try {
+    const collectionName = colSource || "booster_requests";
+    const reqRef = db.collection(collectionName).doc(reqId);
+    const reqDoc = await reqRef.get();
+    const data = reqDoc.exists ? reqDoc.data() : {};
+
+    let targetListingId = listingId || data.listing_id;
+    if (!targetListingId && data.notes) {
+      const match = data.notes.match(/Listing ID:\s*([A-Za-z0-9_-]+)/i);
+      if (match) targetListingId = match[1];
+    }
+
+    let days = planDays || data.plan_days || 30;
+    if (!days && data.notes) {
+      const match = data.notes.match(/\((\d+)\s*Days?\)/i);
+      if (match) days = parseInt(match[1], 10);
+    }
+
+    if (targetListingId) {
+      const listRef = db.collection("listings").doc(targetListingId);
+      const listDoc = await listRef.get();
+      if (listDoc.exists) {
+        const expiresAt = new Date(Date.now() + (days || 30) * 24 * 60 * 60 * 1000).toISOString();
+        const isPin = (data.notes || "").toLowerCase().includes("pin") || (data.plan_name || "").toLowerCase().includes("pin");
+        const updateObj = {
+          status: "active",
+          payment_status: "approved",
+          expires_at: expiresAt,
+          updated_at: new Date().toISOString()
+        };
+        if (isPin) {
+          updateObj.pinned = true;
+          updateObj.pin_status = "approved";
+          updateObj.pin_expires_at = expiresAt;
+        }
+        await listRef.update(updateObj);
+      }
+    }
+
+    await reqRef.update({
+      status: "approved",
+      approved_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+
+    shootConfetti();
+    await logAction("Booster Approved", `Approved booster request ${reqId} for listing ${targetListingId || 'N/A'}`);
+    alert(`Successfully approved and activated listing booster!`);
+    updateBoosterStats();
+    renderBoosterRequests();
+  } catch (e) {
+    console.error("Error approving booster request:", e);
+    alert("Error approving booster request: " + e.message);
+  }
+}
+
+async function rejectBoosterRequest(reqId, colSource) {
+  if (!confirm("Are you sure you want to reject this booster request?")) return;
+  try {
+    const collectionName = colSource || "booster_requests";
+    await db.collection(collectionName).doc(reqId).update({
+      status: "rejected",
+      updated_at: new Date().toISOString()
+    });
+    await logAction("Booster Rejected", `Rejected booster request ${reqId}`);
+    alert("Booster request rejected.");
+    updateBoosterStats();
+    renderBoosterRequests();
+  } catch (e) {
+    alert("Error rejecting booster request: " + e.message);
+  }
+}
+
+window.deleteBoosterRequestRecord = async function(reqId, colSource) {
+  if (!confirm("Are you sure you want to delete this booster record from admin?")) return;
+  try {
+    const collectionName = colSource || "booster_requests";
+    await db.collection(collectionName).doc(reqId).delete();
+    alert("Booster record deleted.");
+  } catch (e) {
+    alert("Error deleting record: " + e.message);
+  }
+}
+
+function exportBoosterRequestsCSV() {
+  const headers = ["ID", "Seller Name", "Email", "Phone", "Plan Name", "Days", "Amount", "UTR", "Status", "Created At", "Notes"];
+  const rows = allBoosterRequests.map(r => [
+    `"${r.id}"`,
+    `"${(r.user_name||"").replace(/"/g, '""')}"`,
+    `"${(r.user_email||"").replace(/"/g, '""')}"`,
+    `"${(r.user_phone||"").replace(/"/g, '""')}"`,
+    `"${(r.plan_name||"").replace(/"/g, '""')}"`,
+    r.plan_days || 30,
+    r.amount || 0,
+    `"${(r.transaction_id||"").replace(/"/g, '""')}"`,
+    `"${r.status}"`,
+    `"${r.created_at}"`,
+    `"${(r.notes||"").replace(/"/g, '""')}"`
+  ]);
+  downloadCSV([headers.join(","), ...rows.map(r => r.join(","))].join("\n"), "booster_requests_export.csv");
 }
 
 async function doManualGrantTokens() {

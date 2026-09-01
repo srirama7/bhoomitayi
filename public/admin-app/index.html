@@ -76,7 +76,8 @@
     <div class="tabs">
       <div class="nav-links">
         <button class="tab active" data-tab="dashboard">📊 Dashboard</button>
-        <button class="tab" data-tab="tokens">🪙 Tokens & Boosters</button>
+        <button class="tab" data-tab="tokens">🪙 Token Requests</button>
+        <button class="tab" data-tab="boosters">🚀 Booster Requests</button>
         <button class="tab" data-tab="coupons">🎟️ Promo Codes</button>
         <button class="tab" data-tab="listings">🏡 Listings</button>
         <button class="tab" data-tab="users">👥 Users</button>
@@ -128,15 +129,14 @@
       </div>
     </div>
 
-    <!-- TOKEN REQUESTS & BOOSTERS -->
+    <!-- TOKEN REQUESTS -->
     <div id="tab-tokens" class="content hidden">
-      
       <div class="header-actions">
         <div>
           <h2 style="font-size:20px; color:#0f172a; margin:0; display:flex; align-items:center; gap:8px;">
-            <span>🪙 BhoomiTayi Tokens & Boosters</span>
+            <span>🪙 BhoomiTayi Token Purchase Requests</span>
           </h2>
-          <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">Verify QR code payments, approve token packages, booster listing payments, or manually grant tokens to any Gmail account.</p>
+          <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">Verify QR code payments, approve token packages, or manually grant tokens to any Gmail account.</p>
         </div>
         <button class="btn btn-primary" onclick="exportTokenRequestsCSV()">⬇ Export CSV</button>
       </div>
@@ -190,6 +190,42 @@
 
       <!-- Token Requests List Container -->
       <div id="tokenRequestsContainer"></div>
+    </div>
+
+    <!-- BOOSTER & PIN REQUESTS -->
+    <div id="tab-boosters" class="content hidden">
+      <div class="header-actions">
+        <div>
+          <h2 style="font-size:20px; color:#0f172a; margin:0; display:flex; align-items:center; gap:8px;">
+            <span>🚀 Listing Booster & Pin Placement Requests</span>
+          </h2>
+          <p style="margin:4px 0 0 0; font-size:12px; color:#64748b;">Verify listing visibility booster packages (Basic, Standard, Plus, Pro) and Pin placement payment requests.</p>
+        </div>
+        <button class="btn btn-primary" onclick="exportBoosterRequestsCSV()">⬇ Export CSV</button>
+      </div>
+
+      <div class="stats-row" id="boosterStatsRow">
+        <div class="stat-card active" onclick="setBoosterFilter('all')"><div class="stat-label"><span class="dot dot-blue"></span> All Requests</div><div class="stat-value" id="statBoosterAll">0</div></div>
+        <div class="stat-card" onclick="setBoosterFilter('pending')"><div class="stat-label"><span class="dot dot-orange"></span> Pending Approval</div><div class="stat-value" id="statBoosterPending" style="color:#d97706;">0</div></div>
+        <div class="stat-card" onclick="setBoosterFilter('approved')"><div class="stat-label"><span class="dot dot-green"></span> Approved & Active</div><div class="stat-value" id="statBoosterApproved" style="color:#16a34a;">0</div></div>
+        <div class="stat-card" onclick="setBoosterFilter('rejected')"><div class="stat-label"><span class="dot dot-red"></span> Rejected</div><div class="stat-value" id="statBoosterRejected">0</div></div>
+      </div>
+
+      <!-- Search and Filters -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; gap:10px;">
+        <div class="search-bar" style="margin:0; flex:1; max-width:500px;">
+          <input type="text" id="boosterSearchInput" placeholder="Search by seller, email, plan, or UTR..." style="width:100%" oninput="renderBoosterRequests()">
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn" onclick="setBoosterFilter('all')" id="boosterBtn-all" style="background:#3b82f6; color:white;">All</button>
+          <button class="btn" onclick="setBoosterFilter('pending')" id="boosterBtn-pending">Pending</button>
+          <button class="btn" onclick="setBoosterFilter('approved')" id="boosterBtn-approved">Approved</button>
+          <button class="btn" onclick="setBoosterFilter('rejected')" id="boosterBtn-rejected">Rejected</button>
+        </div>
+      </div>
+
+      <!-- Booster Requests List Container -->
+      <div id="boosterRequestsContainer"></div>
     </div>
 
     <!-- COUPON GENERATOR -->
