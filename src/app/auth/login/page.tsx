@@ -262,13 +262,20 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50/50 via-background to-indigo-50/30 dark:from-blue-950/20 dark:via-background dark:to-indigo-950/10 px-4">
-      {/* Background orbs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-blue-200/20 dark:bg-blue-800/10 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-200/20 dark:bg-indigo-800/10 blur-3xl" />
-      </div>
-      <Card className="relative w-full max-w-md rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80 backdrop-blur-sm">
+    <div className="relative flex min-h-screen items-center justify-center px-4 py-12 overflow-hidden">
+      {/* Background Image */}
+      <Image
+        src="/auth-bg.png"
+        alt="Auth Background"
+        fill
+        priority
+        className="object-cover object-center pointer-events-none -z-20"
+        quality={90}
+      />
+      {/* Dark overlay for contrast */}
+      <div className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px] -z-10 pointer-events-none" />
+
+      <Card className="relative w-full max-w-md rounded-3xl border border-white/25 dark:border-white/10 shadow-2xl bg-white/95 dark:bg-zinc-900/92 backdrop-blur-xl">
         <CardHeader className="text-center">
           <Link href="/" className="mb-4 flex flex-col items-center justify-center gap-3 transition-all hover:opacity-90">
             <div className="flex items-center justify-center size-24 rounded-full shadow-lg overflow-hidden">

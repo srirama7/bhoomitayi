@@ -178,9 +178,9 @@ export function BuyTokensDialog({ open, onOpenChange, onSuccess }: BuyTokensDial
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md p-0 overflow-hidden rounded-3xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-foreground shadow-2xl">
+      <DialogContent className="w-full max-w-[95vw] sm:max-w-lg p-0 overflow-hidden rounded-3xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-foreground shadow-2xl max-h-[90vh] flex flex-col">
         {/* Header with gradient */}
-        <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-600 p-6 text-white relative">
+        <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-600 p-5 sm:p-6 text-white relative shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="size-12 rounded-2xl bg-white/20 backdrop-blur-md p-1.5 flex items-center justify-center shadow-inner">
@@ -213,7 +213,7 @@ export function BuyTokensDialog({ open, onOpenChange, onSuccess }: BuyTokensDial
 
         {/* Step 1: Package Selection */}
         {step === "select" && (
-          <div className="p-5 space-y-4">
+          <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
             <div className="flex items-center justify-between">
               <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider">
                 Select a Token Package

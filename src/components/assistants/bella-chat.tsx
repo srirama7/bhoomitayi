@@ -1344,15 +1344,16 @@ export function BellaChat() {
           style={getChatBoxStyle()}
           className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-transparent shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 relative"
         >
-          {/* Background Video */}
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="absolute inset-0 w-full h-full object-cover scale-110 z-0 opacity-80 dark:opacity-60 mix-blend-screen dark:mix-blend-lighten filter brightness-110 contrast-125"
-            src="/videos/ember-glow.mp4"
+          {/* Background Image: ChatGPT Image Sep 2, 2026, 06_23_24 PM */}
+          <Image
+            src="/bella-bg.png"
+            alt="Bella AI Landscape Background"
+            fill
+            className="object-cover object-center scale-105 z-0 pointer-events-none"
+            quality={85}
           />
+          {/* Subtle overlay for text readability */}
+          <div className="absolute inset-0 bg-white/30 dark:bg-black/40 backdrop-blur-[1px] z-0 pointer-events-none" />
 
           {/* Header */}
           <div className="relative z-10 flex items-center justify-between px-4 py-3 bg-gradient-to-r from-pink-500/90 to-rose-600/90 backdrop-blur-md text-white border-b border-white/20">
