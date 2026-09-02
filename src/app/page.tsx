@@ -122,12 +122,11 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (isNative) return;
     const timer = setInterval(() => {
       setHeroIndex((prev) => (prev + 1) % heroWords.length);
     }, 5000);
     return () => clearInterval(timer);
-  }, [isNative]);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && profile?.role === "admin") {
@@ -152,7 +151,7 @@ export default function HomePage() {
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-slate-900 dark:bg-slate-950">
         <HeroVideoBackground isNative={isNative} />
-        {!isNative && <HeroParticles />}
+        <HeroParticles />
 
         {/* Subtle Upper Aurora glow orbs (confined to sky area) */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -210,36 +209,22 @@ export default function HomePage() {
                 {t("hero.title_line1")}
                 <br />
                 <div className="h-[1.2em] relative overflow-visible flex justify-center">
-                  {isNative ? (
-                    <span
-                      className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 animate-text-gradient inline-block filter drop-shadow-[0_3px_12px_rgba(0,0,0,0.85)]"
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={heroIndex}
+                      className="absolute text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 animate-text-gradient inline-block filter drop-shadow-[0_3px_12px_rgba(0,0,0,0.85)]"
                       style={{ backgroundSize: "200% auto" }}
+                      initial={{ opacity: 0, y: 30 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -30 }}
+                      transition={{ duration: 0.6, ease: "easeInOut" }}
                     >
-                      {t("hero.title_line2")}
-                    </span>
-                  ) : (
-                    <AnimatePresence mode="wait">
-                      <motion.span
-                        key={heroIndex}
-                        className="absolute text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-cyan-300 animate-text-gradient inline-block filter drop-shadow-[0_3px_12px_rgba(0,0,0,0.85)]"
-                        style={{ backgroundSize: "200% auto" }}
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -30 }}
-                        transition={{ duration: 0.6, ease: "easeInOut" }}
-                      >
-                        {heroWords[heroIndex]}
-                      </motion.span>
-                    </AnimatePresence>
-                  )}
+                      {heroWords[heroIndex]}
+                    </motion.span>
+                  </AnimatePresence>
                 </div>
               </motion.h1>
               <div className="h-[4.5rem] sm:h-[3.5rem] relative flex justify-center">
-                {isNative ? (
-                  <p className="mx-auto max-w-2xl text-lg sm:text-xl font-medium text-slate-100 dark:text-white leading-relaxed text-center drop-shadow-[0_2px_8px_rgba(0,0,0,0.95)] px-4">
-                    {t("hero.subtitle")}
-                  </p>
-                ) : (
                   <AnimatePresence mode="wait">
                     <motion.p
                       key={heroIndex}
@@ -252,7 +237,6 @@ export default function HomePage() {
                       {heroSubtitles[heroIndex]}
                     </motion.p>
                   </AnimatePresence>
-                )}
               </div>
             </div>
 
@@ -511,22 +495,23 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative bg-zinc-50/80 dark:bg-zinc-950/50 overflow-hidden">
-        <div className="absolute inset-0">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-blue-200/20 dark:bg-blue-900/10 rounded-full blur-3xl animate-float-slow" />
+      <section className="relative bg-zinc-950 overflow-hidden text-white">
+        <div className="absolute inset-0 pointer-events-none">
+          <Image src="/real-estate-bg.png" alt="Real Estate" fill className="object-cover opacity-30 mix-blend-luminosity" quality={80} />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
         </div>
 
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-24 sm:py-32">
           <AnimatedSection>
             <div className="text-center space-y-8">
               <div className="space-y-4">
-                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-foreground">
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white drop-shadow-md">
                   {t("cta.ready_to_list")}{" "}
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400">
                     {t("cta.service")}
                   </span>
                 </h2>
-                <p className="mx-auto max-w-xl text-muted-foreground text-lg leading-relaxed">
+                <p className="mx-auto max-w-xl text-slate-300 text-lg leading-relaxed drop-shadow-sm">
                   {t("cta.subtitle")}
                 </p>
               </div>

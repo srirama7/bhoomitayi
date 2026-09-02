@@ -28,9 +28,8 @@ test("Diagnose live website dashboard pages", async ({ page }) => {
 
   for (const url of routes) {
     const slug = url.split("/").pop();
-    console.log(`\n================== TESTING ${url} ==================`);
-    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-    await page.waitForTimeout(3000);
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 15000 });
+    await page.waitForTimeout(2000);
 
     console.log(`Final URL: ${page.url()}`);
     const bodyText = await page.locator("body").innerText();

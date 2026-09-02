@@ -22,6 +22,7 @@ import { submitTokenPurchaseRequest, validateCouponCode, recordCouponUsage } fro
 import { db } from "@/lib/firebase/config";
 import { doc, updateDoc } from "firebase/firestore";
 import type { Coupon } from "@/lib/types/database";
+import { Capacitor } from "@capacitor/core";
 
 interface BuyTokensDialogProps {
   open: boolean;
@@ -30,6 +31,7 @@ interface BuyTokensDialogProps {
 }
 
 export function BuyTokensDialog({ open, onOpenChange, onSuccess }: BuyTokensDialogProps) {
+  const isNative = typeof window !== "undefined" && Capacitor.isNativePlatform();
   const { user, profile, setProfile } = useAuthStore();
   const [selectedPackId, setSelectedPackId] = useState<string>("pack_700");
   const [txnId, setTxnId] = useState("");
@@ -178,7 +180,7 @@ export function BuyTokensDialog({ open, onOpenChange, onSuccess }: BuyTokensDial
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="w-full max-w-[95vw] sm:max-w-lg p-0 overflow-hidden rounded-3xl border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-foreground shadow-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className={`w-full p-0 overflow-hidden border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 text-foreground shadow-2xl max-h-[90vh] flex flex-col ${isNative ? 'max-w-[100vw] h-[85vh] m-0 bottom-0 fixed rounded-t-3xl rounded-b-none' : 'max-w-[95vw] sm:max-w-lg rounded-3xl'}`}>
         {/* Header with gradient */}
         <div className="bg-gradient-to-br from-emerald-600 via-teal-600 to-blue-600 p-5 sm:p-6 text-white relative shrink-0">
           <div className="flex items-center justify-between">
@@ -223,69 +225,53 @@ export function BuyTokensDialog({ open, onOpenChange, onSuccess }: BuyTokensDial
               </span>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5">
-              {TOKEN_PACKAGES.map((pkg) => {
-                const isSelected = selectedPackId === pkg.id;
-                return (
-                  <button
-                    key={pkg.id}
-                    type="button"
-                    onClick={() => setSelectedPackId(pkg.id)}
-                    className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all text-left relative ${
-                      isSelected
-                        ? "border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 ring-2 ring-emerald-500/20 shadow-sm"
-                        : "border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/40"
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`size-10 rounded-xl flex items-center justify-center font-black ${
-                          isSelected
-                            ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/30"
-                            : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
-                        }`}
-                      >
-                        <Image
-                          src="/token_icon.png"
-                          alt=""
-                          width={24}
-                          height={24}
-                          className="rounded-full"
-                        />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-sm text-foreground">
-                            {pkg.tokens} Tokens
-                          </span>
-                          {pkg.tag && (
-                            <Badge
-                              variant="secondary"
-                              className={`text-[10px] font-bold px-1.5 py-0 rounded-md ${
-                                pkg.popular
-                                  ? "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"
-                                  : "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300"
-                              }`}
-                            >
-                              {pkg.tag}
-                            </Badge>
-                          )}
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          ₹{(pkg.price / pkg.tokens).toFixed(1)} / contact view
-                        </span>
-                      </div>
+            <div className="px-1 py-4 space-y-6">
+              <div className="relative">
+                <input
+                  type="range"
+                  min="0"
+                  max={TOKEN_PACKAGES.length - 1}
+                  value={TOKEN_PACKAGES.findIndex((p) => p.id === selectedPackId)}
+                  onChange={(e) => setSelectedPackId(TOKEN_PACKAGES[parseInt(e.target.value)].id)}
+                  className="w-full h-2 bg-zinc-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                />
+                <div className="flex justify-between mt-2 px-1">
+                  {TOKEN_PACKAGES.map((pkg) => (
+                    <div key={pkg.id} className="text-[9px] font-bold text-zinc-400">
+                      {pkg.tokens}
                     </div>
-
-                    <div className="text-right">
-                      <span className="text-base font-black text-foreground">₹{pkg.price}</span>
-                      <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
-                        Instant Approval
-                      </div>
-                    </div>
-                  </button>
-                );
-              })}
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex flex-col items-center justify-center p-6 rounded-3xl border-2 border-emerald-500 bg-emerald-50/70 dark:bg-emerald-950/40 shadow-lg shadow-emerald-500/10 text-center relative overflow-hidden">
+                {selectedPack.popular && (
+                  <div className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-bl-xl">
+                    POPULAR
+                  </div>
+                )}
+                
+                <div className="size-16 rounded-2xl bg-white dark:bg-zinc-900 shadow-md flex items-center justify-center mb-4 border border-emerald-100 dark:border-emerald-900">
+                  <Image src="/token_icon.png" alt="" width={40} height={40} className="rounded-full" />
+                </div>
+                
+                <h3 className="text-2xl font-black text-foreground mb-1">{selectedPack.tokens} Tokens</h3>
+                
+                {selectedPack.tag && (
+                  <Badge variant="secondary" className="mb-4 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300 border-none">
+                    {selectedPack.tag}
+                  </Badge>
+                )}
+                
+                <div className="flex flex-col items-center">
+                  <span className="text-4xl font-black text-emerald-600 dark:text-emerald-400 tracking-tighter">
+                    ₹{selectedPack.price}
+                  </span>
+                  <span className="text-xs font-bold text-muted-foreground mt-1">
+                    ₹{(selectedPack.price / selectedPack.tokens).toFixed(1)} / contact view
+                  </span>
+                </div>
+              </div>
             </div>
 
             {/* Coupon Code Section */}

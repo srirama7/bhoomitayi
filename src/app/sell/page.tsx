@@ -360,10 +360,10 @@ function SellPageContent() {
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] dark:opacity-[0.05] pointer-events-none" />
 
       {/* Page Hero */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-orange-500 to-pink-600 dark:from-orange-900/50 dark:to-pink-900/50 border-b border-orange-500/20">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute top-1/2 left-1/4 h-64 w-64 -translate-y-1/2 rounded-full bg-orange-400/30 blur-3xl mix-blend-overlay" />
-          <div className="absolute bottom-0 right-1/4 h-48 w-48 rounded-full bg-pink-300/30 blur-3xl mix-blend-overlay" />
+      <div className="relative overflow-hidden bg-slate-900 border-b border-orange-500/20">
+        <div className="absolute inset-0 pointer-events-none">
+          <Image src="/real-estate-bg.png" alt="Real Estate" fill className="object-cover opacity-30 mix-blend-luminosity" quality={80} />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 to-transparent" />
         </div>
         <div className="relative mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20 text-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/20 dark:bg-black/20 backdrop-blur-md px-4 py-1.5 text-sm font-medium text-white border border-white/30 mb-6 shadow-xl">

@@ -1,9 +1,9 @@
 export const CATEGORIES = [
-  { value: "house" as const, label: "Houses", icon: "Home", image: "/categories/houses.jpg", emoji: "🏡", href: "/houses" },
-  { value: "land" as const, label: "Land", icon: "Mountain", image: "/categories/land.avif", emoji: "🌍", href: "/land" },
+  { value: "house" as const, label: "Houses", icon: "Home", image: "/categories/houses.png", emoji: "🏡", href: "/houses" },
+  { value: "land" as const, label: "Land", icon: "Mountain", image: "/categories/land.png", emoji: "🌍", href: "/land" },
   { value: "pg" as const, label: "PG", icon: "Bed", image: "/categories/pg.png", emoji: "🛏️", href: "/pg" },
   { value: "commercial" as const, label: "Commercial", icon: "Building2", image: "/categories/commercial.png", emoji: "🏢", href: "/commercial" },
-  { value: "vehicle" as const, label: "Vehicles", icon: "Car", image: "/categories/vehicles.jpeg", emoji: "🚗", href: "/vehicles" },
+  { value: "vehicle" as const, label: "Vehicles", icon: "Car", image: "/categories/vehicles.png", emoji: "🚗", href: "/vehicles" },
   { value: "commodity" as const, label: "Other Commodities", icon: "Package", image: "/categories/commodities.png", emoji: "📦", href: "/commodities" },
 ] as const;
 

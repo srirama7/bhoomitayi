@@ -57,6 +57,7 @@ export const metadata: Metadata = {
 
 import { NativeAuthGuard } from "@/components/layout/native-auth-guard";
 import { NativeBodyClass } from "@/components/layout/native-body-class";
+import { CapacitorBackButton } from "@/components/layout/capacitor-back-button";
 
 export default function RootLayout({
   children,
@@ -76,6 +77,7 @@ export default function RootLayout({
               <AuthProvider>
                 <TooltipProvider>
                   <NativeAuthGuard>
+                    <CapacitorBackButton />
                     <LayoutWrapper>{children}</LayoutWrapper>
                   </NativeAuthGuard>
                   <Toaster richColors position="bottom-center" />
