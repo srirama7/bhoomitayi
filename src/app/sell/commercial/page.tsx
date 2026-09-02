@@ -283,21 +283,25 @@ export default function SellCommercialPage() {
       const listingRef = await addDoc(collection(db, "listings"), payload);
 
       if (plan?.price > 0) {
-        await addDoc(collection(db, "booster_requests"), cleanFirestoreData({
-          user_id: user?.uid,
-          user_name: plan.senderName || user?.displayName || "Seller",
-          user_email: user?.email || "",
-          plan_name: plan.name || "Booster",
-          plan_days: plan.days || 30,
-          amount: plan.price,
-          transaction_id: plan.txnId || "",
-          listing_id: listingRef.id,
-          notes: `BOOSTER PLAN: ${plan.name} (${plan.days} Days) | Listing ID: ${listingRef.id}`,
-          status: "pending",
-          is_booster: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        }));
+        try {
+          await addDoc(collection(db, "booster_requests"), cleanFirestoreData({
+            user_id: user?.uid,
+            user_name: plan.senderName || user?.displayName || "Seller",
+            user_email: user?.email || "",
+            plan_name: plan.name || "Booster",
+            plan_days: plan.days || 30,
+            amount: plan.price,
+            transaction_id: plan.txnId || "",
+            listing_id: listingRef.id,
+            notes: `BOOSTER PLAN: ${plan.name} (${plan.days} Days) | Listing ID: ${listingRef.id}`,
+            status: "pending",
+            is_booster: true,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          }));
+        } catch (bErr) {
+          console.warn("Booster request creation error:", bErr);
+        }
       }
 
       setShowPaymentDialog(false);

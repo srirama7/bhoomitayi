@@ -178,17 +178,31 @@ export default function MyListingsPage() {
 
     const fetchListings = async () => {
       try {
-        const listingsQuery = query(
-          collection(db, "listings"),
-          where("user_id", "==", user.uid),
-          orderBy("created_at", "desc")
-        );
-        const snap = await getDocs(listingsQuery);
+        let snap;
+        try {
+          const listingsQuery = query(
+            collection(db, "listings"),
+            where("user_id", "==", user.uid),
+            orderBy("created_at", "desc")
+          );
+          snap = await getDocs(listingsQuery);
+        } catch (queryErr) {
+          console.warn("Composite query error, trying fallback without orderBy:", queryErr);
+          const fallbackQuery = query(
+            collection(db, "listings"),
+            where("user_id", "==", user.uid)
+          );
+          snap = await getDocs(fallbackQuery);
+        }
+
         const data = snap.docs.map(
           (d) => ({ id: d.id, ...d.data() }) as Listing
         );
+        // Sort locally if fallback query was used
+        data.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
         setListings(data);
-      } catch {
+      } catch (err) {
+        console.error("Fetch listings error:", err);
         toast.error("Failed to fetch listings");
       }
       setLoading(false);
@@ -209,11 +223,13 @@ export default function MyListingsPage() {
   const filteredListings = useMemo(() => {
     if (!searchQuery.trim()) return derivedListings;
     const q = searchQuery.toLowerCase();
-    return derivedListings.filter((l) =>
-      l.title.toLowerCase().includes(q) ||
-      l.category.toLowerCase().includes(q) ||
-      statusConfig[l.status]?.label.toLowerCase().includes(q)
-    );
+    return derivedListings.filter((l) => {
+      const titleMatch = (l.title || "").toLowerCase().includes(q);
+      const categoryMatch = (l.category || "").toLowerCase().includes(q);
+      const statusLabel = statusConfig[l.status]?.label || l.status || "";
+      const statusMatch = statusLabel.toLowerCase().includes(q);
+      return titleMatch || categoryMatch || statusMatch;
+    });
   }, [derivedListings, searchQuery]);
 
   const handleDelete = async () => {
@@ -359,7 +375,10 @@ export default function MyListingsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {filteredListings.map((listing) => {
-            const status = statusConfig[listing.status];
+            const status = statusConfig[listing.status] || {
+              label: listing.status || "Pending",
+              className: "bg-zinc-100 text-zinc-800 border-zinc-200 dark:bg-zinc-800/50 dark:text-zinc-300 dark:border-zinc-700",
+            };
             const remainingMs = getRemainingTimeMs(listing.expires_at);
 
             return (
