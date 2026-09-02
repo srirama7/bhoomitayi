@@ -175,22 +175,22 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
         const d = details as unknown as HouseDetails;
         return (
           <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-            {d.bedrooms != null && (
+            {d.bedrooms != null && !isNaN(Number(d.bedrooms)) && (
               <span className="flex items-center gap-1">
                 <Bed className="size-3.5" />
                 {d.bedrooms} Beds
               </span>
             )}
-            {d.bathrooms != null && (
+            {d.bathrooms != null && !isNaN(Number(d.bathrooms)) && (
               <span className="flex items-center gap-1">
                 <Bath className="size-3.5" />
                 {d.bathrooms} Baths
               </span>
             )}
-            {d.area_sqft != null && (
+            {d.area_sqft != null && !isNaN(Number(d.area_sqft)) && (
               <span className="flex items-center gap-1">
                 <Maximize className="size-3.5" />
-                {d.area_sqft.toLocaleString("en-IN")} sq.ft
+                {Number(d.area_sqft).toLocaleString("en-IN")} sq.ft
               </span>
             )}
           </div>
@@ -200,10 +200,10 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
         const d = details as unknown as LandDetails;
         return (
           <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-            {d.area_sqft != null && (
+            {d.area_sqft != null && !isNaN(Number(d.area_sqft)) && (
               <span className="flex items-center gap-1">
                 <Maximize className="size-3.5" />
-                {d.area_sqft.toLocaleString("en-IN")} sq.ft
+                {Number(d.area_sqft).toLocaleString("en-IN")} sq.ft
               </span>
             )}
             {d.land_type && (
@@ -237,10 +237,10 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
         const d = details as unknown as CommercialDetails;
         return (
           <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-muted-foreground">
-            {d.area_sqft != null && (
+            {d.area_sqft != null && !isNaN(Number(d.area_sqft)) && (
               <span className="flex items-center gap-1">
                 <Maximize className="size-3.5" />
-                {d.area_sqft.toLocaleString("en-IN")} sq.ft
+                {Number(d.area_sqft).toLocaleString("en-IN")} sq.ft
               </span>
             )}
             {d.commercial_type && (
@@ -266,8 +266,8 @@ function ListingCardInner({ listing, showFavorite = true, viewMode = "grid" }: L
             {d.year != null && (
               <span>{d.year}</span>
             )}
-            {d.km_driven != null && (
-              <span>{d.km_driven.toLocaleString("en-IN")} km</span>
+            {d.km_driven != null && !isNaN(Number(d.km_driven)) && (
+              <span>{Number(d.km_driven).toLocaleString("en-IN")} km</span>
             )}
           </div>
         );

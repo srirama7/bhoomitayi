@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { db } from "@/lib/firebase/config";
 import { collection, addDoc } from "firebase/firestore";
@@ -36,6 +37,7 @@ const CONTACT_INFO = [
 ];
 
 export default function ContactPage() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
@@ -66,7 +68,12 @@ export default function ContactPage() {
       setEmail("");
       setSubject("");
       setMessage("");
+      // Redirect to main website
+      setTimeout(() => {
+        router.push("/");
+      }, 1000);
     } catch (error) {
+      console.error("Error sending contact message:", error);
       toast.error("Failed to send message. Please try again later.");
     } finally {
       setSending(false);

@@ -79,10 +79,15 @@ export default function DashboardLayout({
   if (!user || redirecting) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-center px-4">
+        <div className="flex flex-col items-center gap-4 text-center px-4 max-w-sm">
           <Loader2 className="size-8 animate-spin text-primary" />
-          <p className="text-muted-foreground">Please sign in to access your dashboard</p>
-          <p className="text-sm text-muted-foreground">Redirecting to login page...</p>
+          <p className="font-semibold text-foreground">Please sign in to access your dashboard</p>
+          <p className="text-sm text-muted-foreground">Redirecting to login...</p>
+          <Button asChild variant="outline" className="mt-2 rounded-xl">
+            <Link href={`/auth/login?redirectTo=${encodeURIComponent(pathname)}`}>
+              Go to Login Page
+            </Link>
+          </Button>
         </div>
       </div>
     );

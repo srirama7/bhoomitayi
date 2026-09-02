@@ -4,7 +4,7 @@ import { useState } from "react";
 import { X, MessageSquare, Send, CheckCircle2, Plus, Newspaper, RefreshCw, ExternalLink, Calendar } from "lucide-react";
 import { db } from "@/lib/firebase/config";
 import { collection, addDoc } from "firebase/firestore";
-import { toast } from "react-hot-toast";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
 

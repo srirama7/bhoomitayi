@@ -84,7 +84,9 @@ export async function getListings(params: ListingsQueryParams) {
       const aPinned = (a as any).pinned ? 1 : 0;
       const bPinned = (b as any).pinned ? 1 : 0;
       if (bPinned !== aPinned) return bPinned - aPinned;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      const timeB = b.created_at ? (typeof (b.created_at as any) === "object" && "seconds" in (b.created_at as any) ? (b.created_at as any).seconds * 1000 : new Date(b.created_at).getTime()) : 0;
+      const timeA = a.created_at ? (typeof (a.created_at as any) === "object" && "seconds" in (a.created_at as any) ? (a.created_at as any).seconds * 1000 : new Date(a.created_at).getTime()) : 0;
+      return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
     });
 
     const count = allListings.length;
@@ -182,7 +184,9 @@ export async function getFeaturedListings() {
       const aPinned = (a as any).pinned ? 1 : 0;
       const bPinned = (b as any).pinned ? 1 : 0;
       if (bPinned !== aPinned) return bPinned - aPinned;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      const timeB = b.created_at ? (typeof (b.created_at as any) === "object" && "seconds" in (b.created_at as any) ? (b.created_at as any).seconds * 1000 : new Date(b.created_at).getTime()) : 0;
+      const timeA = a.created_at ? (typeof (a.created_at as any) === "object" && "seconds" in (a.created_at as any) ? (a.created_at as any).seconds * 1000 : new Date(a.created_at).getTime()) : 0;
+      return (isNaN(timeB) ? 0 : timeB) - (isNaN(timeA) ? 0 : timeA);
     });
 
     const results = allMapped.slice(0, 8);

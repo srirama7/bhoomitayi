@@ -60,10 +60,12 @@ export function addTimerDuration(
 export function getEffectiveListingStatus(listing: Listing) {
   if (
     listing.status === "active" &&
-    listing.expires_at &&
-    new Date(listing.expires_at).getTime() <= Date.now()
+    listing.expires_at
   ) {
-    return "timed_out" as const;
+    const remaining = getRemainingTimeMs(listing.expires_at);
+    if (remaining !== null && remaining <= 0) {
+      return "timed_out" as const;
+    }
   }
 
   return listing.status;

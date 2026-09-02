@@ -328,7 +328,7 @@ export default function SellPGPage() {
           ? "Listing submitted! It will go live after admin approval."
           : "Listing submitted! It will go live after admin verifies your payment."
       );
-      router.push("/dashboard/my-listings");
+      router.push("/");
     } catch (err: any) {
       console.error("Listing submission error:", err);
       toast.error(

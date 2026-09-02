@@ -124,17 +124,17 @@ export default function FavoritesPage() {
             return (
               <Card key={fav.id} className="overflow-hidden rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80 hover:-translate-y-0.5 transition-all duration-300">
                 <div className="relative h-48 w-full">
-                  {listing.images && listing.images.length > 0 ? (
+                  {listing.images && listing.images.length > 0 && listing.images[0] && typeof listing.images[0] === "string" && listing.images[0].trim() !== "" ? (
                     listing.images[0].startsWith("data:") ? (
                       <img
                         src={listing.images[0]}
-                        alt={listing.title}
+                        alt={listing.title || "Listing"}
                         className="absolute inset-0 w-full h-full object-cover"
                       />
                     ) : (
                       <Image
                         src={listing.images[0]}
-                        alt={listing.title}
+                        alt={listing.title || "Listing"}
                         fill
                         className="object-cover"
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -142,7 +142,7 @@ export default function FavoritesPage() {
                     )
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-muted text-sm text-muted-foreground">
-                      No Image
+                      No Image Available
                     </div>
                   )}
                   <Badge className="absolute top-2 left-2 capitalize">

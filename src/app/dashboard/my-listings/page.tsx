@@ -171,34 +171,47 @@ export default function MyListingsPage() {
 
     const fetchListings = async () => {
       try {
-        let snap;
+        let snapDocs: any[] = [];
         try {
           const listingsQuery = query(
             collection(db, "listings"),
             where("user_id", "==", user.uid),
             orderBy("created_at", "desc")
           );
-          snap = await getDocs(listingsQuery);
+          const snap = await getDocs(listingsQuery);
+          snapDocs = snap.docs;
         } catch (queryErr) {
           console.warn("Composite query error, trying fallback without orderBy:", queryErr);
-          const fallbackQuery = query(
-            collection(db, "listings"),
-            where("user_id", "==", user.uid)
-          );
-          snap = await getDocs(fallbackQuery);
+          try {
+            const fallbackQuery = query(
+              collection(db, "listings"),
+              where("user_id", "==", user.uid)
+            );
+            const fallbackSnap = await getDocs(fallbackQuery);
+            snapDocs = fallbackSnap.docs;
+          } catch (fErr) {
+            console.error("Fallback query error:", fErr);
+          }
         }
 
-        const data = snap.docs.map(
+        const getTimeMs = (val: any) => {
+          if (!val) return 0;
+          if (typeof val === "object" && "seconds" in val) return val.seconds * 1000;
+          const t = new Date(val).getTime();
+          return isNaN(t) ? 0 : t;
+        };
+
+        const data = snapDocs.map(
           (d) => ({ id: d.id, ...d.data() }) as Listing
         );
-        // Sort locally if fallback query was used
-        data.sort((a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime());
+        data.sort((a, b) => getTimeMs(b.created_at) - getTimeMs(a.created_at));
         setListings(data);
       } catch (err) {
         console.error("Fetch listings error:", err);
         toast.error("Failed to fetch listings");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     fetchListings();
@@ -380,14 +393,22 @@ export default function MyListingsPage() {
                 className="group flex flex-col rounded-[2rem] border-0 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-2xl shadow-lg hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 overflow-hidden ring-1 ring-black/5 dark:ring-white/10"
               >
                 <div className="relative h-48 w-full shrink-0 overflow-hidden">
-                  {listing.images && listing.images.length > 0 ? (
-                    <Image
-                      src={listing.images[0]}
-                      alt={listing.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
+                  {listing.images && listing.images.length > 0 && listing.images[0] && typeof listing.images[0] === "string" && listing.images[0].trim() !== "" ? (
+                    listing.images[0].startsWith("data:") ? (
+                      <img
+                        src={listing.images[0]}
+                        alt={listing.title || "Listing"}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                      />
+                    ) : (
+                      <Image
+                        src={listing.images[0]}
+                        alt={listing.title || "Listing"}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    )
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-muted/50 text-xs text-muted-foreground font-medium">
                       No Image Available
@@ -415,8 +436,16 @@ export default function MyListingsPage() {
                       <Calendar className="size-3.5" />
                       {t("listing.created")}{" "}
                       {(() => {
-                        const date = new Date(listing.created_at);
-                        return `${date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} ${date.getFullYear()}`;
+                        try {
+                          if (!listing.created_at) return "Recently";
+                          const val = listing.created_at as any;
+                          const ms = typeof val === "object" && "seconds" in val ? val.seconds * 1000 : new Date(val).getTime();
+                          if (isNaN(ms)) return "Recently";
+                          const date = new Date(ms);
+                          return `${date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })} ${date.getFullYear()}`;
+                        } catch {
+                          return "Recently";
+                        }
                       })()}
                     </p>
 
