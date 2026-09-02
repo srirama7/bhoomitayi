@@ -16,6 +16,7 @@ import "./globals.css";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { I18nProvider } from "@/components/providers/i18n-provider";
+import { ErrorBoundary } from "@/components/providers/error-boundary";
 import { LayoutWrapper } from "@/components/layout/layout-wrapper";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -70,16 +71,18 @@ export default function RootLayout({
       >
         <ThemeProvider>
           <NativeBodyClass />
-          <I18nProvider>
-            <AuthProvider>
-              <TooltipProvider>
-                <NativeAuthGuard>
-                  <LayoutWrapper>{children}</LayoutWrapper>
-                </NativeAuthGuard>
-                <Toaster richColors position="bottom-center" />
-              </TooltipProvider>
-            </AuthProvider>
-          </I18nProvider>
+          <ErrorBoundary>
+            <I18nProvider>
+              <AuthProvider>
+                <TooltipProvider>
+                  <NativeAuthGuard>
+                    <LayoutWrapper>{children}</LayoutWrapper>
+                  </NativeAuthGuard>
+                  <Toaster richColors position="bottom-center" />
+                </TooltipProvider>
+              </AuthProvider>
+            </I18nProvider>
+          </ErrorBoundary>
         </ThemeProvider>
       </body>
     </html>

@@ -8,7 +8,6 @@ import {
   Pencil,
   Tag,
   FileDown,
-  ChevronDown,
   Loader2,
   Search,
   Calendar,
@@ -29,12 +28,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { db } from "@/lib/firebase/config";
 import {
   collection,
