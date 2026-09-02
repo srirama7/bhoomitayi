@@ -181,7 +181,7 @@ export default function ProfilePage() {
                   <Avatar className="size-24 border-2 border-background shadow-md">
                     <AvatarImage src={avatarUrl} alt={fullName} className="object-cover" />
                     <AvatarFallback className="bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/40 dark:to-indigo-900/40 text-blue-600 dark:text-blue-400 text-3xl font-bold">
-                      {fullName.charAt(0)}
+                      {fullName && fullName.trim().length > 0 ? fullName.trim().charAt(0).toUpperCase() : "U"}
                     </AvatarFallback>
                   </Avatar>
                   {uploading && (
