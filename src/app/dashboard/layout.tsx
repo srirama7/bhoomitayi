@@ -83,11 +83,12 @@ export default function DashboardLayout({
           <Loader2 className="size-8 animate-spin text-primary" />
           <p className="font-semibold text-foreground">Please sign in to access your dashboard</p>
           <p className="text-sm text-muted-foreground">Redirecting to login...</p>
-          <Button asChild variant="outline" className="mt-2 rounded-xl">
-            <Link href={`/auth/login?redirectTo=${encodeURIComponent(pathname)}`}>
-              Go to Login Page
-            </Link>
-          </Button>
+          <Link
+            href={`/auth/login?redirectTo=${encodeURIComponent(pathname)}`}
+            className="mt-2 inline-flex items-center justify-center rounded-xl border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
+          >
+            Go to Login Page
+          </Link>
         </div>
       </div>
     );
@@ -115,20 +116,19 @@ export default function DashboardLayout({
             const Icon = item.icon;
             const active = isActive(item.href);
             return (
-              <Button
+              <Link
                 key={item.href}
-                variant={active ? "secondary" : "ghost"}
+                href={item.href}
                 className={cn(
-                  "justify-start gap-3 h-10",
-                  active && "font-semibold"
+                  "flex items-center gap-3 px-3 h-10 rounded-md text-sm font-medium transition-colors",
+                  active
+                    ? "bg-secondary text-secondary-foreground font-semibold"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                 )}
-                asChild
               >
-                <Link href={item.href}>
-                  <Icon className="size-5" />
-                  {item.label}
-                </Link>
-              </Button>
+                <Icon className="size-5" />
+                <span>{item.label}</span>
+              </Link>
             );
           })}
         </nav>
