@@ -23,28 +23,24 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   }, []);
 
   const isDashboardPath = pathname.startsWith("/dashboard");
-  const showAdminLayout = isDashboardPath || isAdminDomain;
-
-  if (showAdminLayout) {
-    return (
-      <>
-        {children}
-        <SettingsApplier />
-      </>
-    );
-  }
+  const isAuthPath = pathname.startsWith("/auth");
+  const isMinimalLayout = isDashboardPath || isAdminDomain;
 
   return (
     <div className="flex min-h-screen flex-col">
-      <Navbar />
+      {!isMinimalLayout && <Navbar />}
       <main className="flex-1">{children}</main>
-      <Footer />
+      {!isMinimalLayout && !isAuthPath && <Footer />}
       <SettingsApplier />
-      <BellaChat />
-      <SettingsWidget />
-      <OnboardingTour />
-      <LeftNavigationSidebar />
-      <FeedbackSidebar />
+      {!isMinimalLayout && (
+        <>
+          <BellaChat />
+          <SettingsWidget />
+          <OnboardingTour />
+          <LeftNavigationSidebar />
+          <FeedbackSidebar />
+        </>
+      )}
     </div>
   );
 }

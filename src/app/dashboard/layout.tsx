@@ -52,7 +52,7 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!loading && !user) {
       setRedirecting(true);
-      router.push(`/auth/login?redirectTo=${encodeURIComponent(pathname)}`);
+      router.replace(`/auth/login?redirectTo=${encodeURIComponent(pathname)}`);
     }
   }, [user, loading, router, pathname]);
 
