@@ -542,6 +542,7 @@ function buildCard(l){
   if(l.status==="active")acts+=`<button class="btn" style="color:#059669;border-color:#6ee7b7" onclick="extendExpiry('${l.id}')">+30 Days</button>`;
   acts+=`<button class="btn" onclick="duplicateListing('${l.id}')">Clone</button>`;
   acts+=`<button class="btn" onclick="navigator.clipboard.writeText(window.location.origin + '/listing/' + '${l.id}'); alert('URL Copied!')">🔗 Copy Link</button>`;
+  acts+=`<button class="btn" style="color:#0ea5e9;border-color:#38bdf8" onclick="openEditModal('${l.id}')">✏️ Edit</button>`;
   acts+=`<button class="btn btn-danger" onclick="doAction('${l.id}','delete')">🗑 Delete</button>`;
 
   const starStyle = l.is_featured ? 'color:#fbbf24; cursor:pointer; font-size: 20px;' : 'color:#d1d5db; cursor:pointer; font-size: 20px; text-shadow: 0 0 1px #000;';
@@ -2371,3 +2372,72 @@ function escapeHtml(text) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+let currentEditListingId = null;
+
+function openEditModal(lId) {
+  const listing = allListings.find(l => l.id === lId);
+  if (!listing) return;
+  currentEditListingId = lId;
+  const pr = allProfiles[listing.user_id] || {};
+  
+  document.getElementById('editListTitle').value = listing.title || '';
+  document.getElementById('editListDesc').value = listing.description || '';
+  document.getElementById('editListAddress').value = listing.address || '';
+  document.getElementById('editListPhone').value = listing.owner_phone || pr.phone || '';
+  
+  if (listing.images && listing.images.length > 0) {
+    document.getElementById('editListPhotos').value = listing.images.join(',\\n');
+  } else {
+    document.getElementById('editListPhotos').value = '';
+  }
+
+  document.getElementById('editListingModal').classList.remove('hidden');
+}
+
+function closeEditModal() {
+  document.getElementById('editListingModal').classList.add('hidden');
+  currentEditListingId = null;
+}
+
+document.getElementById('saveEditListBtn')?.addEventListener('click', async () => {
+  if (!currentEditListingId) return;
+  
+  const title = document.getElementById('editListTitle').value.trim();
+  const description = document.getElementById('editListDesc').value.trim();
+  const address = document.getElementById('editListAddress').value.trim();
+  const phone = document.getElementById('editListPhone').value.trim();
+  
+  const rawPhotos = document.getElementById('editListPhotos').value;
+  let images = [];
+  if (rawPhotos.trim()) {
+    images = rawPhotos.split(',').map(url => url.trim()).filter(url => url.length > 0);
+  }
+
+  try {
+    await db.collection('listings').doc(currentEditListingId).update({
+      title: title,
+      description: description,
+      address: address,
+      owner_phone: phone,
+      images: images
+    });
+    
+    // Update local cache
+    const idx = allListings.findIndex(l => l.id === currentEditListingId);
+    if (idx > -1) {
+      allListings[idx].title = title;
+      allListings[idx].description = description;
+      allListings[idx].address = address;
+      allListings[idx].owner_phone = phone;
+      allListings[idx].images = images;
+    }
+    
+    closeEditModal();
+    renderListings();
+    alert('Listing updated successfully!');
+  } catch (err) {
+    console.error('Error updating listing:', err);
+    alert('Failed to update listing: ' + err.message);
+  }
+});
