@@ -48,12 +48,12 @@ type PropertyCategory = "house" | "land" | "pg" | "commercial" | "vehicle" | "co
 type TransactionType = "sell" | "rent" | "commercial_lease";
 
 const CATEGORY_OPTIONS = [
-  { value: "house" as const, label: "House / Apartment", Icon: Home, emoji: "🏡" },
-  { value: "land" as const, label: "Land / Plot", Icon: Mountain, emoji: "🌍" },
-  { value: "pg" as const, label: "PG / Hostel", Icon: Bed, emoji: "🛏️" },
-  { value: "commercial" as const, label: "Commercial", Icon: Building2, emoji: "🏢" },
-  { value: "vehicle" as const, label: "Vehicle", Icon: Car, emoji: "🚗" },
-  { value: "commodity" as const, label: "Other Commodity", Icon: Package, emoji: "📦" },
+  { value: "house" as const, label: "House / Apartment", image: "/categories/houses_v2.png", emoji: "🏡" },
+  { value: "land" as const, label: "Land / Plot", image: "/categories/land_v2.png", emoji: "🌍" },
+  { value: "pg" as const, label: "PG / Hostel", image: "/categories/pg_v2.png", emoji: "🛏️" },
+  { value: "commercial" as const, label: "Commercial", image: "/categories/commercial_v2.png", emoji: "🏢" },
+  { value: "vehicle" as const, label: "Vehicle", image: "/categories/vehicles_v2.png", emoji: "🚗" },
+  { value: "commodity" as const, label: "Other Commodity", image: "/categories/commodities_v2.png", emoji: "📦" },
 ];
 
 const TRANSACTION_OPTIONS: Record<PropertyCategory, { value: TransactionType; label: string }[]> = {
@@ -438,9 +438,9 @@ function SellPageContent() {
                             : "border-zinc-200 dark:border-zinc-800 hover:border-orange-200 dark:hover:border-orange-800 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
                         }`}
                       >
-                        <div className={`p-4 rounded-full transition-colors ${category === cat.value ? "bg-orange-100 dark:bg-orange-800" : "bg-zinc-100 dark:bg-zinc-800 group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20"}`}>
-                          <cat.Icon className={`size-8 ${category === cat.value ? "text-orange-600 dark:text-orange-400" : "text-muted-foreground"}`} />
-                        </div>
+                          <div className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden shadow-sm transition-all duration-300 ${category === cat.value ? "ring-2 ring-orange-500 scale-105 shadow-md shadow-orange-500/20" : "group-hover:scale-105 group-hover:shadow-md"}`}>
+                            <Image src={cat.image} alt={cat.label} fill className="object-cover" />
+                          </div>
                         <div className="text-center">
                           <span className="text-sm font-bold block mb-1">{cat.label}</span>
                           <span className="text-lg">{cat.emoji}</span>
