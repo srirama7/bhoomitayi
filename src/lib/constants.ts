@@ -1,10 +1,10 @@
 export const CATEGORIES = [
-  { value: "house" as const, label: "Houses", icon: "Home", image: "/categories/houses.png", emoji: "🏡", href: "/houses" },
-  { value: "land" as const, label: "Land", icon: "Mountain", image: "/categories/land.png", emoji: "🌍", href: "/land" },
-  { value: "pg" as const, label: "PG", icon: "Bed", image: "/categories/pg.png", emoji: "🛏️", href: "/pg" },
-  { value: "commercial" as const, label: "Commercial", icon: "Building2", image: "/categories/commercial.png", emoji: "🏢", href: "/commercial" },
-  { value: "vehicle" as const, label: "Vehicles", icon: "Car", image: "/categories/vehicles.png", emoji: "🚗", href: "/vehicles" },
-  { value: "commodity" as const, label: "Other Commodities", icon: "Package", image: "/categories/commodities.png", emoji: "📦", href: "/commodities" },
+  { value: "house" as const, label: "Houses", icon: "Home", image: "/categories/houses_v2.png", emoji: "🏡", href: "/houses" },
+  { value: "land" as const, label: "Land", icon: "Mountain", image: "/categories/land_v2.png", emoji: "🌍", href: "/land" },
+  { value: "pg" as const, label: "PG", icon: "Bed", image: "/categories/pg_v2.png", emoji: "🛏️", href: "/pg" },
+  { value: "commercial" as const, label: "Commercial", icon: "Building2", image: "/categories/commercial_v2.png", emoji: "🏢", href: "/commercial" },
+  { value: "vehicle" as const, label: "Vehicles", icon: "Car", image: "/categories/vehicles_v2.png", emoji: "🚗", href: "/vehicles" },
+  { value: "commodity" as const, label: "Other Commodities", icon: "Package", image: "/categories/commodities_v2.png", emoji: "📦", href: "/commodities" },
 ] as const;
 
 export const TRANSACTION_TYPES = {

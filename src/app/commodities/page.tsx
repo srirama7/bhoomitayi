@@ -56,7 +56,7 @@ function CommoditiesContent() {
       <div className="relative overflow-hidden shadow-2xl min-h-[280px] sm:min-h-[340px] flex items-center justify-center">
         {/* Background Image */}
         <Image
-          src="/categories/commodities.png"
+          src="/categories/commodities_v2.png"
           alt="Other Commodities"
           fill
           priority

@@ -53,7 +53,7 @@ function PGContent() {
       <div className="relative overflow-hidden shadow-2xl min-h-[280px] sm:min-h-[340px] flex items-center justify-center">
         {/* Background Image */}
         <Image
-          src="/categories/pg.png"
+          src="/categories/pg_v2.png"
           alt="Premium PG / Hostels"
           fill
           priority

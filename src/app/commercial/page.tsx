@@ -56,7 +56,7 @@ function CommercialContent() {
       <div className="relative overflow-hidden shadow-2xl min-h-[280px] sm:min-h-[340px] flex items-center justify-center">
         {/* Background Image */}
         <Image
-          src="/categories/commercial.png"
+          src="/categories/commercial_v2.png"
           alt="Commercial Space"
           fill
           priority
