@@ -2374,6 +2374,88 @@ function escapeHtml(text) {
 }
 
 let currentEditListingId = null;
+let currentEditImages = [];
+
+function renderEditPhotoGallery() {
+  const container = document.getElementById('editListPhotoGallery');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  if (currentEditImages.length === 0) {
+    container.innerHTML = '<div style="font-size:12px; color:#94a3b8;">No photos uploaded yet.</div>';
+    return;
+  }
+  
+  currentEditImages.forEach((imgUrl, index) => {
+    const wrap = document.createElement('div');
+    wrap.style.position = 'relative';
+    wrap.style.width = '100px';
+    wrap.style.height = '100px';
+    wrap.style.borderRadius = '8px';
+    wrap.style.overflow = 'hidden';
+    wrap.style.border = '1px solid #cbd5e1';
+    
+    const img = document.createElement('img');
+    img.src = imgUrl;
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'cover';
+    
+    const delBtn = document.createElement('button');
+    delBtn.innerHTML = '&times;';
+    delBtn.style.position = 'absolute';
+    delBtn.style.top = '4px';
+    delBtn.style.right = '4px';
+    delBtn.style.background = 'rgba(239, 68, 68, 0.9)';
+    delBtn.style.color = 'white';
+    delBtn.style.border = 'none';
+    delBtn.style.borderRadius = '50%';
+    delBtn.style.width = '20px';
+    delBtn.style.height = '20px';
+    delBtn.style.fontSize = '14px';
+    delBtn.style.lineHeight = '1';
+    delBtn.style.cursor = 'pointer';
+    delBtn.style.display = 'flex';
+    delBtn.style.alignItems = 'center';
+    delBtn.style.justifyContent = 'center';
+    delBtn.onclick = () => {
+      currentEditImages.splice(index, 1);
+      renderEditPhotoGallery();
+    };
+    
+    wrap.appendChild(img);
+    wrap.appendChild(delBtn);
+    container.appendChild(wrap);
+  });
+}
+
+async function handleEditPhotoUpload(event) {
+  const files = event.target.files;
+  if (!files || files.length === 0) return;
+  
+  const spinner = document.getElementById('editListUploadSpinner');
+  if (spinner) spinner.style.display = 'inline-block';
+  
+  try {
+    const storageRef = firebase.storage().ref();
+    
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const fileRef = storageRef.child(`listings/${Date.now()}_${file.name}`);
+      await fileRef.put(file);
+      const url = await fileRef.getDownloadURL();
+      currentEditImages.push(url);
+    }
+    
+    renderEditPhotoGallery();
+  } catch (err) {
+    console.error('Upload error:', err);
+    alert('Failed to upload photos: ' + err.message);
+  } finally {
+    if (spinner) spinner.style.display = 'none';
+    event.target.value = ''; // Reset input
+  }
+}
 
 function openEditModal(lId) {
   const listing = allListings.find(l => l.id === lId);
@@ -2386,11 +2468,8 @@ function openEditModal(lId) {
   document.getElementById('editListAddress').value = listing.address || '';
   document.getElementById('editListPhone').value = listing.owner_phone || pr.phone || '';
   
-  if (listing.images && listing.images.length > 0) {
-    document.getElementById('editListPhotos').value = listing.images.join(',\\n');
-  } else {
-    document.getElementById('editListPhotos').value = '';
-  }
+  currentEditImages = [...(listing.images || [])];
+  renderEditPhotoGallery();
 
   document.getElementById('editListingModal').classList.remove('hidden');
 }
@@ -2398,6 +2477,7 @@ function openEditModal(lId) {
 function closeEditModal() {
   document.getElementById('editListingModal').classList.add('hidden');
   currentEditListingId = null;
+  currentEditImages = [];
 }
 
 document.getElementById('saveEditListBtn')?.addEventListener('click', async () => {
@@ -2408,11 +2488,7 @@ document.getElementById('saveEditListBtn')?.addEventListener('click', async () =
   const address = document.getElementById('editListAddress').value.trim();
   const phone = document.getElementById('editListPhone').value.trim();
   
-  const rawPhotos = document.getElementById('editListPhotos').value;
-  let images = [];
-  if (rawPhotos.trim()) {
-    images = rawPhotos.split(',').map(url => url.trim()).filter(url => url.length > 0);
-  }
+  const images = [...currentEditImages];
 
   try {
     await db.collection('listings').doc(currentEditListingId).update({
