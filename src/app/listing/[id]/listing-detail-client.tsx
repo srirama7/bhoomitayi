@@ -693,8 +693,8 @@ export default function ListingDetailClient() {
                           <div className="flex-1">
                             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Phone Number</p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-sm font-semibold text-zinc-400 select-none blur-[3px]">
-                                +91 98765 43210
+                              <span className="text-sm font-semibold text-zinc-400 select-none">
+                                +91 98*** **210
                               </span>
                               <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50">
                                 🔒 Hidden
@@ -710,8 +710,8 @@ export default function ListingDetailClient() {
                           <div className="flex-1">
                             <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-tight">Email Address</p>
                             <div className="flex items-center gap-2 mt-0.5">
-                              <span className="text-sm font-semibold text-zinc-400 select-none blur-[3px]">
-                                seller@bhoomitayi.com
+                              <span className="text-sm font-semibold text-zinc-400 select-none">
+                                s*****@bhoomitayi.com
                               </span>
                               <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/50">
                                 🔒 Hidden
