@@ -1553,7 +1553,7 @@ function renderUsers() {
         <div class="action-btns">
           <button class="btn btn-primary" style="background:#059669; border-color:#059669;" onclick="quickGrantTokensToUser('${u.id}', '${u.email || u.full_name || u.id}')">🪙 Grant Tokens</button>
           ${u.role !== 'admin' ? `<button class="btn btn-primary" onclick="changeUserRole('${u.id}', 'admin')">Make Admin</button>` : `<button class="btn" onclick="changeUserRole('${u.id}', 'user')">Remove Admin</button>`}
-          <button class="btn btn-danger" onclick="deleteUserProfile('${u.id}')">Delete Profile</button>
+          
         </div>
       </div>
     </div>
@@ -2517,3 +2517,32 @@ document.getElementById('saveEditListBtn')?.addEventListener('click', async () =
     alert('Failed to update listing: ' + err.message);
   }
 });
+
+async function clearAllLogs() {
+  if (!confirm("Are you sure you want to permanently delete ALL activity logs?")) return;
+  try {
+    const snap = await db.collection('audit_logs').get();
+    const batchSize = 500;
+    let count = 0;
+    
+    // Batch deletes for safety and performance
+    while (snap.docs.length > count) {
+      const batch = db.batch();
+      const currentDocs = snap.docs.slice(count, count + batchSize);
+      
+      currentDocs.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      
+      await batch.commit();
+      count += currentDocs.length;
+    }
+    
+    alert(Successfully deleted  log entries.);
+    allLogs = [];
+    renderLogs();
+  } catch (err) {
+    console.error("Error clearing logs:", err);
+    alert("Failed to clear logs: " + err.message);
+  }
+}
