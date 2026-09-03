@@ -3,17 +3,19 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Save, Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { db } from "@/lib/firebase/config";
+import { db, storage } from "@/lib/firebase/config";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { useAuthStore } from "@/lib/store";
 import { formatPhoneWithCountryCode } from "@/lib/utils";
+import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,6 +41,7 @@ interface ListingData {
   category: string;
   transaction_type: string;
   status: string;
+  images?: string[];
   timer_duration?: Partial<TimerDuration> | null;
   expires_at?: string | null;
 }
@@ -77,6 +80,39 @@ function EditListingForm() {
   const [form, setForm] = useState<ListingData | null>(null);
   const [timer, setTimer] = useState<TimerDuration>(DEFAULT_TIMER_DURATION);
   const [resetTimer, setResetTimer] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files.length) return;
+    const file = e.target.files[0];
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File is too large. Max 5MB.");
+      return;
+    }
+    
+    setUploadingImage(true);
+    try {
+      const storageRef = ref(storage, `listings/admin_edit/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setForm(prev => prev ? { ...prev, images: [...(prev.images || []), url] } : null);
+      toast.success("Image uploaded!");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setForm(prev => {
+      if (!prev) return prev;
+      const newImages = [...(prev.images || [])];
+      newImages.splice(index, 1);
+      return { ...prev, images: newImages };
+    });
+  };
 
   useEffect(() => {
     if (authLoading) return;
@@ -137,6 +173,7 @@ function EditListingForm() {
         owner_name: form.owner_name?.trim() || "",
         owner_phone: formatPhoneWithCountryCode(form.owner_phone?.trim() || "") || "",
         owner_email: form.owner_email?.trim() || "",
+        images: form.images || [],
         updated_at: new Date().toISOString(),
       };
 
@@ -215,55 +252,97 @@ function EditListingForm() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80">
-          <CardHeader>
-            <CardTitle className="text-base">
-              Listing Details
-              <span className="ml-2 text-xs font-normal text-muted-foreground capitalize">({form.category} · {form.transaction_type})</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Title</Label>
-                <Input
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                />
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80">
+            <CardHeader>
+              <CardTitle className="text-base">
+                Listing Details
+                <span className="ml-2 text-xs font-normal text-muted-foreground capitalize">({form.category} · {form.transaction_type})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Title</Label>
+                  <Input
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Price (INR)</Label>
+                  <Input
+                    type="number"
+                    value={form.price}
+                    onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Pincode</Label>
+                  <Input
+                    value={form.pincode}
+                    onChange={(e) => setForm({ ...form, pincode: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Address</Label>
+                  <Input
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2 sm:col-span-2">
+                  <Label>Description</Label>
+                  <Textarea
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    rows={4}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Price (INR)</Label>
-                <Input
-                  type="number"
-                  value={form.price}
-                  onChange={(e) => setForm({ ...form, price: Number(e.target.value) })}
-                />
+            </CardContent>
+          </Card>
+
+          {/* Photo Manager */}
+          <Card className="rounded-2xl border-zinc-200/80 dark:border-zinc-800/80 shadow-3d bg-white dark:bg-zinc-900/80">
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <ImageIcon className="size-5" /> Photos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {form.images?.map((img, index) => (
+                  <div key={index} className="relative aspect-square rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 group">
+                    <Image src={img} alt={`Photo ${index + 1}`} fill className="object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <Button type="button" variant="destructive" size="icon" className="size-8 rounded-full" onClick={() => handleRemoveImage(index)}>
+                        <X className="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                
+                <div className="relative aspect-square rounded-xl border-2 border-dashed border-zinc-300 dark:border-zinc-700 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors flex flex-col items-center justify-center gap-2 bg-zinc-50 dark:bg-zinc-900/50">
+                  {uploadingImage ? (
+                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                  ) : (
+                    <>
+                      <Upload className="size-6 text-muted-foreground" />
+                      <span className="text-xs font-medium text-muted-foreground">Add Photo</span>
+                      <input 
+                        type="file" 
+                        accept="image/*"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={handleImageUpload}
+                      />
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Pincode</Label>
-                <Input
-                  value={form.pincode}
-                  onChange={(e) => setForm({ ...form, pincode: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Address</Label>
-                <Input
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2 sm:col-span-2">
-                <Label>Description</Label>
-                <Textarea
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  rows={4}
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="space-y-6">
           {/* Admin Timer Controls */}

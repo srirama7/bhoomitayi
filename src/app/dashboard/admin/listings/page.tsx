@@ -482,6 +482,16 @@ export default function AdminListingsPage() {
                                   <RotateCcw className="size-4 mr-2" /> Relaunch
                                </Button>
                             ) : null}
+
+                            <Link href={`/dashboard/my-listings/edit?id=${inspectorListing.id}`} className="block">
+                               <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  className="w-full font-bold border-zinc-300 dark:border-zinc-700"
+                               >
+                                  <Pencil className="size-4 mr-2 text-zinc-500" /> Full Edit Listing
+                               </Button>
+                            </Link>
                          </div>
 
                          {/* Pin Request / Control Actions */}
