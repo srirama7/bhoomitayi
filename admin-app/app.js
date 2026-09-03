@@ -2538,7 +2538,7 @@ async function clearAllLogs() {
       count += currentDocs.length;
     }
     
-    alert(Successfully deleted  log entries.);
+    alert(`Successfully deleted ${count} log entries.`);
     allLogs = [];
     renderLogs();
   } catch (err) {
