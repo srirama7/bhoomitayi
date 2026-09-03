@@ -374,7 +374,7 @@ export function Navbar() {
         </div>
 
         {/* Mobile Menu */}
-        <div className="flex items-center gap-2 md:hidden">
+        <div className="flex items-center gap-2 md:hidden pr-3 sm:pr-0">
           {/* Mobile Token Button */}
           {user && profile && (
             <button
