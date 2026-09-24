@@ -87,8 +87,8 @@ export default function PrivacyPolicyPage() {
           <Section title="7. Contact Us">
             <p>
               If you have questions about this Privacy Policy, please contact us at{" "}
-              <a href="mailto:privacy@bhoomitayi.in" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                privacy@bhoomitayi.in
+              <a href="mailto:bhoomitayi7@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                bhoomitayi7@gmail.com
               </a>
             </p>
           </Section>

@@ -99,8 +99,8 @@ export default function TermsPage() {
           <Section title="9. Contact">
             <p>
               For questions about these Terms of Service, please contact us at{" "}
-              <a href="mailto:legal@bhoomitayi.in" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                legal@bhoomitayi.in
+              <a href="mailto:bhoomitayi7@gmail.com" className="text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                bhoomitayi7@gmail.com
               </a>
             </p>
           </Section>
