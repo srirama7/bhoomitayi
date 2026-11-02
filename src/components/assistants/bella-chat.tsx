@@ -89,6 +89,8 @@ function messageContent(text: string) {
 
 export function BellaChat() {
   const [open, setOpen] = useState(false);
+  const [introVisible, setIntroVisible] = useState(false);
+  const introSeenRef = useRef(false);
   const [expanded, setExpanded] = useState(false);
   const [showFeatures, setShowFeatures] = useState(false);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -115,6 +117,48 @@ export function BellaChat() {
   const { user } = useAuthStore();
   const router = useRouter();
   const storageKey = `bella-session-v2:${user?.uid || "guest"}`;
+
+  // Introduce Bella once per tab, after onboarding, without opening the chat.
+  useEffect(() => {
+    const introKey = "bella-introduction-seen-v1";
+    const remember = () => {
+      introSeenRef.current = true;
+      try {
+        sessionStorage.setItem(introKey, "true");
+      } catch {
+        /* Optional storage. */
+      }
+    };
+    if (open) {
+      remember();
+      setIntroVisible(false);
+      return;
+    }
+    if (
+      loadedKey !== storageKey ||
+      !settings.hasSeenOnboarding ||
+      introSeenRef.current
+    )
+      return;
+    try {
+      if (sessionStorage.getItem(introKey)) return;
+    } catch {
+      /* Use the in-memory flag. */
+    }
+    const showTimer = setTimeout(() => {
+      remember();
+      setIntroVisible(true);
+    }, 1200);
+    return () => {
+      clearTimeout(showTimer);
+    };
+  }, [open, loadedKey, storageKey, settings.hasSeenOnboarding]);
+
+  useEffect(() => {
+    if (!introVisible) return;
+    const hideTimer = setTimeout(() => setIntroVisible(false), 7000);
+    return () => clearTimeout(hideTimer);
+  }, [introVisible]);
 
   // Keep each account's conversation separate and retain it only in this browser tab.
   useEffect(() => {
@@ -477,6 +521,38 @@ export function BellaChat() {
 
   return (
     <div id="bella-chat-root">
+      {introVisible && !open && (
+        <aside className="bella-introduction" aria-label="Bella introduction">
+          <button
+            className="bella-introduction-dismiss"
+            aria-label="Dismiss Bella introduction"
+            onClick={() => setIntroVisible(false)}
+          >
+            <X size={14} />
+          </button>
+          <button
+            className="bella-introduction-message"
+            onClick={() => {
+              setIntroVisible(false);
+              setShowFeatures(false);
+              setOpen(true);
+            }}
+          >
+            <span role="status">
+              <strong>
+                Hi, I&apos;m Bella AI! <Sparkles size={14} />
+              </strong>
+              <span>
+                I can help you find listings, compare options, use calculators
+                and more.
+              </span>
+            </span>
+            <span className="bella-introduction-cta">
+              How can I help? <ArrowUpRight size={13} />
+            </span>
+          </button>
+        </aside>
+      )}
       <button
         ref={launcherRef}
         id="bella-chat-button"
@@ -485,7 +561,11 @@ export function BellaChat() {
         title="Open Bella"
         aria-expanded={open}
         aria-controls="bella-panel"
-        onClick={() => { setShowFeatures(false); setOpen(value => !value); }}
+        onClick={() => {
+          setIntroVisible(false);
+          setShowFeatures(false);
+          setOpen((value) => !value);
+        }}
         hidden={open}
       >
         <span className="bella-launcher-avatar">

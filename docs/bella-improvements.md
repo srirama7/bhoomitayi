@@ -4,6 +4,7 @@ Bella uses its original sunflower-and-mountain wallpaper with pink accents and r
 
 ## Features
 
+- A small introduction appears beside Bella's icon after onboarding, once per browser tab. It disappears after seven seconds, can be dismissed, and closes as soon as the chat opens.
 - Search active listings by category, location, maximum budget, BHK and purchase/rental preference. Indian budget formats such as `25k`, `80 lakh` and `1.5 crore` are supported.
 - Refine the same search: `near Whitefield`, `under 25k`, `only for rent`, `any budget`, `any BHK`, or `new search`.
 - Open listing details from result cards. Compare up to three listings by asking price, location, category, transaction, bedrooms and area.

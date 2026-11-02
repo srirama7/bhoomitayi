@@ -63,6 +63,84 @@
   width: 42px;
   height: 42px;
 }
+.bella-introduction {
+  position: fixed;
+  right: 24px;
+  bottom: 94px;
+  z-index: 50;
+  width: min(280px, calc(100vw - 32px));
+  background: var(--bella-bg);
+  color: var(--bella-ink);
+  border: 1px solid var(--bella-line);
+  border-radius: 18px 18px 5px 18px;
+  box-shadow: 0 8px 30px #7f245c24;
+  animation: bella-introduction-in 0.25s ease-out;
+}
+.bella-introduction::after {
+  content: "";
+  position: absolute;
+  right: 18px;
+  bottom: -6px;
+  width: 11px;
+  height: 11px;
+  background: var(--bella-bg);
+  border-right: 1px solid var(--bella-line);
+  border-bottom: 1px solid var(--bella-line);
+  transform: rotate(45deg);
+}
+.bella-introduction-dismiss {
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  padding: 5px;
+  color: var(--bella-muted);
+  border-radius: 50%;
+}
+.bella-introduction-message {
+  display: block;
+  width: 100%;
+  padding: 17px;
+  text-align: left;
+}
+.bella-introduction-message strong {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 18px;
+  font-size: 14px;
+}
+.bella-introduction-message [role="status"] > span {
+  display: block;
+  margin-top: 7px;
+  color: var(--bella-muted);
+  font-size: 12px;
+  line-height: 1.65;
+}
+.bella-introduction-cta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 11px;
+  color: var(--bella-accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+@keyframes bella-introduction-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (max-width: 639px) {
+  .bella-introduction {
+    right: 16px;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+  }
+}
 .bella-panel {
   position: fixed;
   right: 24px;
@@ -588,7 +666,7 @@
 @media (max-width: 639px) {
   .bella-panel,
   .bella-panel.bella-expanded {
-  height: min(760px, calc(100dvh - 48px));
+    height: min(760px, calc(100dvh - 48px));
     right: 8px;
     bottom: max(8px, env(safe-area-inset-bottom));
     width: calc(100vw - 16px);
