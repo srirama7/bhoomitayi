@@ -90,7 +90,7 @@ function messageContent(text: string) {
 export function BellaChat() {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [showFeatures, setShowFeatures] = useState(true);
+  const [showFeatures, setShowFeatures] = useState(false);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -206,7 +206,7 @@ export function BellaChat() {
     busyRef.current = false;
     setBusy(false);
     setMessages(initialMessages());
-    setShowFeatures(true);
+    setShowFeatures(false);
     setFilters({});
     filtersRef.current = {};
     setShortlist([]);
@@ -485,7 +485,7 @@ export function BellaChat() {
         title="Open Bella"
         aria-expanded={open}
         aria-controls="bella-panel"
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => { setShowFeatures(false); setOpen(value => !value); }}
         hidden={open}
       >
         <span className="bella-launcher-avatar">

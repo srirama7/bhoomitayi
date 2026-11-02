@@ -1,6 +1,6 @@
 # Bella assistant
 
-Bella uses its original sunflower-and-mountain wallpaper with pink accents and readable message bubbles. Its floating launcher shows only the round Bella avatar. The bubble opens a complete, scrollable feature directory grouped by search, listing help, all 22 calculators and converters, appearance, languages, notification preferences, glossary, support, navigation and conversation tools. Every group is expanded, and the full directory stays accessible from the chat header. Desktop expansion and the mobile layout remain available.
+Bella uses its original sunflower-and-mountain wallpaper with pink accents and readable message bubbles. Its floating launcher shows only the round Bella avatar. The compact chat opens with a welcome message. An All features button inside the bubble opens a complete, scrollable feature directory grouped by search, listing help, all 22 calculators and converters, appearance, languages, notification preferences, glossary, support, navigation and conversation tools. Every group is expanded, and the full directory stays accessible from the chat header. Desktop expansion and the mobile layout remain available.
 
 ## Features
 

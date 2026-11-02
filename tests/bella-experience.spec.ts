@@ -35,6 +35,8 @@ test("desktop: commands, language history, draft, export and reset", async ({
   test.setTimeout(180000);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await openBella(page);
+  await expect(page.getByRole("heading", { name: "Everything Bella can do" })).toBeHidden();
+  await page.getByRole("button", { name: /All \d+ features/ }).click();
   await expect(
     page.getByRole("heading", { name: "Everything Bella can do" }),
   ).toBeVisible();
