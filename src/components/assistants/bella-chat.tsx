@@ -6,15 +6,12 @@ import {
   ArrowUpRight,
   Check,
   Copy,
-  House,
   Loader2,
   Maximize2,
-  MessageCircle,
   Minimize2,
   Plus,
   RotateCcw,
   Send,
-  SlidersHorizontal,
   Sparkles,
   X,
 } from "lucide-react";
@@ -34,6 +31,11 @@ import {
 } from "@/lib/bella-search";
 import { findBellaListings } from "@/lib/bella-listings";
 import type { Listing } from "@/lib/types/database";
+import {
+  bellaFeatureGroups,
+  bellaFeatureCount,
+  type BellaFeature,
+} from "@/lib/bella-features";
 import "./bella-chat.css";
 
 interface Message {
@@ -44,32 +46,6 @@ interface Message {
   searchUrl?: string;
   retry?: string;
 }
-const starters = [
-  {
-    icon: House,
-    title: "Find my next place",
-    text: "Search homes, plots & PGs",
-    prompt: "Find houses",
-  },
-  {
-    icon: Plus,
-    title: "Create a great listing",
-    text: "Turn your details into a draft",
-    prompt: "Help me draft a listing",
-  },
-  {
-    icon: SlidersHorizontal,
-    title: "Plan my budget",
-    text: "Explore EMI & useful tools",
-    prompt: "Show calculators",
-  },
-  {
-    icon: MessageCircle,
-    title: "Show me around",
-    text: "Get help using BhoomiTayi",
-    prompt: "What can you do?",
-  },
-];
 const welcome = "Hi, I'm Bella. Let's find what you're looking for.";
 const initialMessages = (): Message[] => [
   { id: "welcome", role: "assistant", content: welcome },
@@ -82,7 +58,11 @@ function messageContent(text: string) {
       const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
       if (link) {
         const [, label, href] = link;
-        if (href.startsWith("/") && !href.startsWith("//") && !href.includes("\\"))
+        if (
+          href.startsWith("/") &&
+          !href.startsWith("//") &&
+          !href.includes("\\")
+        )
           return (
             <Link key={index} href={href}>
               {label}
@@ -110,6 +90,7 @@ function messageContent(text: string) {
 export function BellaChat() {
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [showFeatures, setShowFeatures] = useState(true);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -207,8 +188,12 @@ export function BellaChat() {
     if (open) inputRef.current?.focus();
   }, [open]);
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
-  }, [messages, busy, comparing]);
+    if (showFeatures) {
+      const transcript = panelRef.current?.querySelector(".bella-transcript");
+      if (transcript) transcript.scrollTop = 0;
+    } else
+      bottomRef.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
+  }, [messages, busy, comparing, showFeatures, open]);
   useEffect(
     () => () => {
       requestRef.current++;
@@ -221,6 +206,7 @@ export function BellaChat() {
     busyRef.current = false;
     setBusy(false);
     setMessages(initialMessages());
+    setShowFeatures(true);
     setFilters({});
     filtersRef.current = {};
     setShortlist([]);
@@ -235,6 +221,16 @@ export function BellaChat() {
   async function send(raw: string) {
     const text = raw.trim().slice(0, 2000);
     if (!text || busyRef.current) return;
+    if (
+      /^(?:all features|show (?:all )?features|what can you do\??|capabilities)$/i.test(
+        text,
+      )
+    ) {
+      setShowFeatures(true);
+      setInput("");
+      return;
+    }
+    setShowFeatures(false);
     busyRef.current = true;
     const request = ++requestRef.current;
     const id = crypto.randomUUID();
@@ -418,6 +414,64 @@ export function BellaChat() {
     setNotice("");
   }
 
+  function runFeature(feature: BellaFeature) {
+    if (feature.calculator) {
+      settings.setActiveCalculator(feature.calculator);
+      setOpen(false);
+      return;
+    }
+    if (feature.prompt) {
+      void send(feature.prompt);
+      return;
+    }
+    switch (feature.action) {
+      case "new":
+        newChat();
+        break;
+      case "download":
+        download();
+        break;
+      case "expand":
+        setExpanded((value) => !value);
+        break;
+      case "copy": {
+        const reply = [...messages]
+          .reverse()
+          .find(
+            (message) =>
+              message.role === "assistant" && message.id !== "welcome",
+          );
+        if (reply) {
+          void copy(reply);
+          setShowFeatures(false);
+        } else
+          setNotice("Send a message first, then you can copy Bella's reply.");
+        break;
+      }
+      case "retry": {
+        const request = [...messages]
+          .reverse()
+          .find((message) => message.role === "user");
+        if (request) void send(request.content);
+        else setNotice("Send a message first, then you can retry it here.");
+        break;
+      }
+      case "clear-filters":
+        setFilters({});
+        filtersRef.current = {};
+        setNotice("Search filters cleared.");
+        break;
+      case "clear-shortlist":
+        setShortlist([]);
+        setComparing(false);
+        setNotice("Comparison shortlist cleared.");
+        break;
+      case "close":
+        close();
+        break;
+    }
+  }
+
   // Reveal controls after hydration and account-specific history have loaded.
   if (loadedKey !== storageKey) return null;
 
@@ -428,6 +482,7 @@ export function BellaChat() {
         id="bella-chat-button"
         className="bella-launcher"
         aria-label="Open Bella assistant"
+        title="Open Bella"
         aria-expanded={open}
         aria-controls="bella-panel"
         onClick={() => setOpen((value) => !value)}
@@ -436,11 +491,6 @@ export function BellaChat() {
         <span className="bella-launcher-avatar">
           <Image src="/bella-avatar.jpg" alt="" width={44} height={44} />
         </span>
-        <span>
-          <strong>Ask Bella</strong>
-          <small>Your BhoomiTayi assistant</small>
-        </span>
-        <Sparkles size={18} />
       </button>
       {open && (
         <section
@@ -517,10 +567,15 @@ export function BellaChat() {
               <i /> Guided help & live listing search
             </span>
             <button
-              onClick={() => void send("What can you do?")}
+              onClick={() => setShowFeatures((value) => !value)}
+              aria-expanded={showFeatures}
+              aria-controls="bella-feature-directory"
               disabled={busy}
             >
-              Explore features <ArrowUpRight size={12} />
+              {showFeatures
+                ? "Back to chat"
+                : `All ${bellaFeatureCount} features`}{" "}
+              <ArrowUpRight size={12} />
             </button>
           </div>
           <div
@@ -530,123 +585,138 @@ export function BellaChat() {
             aria-live="polite"
             aria-busy={busy}
           >
-            {messages.length === 1 && (
-              <div className="bella-intro">
-                <span className="bella-eyebrow">
-                  <Sparkles size={14} /> A LITTLE HELP FOR YOUR NEXT BIG STEP
-                </span>
-                <h3>
-                  Your next chapter
-                  <br />
-                  starts with a conversation.
-                </h3>
-                <p>
-                  Find a home, compare your options, or get your listing ready.
-                  What is on your mind?
-                </p>
-                <div className="bella-starters">
-                  {starters.map(({ icon: Icon, title, text, prompt }) => (
-                    <button
-                      key={title}
-                      disabled={busy}
-                      onClick={() => void send(prompt)}
-                    >
-                      <Icon size={19} />
-                      <strong>{title}</strong>
-                      <span>{text}</span>
-                      <ArrowUpRight size={14} />
-                    </button>
-                  ))}
+            {showFeatures && (
+              <div
+                id="bella-feature-directory"
+                className="bella-feature-directory"
+              >
+                <div className="bella-feature-heading">
+                  <Sparkles size={18} />
+                  <div>
+                    <h3>Everything Bella can do</h3>
+                    <p>
+                      All {bellaFeatureCount} features. Pick any option below.
+                    </p>
+                  </div>
                 </div>
-                <span className="bella-example">
-                  Try: 2 BHK houses in Bangalore under 80 lakh
-                </span>
-              </div>
-            )}
-            {shortlist.length > 0 && (
-              <div className="bella-shortlist">
-                <span>{shortlist.length}/3 shortlisted</span>
-                <button onClick={() => setComparing((value) => !value)}>
-                  {comparing ? "Hide comparison" : "Compare listings"}
-                </button>
-                <button
-                  aria-label="Clear shortlist"
-                  onClick={() => {
-                    setShortlist([]);
-                    setComparing(false);
-                  }}
-                >
-                  <X size={14} />
-                </button>
-              </div>
-            )}
-            {comparing && shortlist.length > 0 && (
-              <div className="bella-comparison">
-                <table>
-                  <caption>Your listing comparison</caption>
-                  <thead>
-                    <tr>
-                      <th>Detail</th>
-                      {shortlist.map((item) => (
-                        <th key={item.id}>
+                {bellaFeatureGroups.map((group) => (
+                  <section
+                    key={group.title}
+                    className="bella-feature-group"
+                    aria-label={group.title}
+                  >
+                    <h4>
+                      {group.title}
+                      <span>{group.features.length}</span>
+                    </h4>
+                    <div className="bella-feature-grid">
+                      {group.features.map((feature) =>
+                        feature.href ? (
                           <Link
-                            href={`/listing/${encodeURIComponent(item.id)}`}
+                            key={feature.label}
+                            href={feature.href}
+                            onClick={() => setOpen(false)}
                           >
-                            {item.title}
+                            {feature.label}
+                            <ArrowUpRight size={12} />
                           </Link>
+                        ) : (
                           <button
-                            aria-label={`Remove ${item.title} from comparison`}
-                            onClick={() => toggleListing(item)}
+                            key={feature.label}
+                            disabled={busy}
+                            onClick={() => runFeature(feature)}
                           >
-                            <X size={13} />
+                            {feature.label}
+                            <ArrowUpRight size={12} />
                           </button>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      "Asking price",
-                      "Location",
-                      "Category",
-                      "Transaction",
-                      "Bedrooms",
-                      "Area (sq ft)",
-                    ].map((label, index) => (
-                      <tr key={label}>
-                        <th>{label}</th>
-                        {shortlist.map((item) => {
-                          const details =
-                            item.details &&
-                            typeof item.details === "object" &&
-                            !Array.isArray(item.details)
-                              ? item.details
-                              : {};
-                          const values = [
-                            formatBellaPrice(item.price),
-                            item.address || "Not provided",
-                            item.category,
-                            item.transaction_type,
-                            details.bedrooms,
-                            details.area_sqft,
-                          ];
-                          return (
-                            <td key={item.id}>
-                              {String(values[index] ?? "Not provided")}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        ),
+                      )}
+                    </div>
+                  </section>
+                ))}
               </div>
             )}
-            {messages
-              .filter(
-                (message) => messages.length > 1 || message.id !== "welcome",
-              )
-              .map((message) => (
+            <div hidden={showFeatures}>
+              {shortlist.length > 0 && (
+                <div className="bella-shortlist">
+                  <span>{shortlist.length}/3 shortlisted</span>
+                  <button onClick={() => setComparing((value) => !value)}>
+                    {comparing ? "Hide comparison" : "Compare listings"}
+                  </button>
+                  <button
+                    aria-label="Clear shortlist"
+                    onClick={() => {
+                      setShortlist([]);
+                      setComparing(false);
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+              {comparing && shortlist.length > 0 && (
+                <div className="bella-comparison">
+                  <table>
+                    <caption>Your listing comparison</caption>
+                    <thead>
+                      <tr>
+                        <th>Detail</th>
+                        {shortlist.map((item) => (
+                          <th key={item.id}>
+                            <Link
+                              href={`/listing/${encodeURIComponent(item.id)}`}
+                            >
+                              {item.title}
+                            </Link>
+                            <button
+                              aria-label={`Remove ${item.title} from comparison`}
+                              onClick={() => toggleListing(item)}
+                            >
+                              <X size={13} />
+                            </button>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        "Asking price",
+                        "Location",
+                        "Category",
+                        "Transaction",
+                        "Bedrooms",
+                        "Area (sq ft)",
+                      ].map((label, index) => (
+                        <tr key={label}>
+                          <th>{label}</th>
+                          {shortlist.map((item) => {
+                            const details =
+                              item.details &&
+                              typeof item.details === "object" &&
+                              !Array.isArray(item.details)
+                                ? item.details
+                                : {};
+                            const values = [
+                              formatBellaPrice(item.price),
+                              item.address || "Not provided",
+                              item.category,
+                              item.transaction_type,
+                              details.bedrooms,
+                              details.area_sqft,
+                            ];
+                            return (
+                              <td key={item.id}>
+                                {String(values[index] ?? "Not provided")}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              {messages.map((message) => (
                 <article
                   key={message.id}
                   className={`bella-message bella-${message.role}`}
@@ -736,13 +806,14 @@ export function BellaChat() {
                   )}
                 </article>
               ))}
-            {busy && (
-              <div className="bella-thinking" role="status">
-                <Loader2 size={15} className="bella-spin" /> Bella is working on
-                it...
-              </div>
-            )}
-            <div ref={bottomRef} />
+              {busy && (
+                <div className="bella-thinking" role="status">
+                  <Loader2 size={15} className="bella-spin" /> Bella is working
+                  on it...
+                </div>
+              )}
+              <div ref={bottomRef} />
+            </div>
           </div>
           <footer className="bella-footer">
             {notice && (
@@ -782,19 +853,6 @@ export function BellaChat() {
                 Listing draft: send your details, or type cancel.
               </p>
             )}
-            <div className="bella-suggestions">
-              {["Find houses", "Find PG", "EMI calculator", "How to list"].map(
-                (prompt) => (
-                  <button
-                    key={prompt}
-                    disabled={busy}
-                    onClick={() => void send(prompt)}
-                  >
-                    {prompt}
-                  </button>
-                ),
-              )}
-            </div>
             <form
               onSubmit={(event) => {
                 event.preventDefault();

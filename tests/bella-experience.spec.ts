@@ -1,4 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
+import {
+  bellaFeatureCount,
+  bellaFeatureGroups,
+} from "../src/lib/bella-features";
 
 const target = process.env.BELLA_TEST_URL || "http://127.0.0.1:3010";
 async function openBella(page: Page) {
@@ -28,13 +32,29 @@ async function ask(page: Page, text: string) {
 test("desktop: commands, language history, draft, export and reset", async ({
   page,
 }) => {
-  test.setTimeout(90000);
+  test.setTimeout(180000);
   await page.setViewportSize({ width: 1440, height: 1000 });
   await openBella(page);
-  await expect(page.getByText("Your next chapter")).toBeVisible();
-  await page.locator("#bella-panel").screenshot({
-    path: "test-results/bella-desktop.png",
-  });
+  await expect(
+    page.getByRole("heading", { name: "Everything Bella can do" }),
+  ).toBeVisible();
+  await expect(page.locator("#bella-chat-button")).toHaveText("");
+  await expect(page.locator("#bella-panel")).toHaveCSS(
+    "background-image",
+    /bella-bg\.png/,
+  );
+  await expect(
+    page.locator(".bella-feature-grid button, .bella-feature-grid a"),
+  ).toHaveCount(bellaFeatureCount);
+  await expect(
+    page
+      .getByRole("region", { name: "All calculators & converters" })
+      .getByRole("button"),
+  ).toHaveCount(22);
+  for (const group of bellaFeatureGroups)
+    await expect(
+      page.getByRole("heading", { name: group.title, exact: false }),
+    ).toHaveCount(1);
   await expect(await ask(page, "How to list my house")).toContainText(
     /register service/i,
   );
@@ -73,12 +93,15 @@ test("desktop: commands, language history, draft, export and reset", async ({
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Download conversation" }).click();
   expect((await download).suggestedFilename()).toBe("bella-conversation.txt");
-  await page.reload();
+  await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator("#bella-chat-button").click();
   await expect(page.locator('[data-role="assistant"]').last()).toContainText(
     "Your listing draft",
   );
-  await page.getByRole("button", { name: "New conversation" }).click();
+  await page
+    .locator(".bella-tools")
+    .getByRole("button", { name: "New conversation" })
+    .click();
   await expect(page.locator('[data-role="user"]')).toHaveCount(0);
   await page.keyboard.press("Escape");
   await expect(

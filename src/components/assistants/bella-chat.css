@@ -1,20 +1,20 @@
 #bella-chat-root {
   --bella-bg: #fff;
-  --bella-soft: #f6f7f5;
-  --bella-ink: #182e29;
-  --bella-muted: #63736d;
-  --bella-line: #e3e9e5;
-  --bella-accent: #205c47;
+  --bella-soft: #fff2f8;
+  --bella-ink: #382235;
+  --bella-muted: #765c70;
+  --bella-line: #ead7e3;
+  --bella-accent: #c32972;
   font-family: inherit;
   color: var(--bella-ink);
 }
 .dark #bella-chat-root {
-  --bella-bg: #14231f;
-  --bella-soft: #1b2e27;
-  --bella-ink: #edf5ef;
-  --bella-muted: #adc2b5;
-  --bella-line: #34473d;
-  --bella-accent: #a9dec1;
+  --bella-bg: #241725;
+  --bella-soft: #342238;
+  --bella-ink: #fff4fb;
+  --bella-muted: #d6bcd2;
+  --bella-line: #60415b;
+  --bella-accent: #ffa4d6;
 }
 #bella-chat-root button {
   cursor: pointer;
@@ -35,13 +35,15 @@
   z-index: 50;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 8px 18px 8px 8px;
-  border: 1px solid #c6d5ca;
+  width: 62px;
+  height: 62px;
+  justify-content: center;
+  padding: 3px;
+  border: 3px solid #f4b1d1;
   border-radius: 99px;
   color: var(--bella-ink);
   background: var(--bella-bg);
-  box-shadow: 0 8px 35px #153d2926;
+  box-shadow: 0 8px 35px #7f245c33;
   text-align: left;
   transition: transform 0.2s;
 }
@@ -58,18 +60,8 @@
 }
 .bella-launcher-avatar img {
   object-fit: cover;
-  width: 44px;
-  height: 44px;
-}
-.bella-launcher strong {
-  display: block;
-  font-size: 14px;
-}
-.bella-launcher small {
-  display: block;
-  font-size: 10px;
-  color: var(--bella-muted);
-  margin-top: 1px;
+  width: 50px;
+  height: 50px;
 }
 .bella-panel {
   position: fixed;
@@ -80,18 +72,140 @@
   flex-direction: column;
   width: min(460px, calc(100vw - 32px));
   height: min(760px, calc(100dvh - 48px));
-  background: var(--bella-bg);
+  background:
+    linear-gradient(#ffffff12, #ffffff12),
+    url("/bella-bg.png") center / cover;
   color: var(--bella-ink);
   border: 1px solid var(--bella-line);
   border-radius: 24px;
   box-shadow:
-    0 24px 100px #10291d38,
-    0 2px 12px #10291d16;
+    0 24px 100px #55213e38,
+    0 2px 12px #55213e16;
   overflow: hidden;
   isolation: isolate;
 }
 .bella-expanded {
   width: min(740px, calc(100vw - 110px));
+}
+.bella-header {
+  background: linear-gradient(120deg, #df438deb, #b5266deb);
+  color: #fff;
+  backdrop-filter: blur(12px);
+  --bella-muted: #fff0f8;
+  --bella-line: #ffffff50;
+  --bella-soft: #ffffff24;
+  --bella-ink: #fff;
+}
+.bella-context,
+.bella-footer {
+  background: #fffffff0;
+  backdrop-filter: blur(12px);
+}
+.dark .bella-context,
+.dark .bella-footer {
+  background: #241725eb;
+}
+.bella-transcript {
+  background: #ffffff18;
+}
+.dark .bella-transcript {
+  background: #14091945;
+}
+.bella-assistant .bella-bubble {
+  background: #fffffff0;
+  padding: 13px 15px;
+  border-radius: 16px 16px 16px 4px;
+}
+.dark .bella-assistant .bella-bubble {
+  background: #241725ed;
+}
+.bella-message-label {
+  width: fit-content;
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--bella-bg);
+}
+.bella-feature-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 15px;
+  background: #fffffff0;
+  margin-bottom: 14px;
+}
+.bella-feature-heading > svg {
+  color: var(--bella-accent);
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.bella-feature-heading h3 {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.bella-feature-heading p {
+  margin-top: 5px;
+  color: var(--bella-muted);
+  font-size: 11px;
+}
+.bella-feature-group {
+  padding: 14px;
+  margin-bottom: 12px;
+  background: #ffffffe8;
+  border: 1px solid #ffffffb0;
+  border-radius: 15px;
+}
+.dark .bella-feature-group,
+.dark .bella-feature-heading {
+  background: #241725e8;
+  border-color: #ffffff25;
+}
+.bella-feature-group h4 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 11px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.bella-feature-group h4 span {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--bella-muted);
+}
+.bella-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+.bella-feature-grid button,
+.bella-feature-grid a {
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  padding: 8px 9px;
+  font-size: 11px;
+  line-height: 1.4;
+  border: 1px solid var(--bella-line);
+  border-radius: 9px;
+  background: var(--bella-bg);
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+.bella-feature-grid button:hover,
+.bella-feature-grid a:hover {
+  border-color: var(--bella-accent);
+  background: var(--bella-soft);
+}
+.bella-feature-grid svg {
+  flex-shrink: 0;
+  color: var(--bella-accent);
 }
 .bella-header {
   padding: 20px 18px 17px;
@@ -124,7 +238,7 @@
   right: 0;
   width: 11px;
   height: 11px;
-  background: #5caa78;
+  background: #ec4899;
   border: 2px solid var(--bella-bg);
   border-radius: 50%;
 }
@@ -188,7 +302,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #5caa78;
+  background: #ec4899;
 }
 .bella-context button {
   color: var(--bella-accent);
@@ -201,82 +315,6 @@
   overscroll-behavior: contain;
   padding: 25px 22px 18px;
   scrollbar-width: thin;
-}
-.bella-intro {
-  margin-bottom: 24px;
-}
-.bella-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--bella-accent);
-  font-size: 8px;
-  letter-spacing: 1.15px;
-  font-weight: 600;
-}
-.bella-intro h3 {
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 31px;
-  font-weight: 400;
-  line-height: 1.12;
-  letter-spacing: -1px;
-  margin: 15px 0 12px;
-}
-.bella-intro > p {
-  font-size: 12px;
-  line-height: 1.7;
-  max-width: 340px;
-  color: var(--bella-muted);
-}
-.bella-starters {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 9px;
-  margin-top: 22px;
-}
-.bella-starters button {
-  position: relative;
-  text-align: left;
-  border: 1px solid var(--bella-line);
-  padding: 15px 12px;
-  border-radius: 13px;
-  background: var(--bella-bg);
-  transition:
-    background 0.15s,
-    border-color 0.15s;
-}
-.bella-starters button:hover {
-  background: var(--bella-soft);
-  border-color: var(--bella-accent);
-}
-.bella-starters button > svg:first-child {
-  color: var(--bella-accent);
-  margin-bottom: 16px;
-}
-.bella-starters button > svg:last-child {
-  position: absolute;
-  top: 14px;
-  right: 11px;
-  color: var(--bella-muted);
-}
-.bella-starters strong {
-  display: block;
-  font-size: 11px;
-  font-weight: 600;
-}
-.bella-starters span {
-  display: block;
-  font-size: 9px;
-  color: var(--bella-muted);
-  margin-top: 5px;
-  line-height: 1.5;
-}
-.bella-example {
-  display: block;
-  text-align: center;
-  color: var(--bella-muted);
-  font-size: 10px;
-  margin-top: 16px;
 }
 .bella-message {
   margin: 0 0 20px;
@@ -519,7 +557,7 @@
   height: 36px;
   border-radius: 10px;
   flex-shrink: 0;
-  background: #205c47;
+  background: #c32972;
   color: white;
 }
 .bella-footnote {
@@ -567,15 +605,16 @@
   .bella-launcher {
     bottom: 90px;
     right: 16px;
-    padding: 6px 13px 6px 6px;
-    gap: 8px;
+    width: 54px;
+    height: 54px;
+    padding: 3px;
   }
   .bella-launcher small {
     display: none;
   }
   .bella-launcher-avatar img {
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
   }
   .bella-intro h3 {
     font-size: 29px;
